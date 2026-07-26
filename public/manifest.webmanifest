@@ -1,0 +1,15 @@
+{
+  "name": "YourWorld",
+  "short_name": "YW",
+  "description": "Moments, feed and full-screen reels in one dark, fast social app.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e0e14",
+  "theme_color": "#0e0e14",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
