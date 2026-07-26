@@ -58,12 +58,12 @@ export function Stories() {
                 className="h-full w-full object-cover"
               />
               <div className="absolute inset-x-0 top-0 p-3">
-                <div className="h-0.5 w-full overflow-hidden rounded-full bg-white/25">
-                  <div className="h-full w-1/3 rounded-full bg-white" />
+                <div className="h-0.5 w-full overflow-hidden rounded-full bg-foreground/25">
+                  <div className="h-full w-1/3 rounded-full bg-foreground" />
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                   <YwAvatar user={byId(open.userId)} size={32} />
-                  <span className="text-sm font-semibold text-white drop-shadow">
+                  <span className="text-sm font-semibold text-foreground drop-shadow">
                     @{byId(open.userId).username}
                   </span>
                 </div>
