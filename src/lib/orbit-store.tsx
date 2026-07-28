@@ -151,6 +151,11 @@ export function useOrbit() {
   return ctx;
 }
 
+/** Safe outside the Orbit route tree — returns null when no provider is mounted. */
+export function useOrbitOptional() {
+  return useContext(OrbitContext);
+}
+
 export const LOCKED_MESSAGE = "Create your Orbit Profile to unlock all Orbit features.";
 
 /**
