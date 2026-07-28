@@ -18,6 +18,8 @@ import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
+import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
+import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -65,6 +67,16 @@ const ChatIndexRoute = ChatIndexRouteImport.update({
   path: '/chat/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => OrbitRoute,
+} as any)
+const OrbitCreateRoute = OrbitCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => OrbitRoute,
+} as any)
 const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   id: '/chat/$threadId',
   path: '/chat/$threadId',
@@ -80,6 +92,8 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/privacy': typeof OrbitPrivacyRoute
   '/chat/': typeof ChatIndexRoute
   '/orbit/': typeof OrbitIndexRoute
 }
@@ -91,6 +105,8 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/privacy': typeof OrbitPrivacyRoute
   '/chat': typeof ChatIndexRoute
   '/orbit': typeof OrbitIndexRoute
 }
@@ -104,6 +120,8 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/privacy': typeof OrbitPrivacyRoute
   '/chat/': typeof ChatIndexRoute
   '/orbit/': typeof OrbitIndexRoute
 }
@@ -118,6 +136,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
+    | '/orbit/create'
+    | '/orbit/privacy'
     | '/chat/'
     | '/orbit/'
   fileRoutesByTo: FileRoutesByTo
@@ -129,6 +149,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
+    | '/orbit/create'
+    | '/orbit/privacy'
     | '/chat'
     | '/orbit'
   id:
@@ -141,6 +163,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
+    | '/orbit/create'
+    | '/orbit/privacy'
     | '/chat/'
     | '/orbit/'
   fileRoutesById: FileRoutesById
@@ -222,6 +246,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orbit/privacy': {
+      id: '/orbit/privacy'
+      path: '/privacy'
+      fullPath: '/orbit/privacy'
+      preLoaderRoute: typeof OrbitPrivacyRouteImport
+      parentRoute: typeof OrbitRoute
+    }
+    '/orbit/create': {
+      id: '/orbit/create'
+      path: '/create'
+      fullPath: '/orbit/create'
+      preLoaderRoute: typeof OrbitCreateRouteImport
+      parentRoute: typeof OrbitRoute
+    }
     '/chat/$threadId': {
       id: '/chat/$threadId'
       path: '/chat/$threadId'
@@ -233,10 +271,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface OrbitRouteChildren {
+  OrbitCreateRoute: typeof OrbitCreateRoute
+  OrbitPrivacyRoute: typeof OrbitPrivacyRoute
   OrbitIndexRoute: typeof OrbitIndexRoute
 }
 
 const OrbitRouteChildren: OrbitRouteChildren = {
+  OrbitCreateRoute: OrbitCreateRoute,
+  OrbitPrivacyRoute: OrbitPrivacyRoute,
   OrbitIndexRoute: OrbitIndexRoute,
 }
 
