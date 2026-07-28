@@ -24,9 +24,12 @@ import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 import { Route as ChannelVideosRouteImport } from './routes/channel.videos'
+import { Route as ChannelSubscribersRouteImport } from './routes/channel.subscribers'
 import { Route as ChannelReelsRouteImport } from './routes/channel.reels'
 import { Route as ChannelPostsRouteImport } from './routes/channel.posts'
+import { Route as ChannelMonetizationRouteImport } from './routes/channel.monetization'
 import { Route as ChannelCreateRouteImport } from './routes/channel.create'
+import { Route as ChannelAnalyticsRouteImport } from './routes/channel.analytics'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -103,6 +106,11 @@ const ChannelVideosRoute = ChannelVideosRouteImport.update({
   path: '/videos',
   getParentRoute: () => ChannelRoute,
 } as any)
+const ChannelSubscribersRoute = ChannelSubscribersRouteImport.update({
+  id: '/subscribers',
+  path: '/subscribers',
+  getParentRoute: () => ChannelRoute,
+} as any)
 const ChannelReelsRoute = ChannelReelsRouteImport.update({
   id: '/reels',
   path: '/reels',
@@ -113,9 +121,19 @@ const ChannelPostsRoute = ChannelPostsRouteImport.update({
   path: '/posts',
   getParentRoute: () => ChannelRoute,
 } as any)
+const ChannelMonetizationRoute = ChannelMonetizationRouteImport.update({
+  id: '/monetization',
+  path: '/monetization',
+  getParentRoute: () => ChannelRoute,
+} as any)
 const ChannelCreateRoute = ChannelCreateRouteImport.update({
   id: '/create',
   path: '/create',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const ChannelAnalyticsRoute = ChannelAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => ChannelRoute,
 } as any)
 
@@ -128,9 +146,12 @@ export interface FileRoutesByFullPath {
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
+  '/channel/monetization': typeof ChannelMonetizationRoute
   '/channel/posts': typeof ChannelPostsRoute
   '/channel/reels': typeof ChannelReelsRoute
+  '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
@@ -146,9 +167,12 @@ export interface FileRoutesByTo {
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
+  '/channel/monetization': typeof ChannelMonetizationRoute
   '/channel/posts': typeof ChannelPostsRoute
   '/channel/reels': typeof ChannelReelsRoute
+  '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
@@ -167,9 +191,12 @@ export interface FileRoutesById {
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
+  '/channel/monetization': typeof ChannelMonetizationRoute
   '/channel/posts': typeof ChannelPostsRoute
   '/channel/reels': typeof ChannelReelsRoute
+  '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
@@ -189,9 +216,12 @@ export interface FileRouteTypes {
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
+    | '/channel/analytics'
     | '/channel/create'
+    | '/channel/monetization'
     | '/channel/posts'
     | '/channel/reels'
+    | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
     | '/orbit/create'
@@ -207,9 +237,12 @@ export interface FileRouteTypes {
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
+    | '/channel/analytics'
     | '/channel/create'
+    | '/channel/monetization'
     | '/channel/posts'
     | '/channel/reels'
+    | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
     | '/orbit/create'
@@ -227,9 +260,12 @@ export interface FileRouteTypes {
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
+    | '/channel/analytics'
     | '/channel/create'
+    | '/channel/monetization'
     | '/channel/posts'
     | '/channel/reels'
+    | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
     | '/orbit/create'
@@ -359,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelVideosRouteImport
       parentRoute: typeof ChannelRoute
     }
+    '/channel/subscribers': {
+      id: '/channel/subscribers'
+      path: '/subscribers'
+      fullPath: '/channel/subscribers'
+      preLoaderRoute: typeof ChannelSubscribersRouteImport
+      parentRoute: typeof ChannelRoute
+    }
     '/channel/reels': {
       id: '/channel/reels'
       path: '/reels'
@@ -373,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelPostsRouteImport
       parentRoute: typeof ChannelRoute
     }
+    '/channel/monetization': {
+      id: '/channel/monetization'
+      path: '/monetization'
+      fullPath: '/channel/monetization'
+      preLoaderRoute: typeof ChannelMonetizationRouteImport
+      parentRoute: typeof ChannelRoute
+    }
     '/channel/create': {
       id: '/channel/create'
       path: '/create'
@@ -380,21 +430,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelCreateRouteImport
       parentRoute: typeof ChannelRoute
     }
+    '/channel/analytics': {
+      id: '/channel/analytics'
+      path: '/analytics'
+      fullPath: '/channel/analytics'
+      preLoaderRoute: typeof ChannelAnalyticsRouteImport
+      parentRoute: typeof ChannelRoute
+    }
   }
 }
 
 interface ChannelRouteChildren {
+  ChannelAnalyticsRoute: typeof ChannelAnalyticsRoute
   ChannelCreateRoute: typeof ChannelCreateRoute
+  ChannelMonetizationRoute: typeof ChannelMonetizationRoute
   ChannelPostsRoute: typeof ChannelPostsRoute
   ChannelReelsRoute: typeof ChannelReelsRoute
+  ChannelSubscribersRoute: typeof ChannelSubscribersRoute
   ChannelVideosRoute: typeof ChannelVideosRoute
   ChannelIndexRoute: typeof ChannelIndexRoute
 }
 
 const ChannelRouteChildren: ChannelRouteChildren = {
+  ChannelAnalyticsRoute: ChannelAnalyticsRoute,
   ChannelCreateRoute: ChannelCreateRoute,
+  ChannelMonetizationRoute: ChannelMonetizationRoute,
   ChannelPostsRoute: ChannelPostsRoute,
   ChannelReelsRoute: ChannelReelsRoute,
+  ChannelSubscribersRoute: ChannelSubscribersRoute,
   ChannelVideosRoute: ChannelVideosRoute,
   ChannelIndexRoute: ChannelIndexRoute,
 }
