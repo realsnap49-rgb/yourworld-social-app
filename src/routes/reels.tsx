@@ -1,6 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Heart, MessageCircle, Send, Bookmark, Download, Music2, Lock } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  Download,
+  Music2,
+  Lock,
+  MoreVertical,
+  EyeOff,
+  UserX,
+  Flag,
+  VolumeX,
+  Star,
+} from "lucide-react";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { ShareSheet } from "@/components/yw/ShareSheet";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
@@ -87,6 +101,7 @@ function ReelItem({ reel, active }: { reel: Reel; active: boolean }) {
   const { liked, saved, following, toggleLike, toggleSave, toggleFollow } = useYw();
   const { burst, onDoubleTap } = useDoubleTapLike(reel.id);
   const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const lastTap = useRef(0);
   const isLiked = !!liked[reel.id];
   const isSaved = !!saved[reel.id];
@@ -269,39 +284,80 @@ function ReelItem({ reel, active }: { reel: Reel; active: boolean }) {
         >
           <Heart
             strokeWidth={1.6}
-            className={cn("h-[22px] w-[22px]", isLiked && "fill-primary text-primary")}
+            className={cn("h-[18px] w-[18px]", isLiked && "fill-primary text-primary")}
           />
         </Action>
 
         <CommentsSheet comments={commentSeed}>
           <Action label={formatCount(reel.commentCount)}>
-            <MessageCircle strokeWidth={1.6} className="h-[22px] w-[22px]" />
+            <MessageCircle strokeWidth={1.6} className="h-[18px] w-[18px]" />
           </Action>
         </CommentsSheet>
 
         <ShareSheet title={reel.caption}>
           <Action label={formatCount(reel.shares)}>
-            <Send strokeWidth={1.6} className="h-[22px] w-[22px]" />
+            <Send strokeWidth={1.6} className="h-[18px] w-[18px]" />
           </Action>
         </ShareSheet>
 
         <Action onClick={() => toggleSave(reel.id)} label="Save" active={isSaved}>
-          <Bookmark strokeWidth={1.6} className={cn("h-[22px] w-[22px]", isSaved && "fill-foreground")} />
+          <Bookmark strokeWidth={1.6} className={cn("h-[18px] w-[18px]", isSaved && "fill-foreground")} />
         </Action>
 
         {reel.allowDownload ? (
           <Action onClick={handleDownload} label="Save">
-            <Download strokeWidth={1.6} className="h-[22px] w-[22px]" />
+            <Download strokeWidth={1.6} className="h-[18px] w-[18px]" />
           </Action>
         ) : (
           <Action
             onClick={() => toast("The creator turned downloads off for this reel")}
             label="Off"
           >
-            <Lock strokeWidth={1.6} className="h-[20px] w-[20px] text-muted-foreground" />
+            <Lock strokeWidth={1.6} className="h-[17px] w-[17px] text-muted-foreground" />
           </Action>
         )}
+
+        <div className="relative">
+          <Action onClick={() => setMenuOpen((v) => !v)} label="More">
+            <MoreVertical strokeWidth={1.6} className="h-[18px] w-[18px]" />
+          </Action>
+        </div>
       </div>
+
+      {menuOpen && (
+        <>
+          <button
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className="absolute inset-0 z-40 cursor-default bg-background/30 backdrop-blur-[2px]"
+          />
+          <div
+            role="menu"
+            className="absolute bottom-16 right-3 z-50 w-56 overflow-hidden rounded-2xl border border-border/60 bg-background/85 shadow-2xl backdrop-blur-xl animate-rise"
+          >
+            {[
+              { icon: EyeOff, label: "Not Interested" },
+              { icon: UserX, label: "Don't Recommend Creator" },
+              { icon: Flag, label: "Report" },
+              { icon: VolumeX, label: "Mute Creator" },
+              { icon: Star, label: "Add to Favorites" },
+            ].map(({ icon: Icon, label }) => (
+              <button
+                key={label}
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  toast(label);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] font-medium transition-colors hover:bg-foreground/10"
+              >
+                <Icon strokeWidth={1.6} className="h-[17px] w-[17px] text-muted-foreground" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* timeline / scrubber */}
       <div
@@ -359,12 +415,12 @@ function Action({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-14 flex-col items-center gap-1 text-foreground/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 active:scale-90",
+        "flex w-12 flex-col items-center gap-0.5 text-foreground/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 active:scale-90",
         active && "animate-pop",
       )}
     >
       {children}
-      <span className="w-full truncate text-[10px] font-medium tracking-wide text-foreground/80">
+      <span className="w-full truncate text-[9px] font-medium tracking-wide text-foreground/75">
         {label}
       </span>
     </button>
