@@ -15,6 +15,7 @@ import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as ChannelRouteImport } from './routes/channel'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
@@ -52,6 +53,11 @@ const CreateRoute = CreateRouteImport.update({
   path: '/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChannelRoute = ChannelRouteImport.update({
+  id: '/channel',
+  path: '/channel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -85,6 +91,7 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/channel': typeof ChannelRoute
   '/create': typeof CreateRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/channel': typeof ChannelRoute
   '/create': typeof CreateRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/channel': typeof ChannelRoute
   '/create': typeof CreateRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/channel'
     | '/create'
     | '/orbit'
     | '/profile'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/channel'
     | '/create'
     | '/profile'
     | '/reels'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/channel'
     | '/create'
     | '/orbit'
     | '/profile'
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChannelRoute: typeof ChannelRoute
   CreateRoute: typeof CreateRoute
   OrbitRoute: typeof OrbitRouteWithChildren
   ProfileRoute: typeof ProfileRoute
@@ -223,6 +236,13 @@ declare module '@tanstack/react-router' {
       path: '/create'
       fullPath: '/create'
       preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channel': {
+      id: '/channel'
+      path: '/channel'
+      fullPath: '/channel'
+      preLoaderRoute: typeof ChannelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -286,6 +306,7 @@ const OrbitRouteWithChildren = OrbitRoute._addFileChildren(OrbitRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChannelRoute: ChannelRoute,
   CreateRoute: CreateRoute,
   OrbitRoute: OrbitRouteWithChildren,
   ProfileRoute: ProfileRoute,
