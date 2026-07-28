@@ -10,6 +10,7 @@ import {
 
 export type OrbitVisibility = "public" | "friends" | "hidden";
 export type OrbitAudience = "everyone" | "connections" | "nobody";
+export type OrbitVerification = "none" | "pending" | "verified";
 
 export type OrbitProfileDraft = {
   name: string;
@@ -35,6 +36,12 @@ export type OrbitPrivacy = {
   blocked: string[];
   screenshotProtection: boolean;
   approximateLocationOnly: true;
+  /** On-device heuristic scan that flags likely fake profiles. */
+  aiFakeDetection: boolean;
+  /** Hide profiles the scan flags instead of just labelling them. */
+  hideFlaggedProfiles: boolean;
+  /** Optional — a badge is never required to use Orbit. */
+  verification: OrbitVerification;
 };
 
 export type OrbitState = {
@@ -58,6 +65,9 @@ const defaultPrivacy: OrbitPrivacy = {
   blocked: [],
   screenshotProtection: true,
   approximateLocationOnly: true,
+  aiFakeDetection: true,
+  hideFlaggedProfiles: false,
+  verification: "none",
 };
 
 const defaultState: OrbitState = {
