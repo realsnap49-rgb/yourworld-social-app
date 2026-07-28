@@ -2,6 +2,7 @@ import reel1 from "@/assets/reel-1.jpg";
 import reel2 from "@/assets/reel-2.jpg";
 import reel3 from "@/assets/reel-3.jpg";
 import post1 from "@/assets/post-1.jpg";
+import type { OrbitMoodId } from "@/lib/orbit-mood";
 
 export type OrbitProfile = {
   id: string;
@@ -17,6 +18,8 @@ export type OrbitProfile = {
   photo: string;
   hue: number;
   verified?: boolean;
+  /** Optional — why this person is on Orbit right now. */
+  mood?: OrbitMoodId;
 };
 
 /** Distance is always bucketed so an exact position can never be derived. */
@@ -42,6 +45,7 @@ export const orbitProfiles: OrbitProfile[] = [
     photo: reel1,
     hue: 300,
     verified: true,
+    mood: "photography",
   },
   {
     id: "o2",
@@ -55,6 +59,7 @@ export const orbitProfiles: OrbitProfile[] = [
     interests: ["Surf", "Ocean", "Travel", "Coffee"],
     photo: reel2,
     hue: 190,
+    mood: "travel",
   },
   {
     id: "o3",
@@ -69,6 +74,7 @@ export const orbitProfiles: OrbitProfile[] = [
     photo: reel3,
     hue: 40,
     verified: true,
+    mood: "music",
   },
   {
     id: "o4",
@@ -82,6 +88,7 @@ export const orbitProfiles: OrbitProfile[] = [
     interests: ["Food", "Baking", "Markets", "Vinyl"],
     photo: post1,
     hue: 15,
+    mood: "coffee",
   },
   {
     id: "o5",
@@ -95,6 +102,7 @@ export const orbitProfiles: OrbitProfile[] = [
     interests: ["Music", "Synths", "Running", "Books"],
     photo: reel2,
     hue: 250,
+    mood: "workout",
   },
   {
     id: "o6",
@@ -108,6 +116,7 @@ export const orbitProfiles: OrbitProfile[] = [
     interests: ["Plants", "Ceramics", "Hiking", "Tea"],
     photo: reel1,
     hue: 150,
+    mood: "friends",
   },
 ];
 

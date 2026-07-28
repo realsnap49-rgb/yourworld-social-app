@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { OrbitMoodId } from "@/lib/orbit-mood";
 
 export type OrbitVisibility = "public" | "friends" | "hidden";
 export type OrbitAudience = "everyone" | "connections" | "nobody";
@@ -20,6 +21,8 @@ export type OrbitProfileDraft = {
   headline: string;
   about: string;
   interests: string[];
+  /** Optional — never required to use Orbit. */
+  mood?: OrbitMoodId | null;
 };
 
 export type OrbitPrivacy = {
@@ -42,6 +45,8 @@ export type OrbitPrivacy = {
   hideFlaggedProfiles: boolean;
   /** Optional — a badge is never required to use Orbit. */
   verification: OrbitVerification;
+  /** Mood is private by default in the sense that it is never shown unless on. */
+  showMood: boolean;
 };
 
 export type OrbitState = {
@@ -68,6 +73,7 @@ const defaultPrivacy: OrbitPrivacy = {
   aiFakeDetection: true,
   hideFlaggedProfiles: false,
   verification: "none",
+  showMood: true,
 };
 
 const defaultState: OrbitState = {
@@ -83,6 +89,7 @@ type Ctx = OrbitState & {
   hasProfile: boolean;
   hydrated: boolean;
   saveProfile: (p: OrbitProfileDraft) => void;
+  setMood: (mood: OrbitMoodId | null) => void;
   setPrivacy: (patch: Partial<OrbitPrivacy>) => void;
   toggleHiddenFrom: (id: string) => void;
   toggleBlocked: (id: string) => void;
@@ -137,6 +144,8 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
       hydrated,
       hasProfile: state.profile !== null,
       saveProfile: (p) => setState((s) => ({ ...s, profile: p })),
+      setMood: (mood) =>
+        setState((s) => (s.profile ? { ...s, profile: { ...s.profile, mood } } : s)),
       setPrivacy,
       toggleHiddenFrom: (id) =>
         setState((s) => ({
