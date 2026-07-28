@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Heart, MessageCircle, Send, Bookmark, Download, Music2, Lock } from "lucide-react";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { ShareSheet } from "@/components/yw/ShareSheet";
@@ -32,17 +32,57 @@ export const Route = createFileRoute("/reels")({
 function ReelsPage() {
   return (
     <main
+      id="yw-reels-scroller"
       className="no-scrollbar h-[calc(100dvh-4.75rem)] snap-y snap-mandatory overflow-y-scroll bg-background"
       aria-label="Reels"
     >
-      {reels.map((reel) => (
-        <ReelItem key={reel.id} reel={reel} />
-      ))}
+      <ReelsList />
     </main>
   );
 }
 
-function ReelItem({ reel }: { reel: Reel }) {
+function ReelsList() {
+  const [active, setActive] = useState(0);
+  const nodes = useRef<(HTMLElement | null)[]>([]);
+
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (entries) => {
+        let best: { i: number; ratio: number } | null = null;
+        for (const e of entries) {
+          const i = Number((e.target as HTMLElement).dataset.index);
+          if (!best || e.intersectionRatio > best.ratio) best = { i, ratio: e.intersectionRatio };
+        }
+        if (best && best.ratio > 0.5) setActive(best.i);
+      },
+      { threshold: [0, 0.5, 0.75, 1] },
+    );
+    nodes.current.forEach((n) => n && io.observe(n));
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <>
+      {reels.map((reel, i) => (
+        <section
+          key={reel.id}
+          data-index={i}
+          ref={(el) => {
+            nodes.current[i] = el;
+          }}
+          className="relative h-[calc(100dvh-4.75rem)] w-full snap-start snap-always overflow-hidden [contain:layout_paint_size] [content-visibility:auto]"
+        >
+          {/* window: only current, 1 previous and 1 next are mounted */}
+          {Math.abs(i - active) <= 1 ? <ReelItem reel={reel} active={i === active} /> : null}
+        </section>
+      ))}
+    </>
+  );
+}
+
+const REEL_DURATION = 15; // seconds per reel (image-backed demo media)
+
+function ReelItem({ reel, active }: { reel: Reel; active: boolean }) {
   const user = byId(reel.userId);
   const { liked, saved, following, toggleLike, toggleSave, toggleFollow } = useYw();
   const { burst, onDoubleTap } = useDoubleTapLike(reel.id);
@@ -51,6 +91,94 @@ function ReelItem({ reel }: { reel: Reel }) {
   const isLiked = !!liked[reel.id];
   const isSaved = !!saved[reel.id];
   const commentSeed = posts[0].comments;
+
+  // ---- playback timeline -------------------------------------------------
+  const [progress, setProgress] = useState(0); // 0..1
+  const [scrubbing, setScrubbing] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
+  const lastTs = useRef(0);
+
+  useEffect(() => {
+    if (!active || scrubbing) return;
+    lastTs.current = performance.now();
+    const tick = (ts: number) => {
+      const dt = (ts - lastTs.current) / 1000;
+      lastTs.current = ts;
+      setProgress((p) => (p + dt / REEL_DURATION) % 1);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active, scrubbing]);
+
+  const seekFromEvent = useCallback((clientX: number) => {
+    const el = barRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setProgress(Math.min(1, Math.max(0, (clientX - r.left) / r.width)));
+  }, []);
+
+  const onBarPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    setScrubbing(true);
+    seekFromEvent(e.clientX);
+  };
+  const onBarPointerMove = (e: React.PointerEvent) => {
+    if (!scrubbing) return;
+    e.stopPropagation();
+    seekFromEvent(e.clientX);
+  };
+  const endScrub = () => setScrubbing(false);
+
+  // ---- pinch to zoom -----------------------------------------------------
+  const mediaRef = useRef<HTMLImageElement>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchStart = useRef({ dist: 0, scale: 1 });
+  const transform = useRef({ scale: 1, x: 0, y: 0 });
+
+  const applyTransform = () => {
+    const el = mediaRef.current;
+    if (!el) return;
+    const { scale, x, y } = transform.current;
+    el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinchStart.current = {
+        dist: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        scale: transform.current.scale,
+      };
+      const el = mediaRef.current;
+      if (el) el.style.transition = "none";
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size !== 2) return;
+    e.preventDefault();
+    const [a, b] = [...pointers.current.values()];
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    const scale = Math.min(4, Math.max(1, (dist / pinchStart.current.dist) * pinchStart.current.scale));
+    transform.current.scale = scale;
+    applyTransform();
+  };
+
+  const releasePointer = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2 && transform.current.scale !== 1) {
+      transform.current = { scale: 1, x: 0, y: 0 };
+      const el = mediaRef.current;
+      if (el) el.style.transition = "transform 260ms cubic-bezier(.22,1,.36,1)";
+      applyTransform();
+    }
+  };
 
   const handleTap = () => {
     const now = Date.now();
@@ -68,12 +196,26 @@ function ReelItem({ reel }: { reel: Reel }) {
   };
 
   return (
-    <section className="relative h-[calc(100dvh-4.75rem)] w-full snap-start snap-always overflow-hidden">
-      <div className="absolute inset-0" onClick={handleTap} onDoubleClick={onDoubleTap}>
+    <>
+      <div
+        className="absolute inset-0 touch-pan-y overflow-hidden"
+        onClick={handleTap}
+        onDoubleClick={onDoubleTap}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={releasePointer}
+        onPointerCancel={releasePointer}
+      >
         <img
+          ref={mediaRef}
           src={reel.poster}
           alt={reel.caption}
-          className="h-full w-full animate-kenburns object-cover"
+          decoding="async"
+          loading="eager"
+          className={cn(
+            "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
+            active && "animate-kenburns",
+          )}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
       </div>
@@ -119,45 +261,86 @@ function ReelItem({ reel }: { reel: Reel }) {
         </p>
       </div>
 
-      <div className="absolute bottom-6 right-2 flex flex-col items-center gap-5">
+      <div className="absolute bottom-14 right-2 flex flex-col items-center gap-4">
         <Action
           onClick={() => toggleLike(reel.id)}
           label={formatCount(reel.likes + (isLiked ? 1 : 0))}
           active={isLiked}
         >
-          <Heart className={cn("h-7 w-7", isLiked && "fill-primary text-primary")} />
+          <Heart
+            strokeWidth={1.6}
+            className={cn("h-[22px] w-[22px]", isLiked && "fill-primary text-primary")}
+          />
         </Action>
 
         <CommentsSheet comments={commentSeed}>
           <Action label={formatCount(reel.commentCount)}>
-            <MessageCircle className="h-7 w-7" />
+            <MessageCircle strokeWidth={1.6} className="h-[22px] w-[22px]" />
           </Action>
         </CommentsSheet>
 
         <ShareSheet title={reel.caption}>
           <Action label={formatCount(reel.shares)}>
-            <Send className="h-7 w-7" />
+            <Send strokeWidth={1.6} className="h-[22px] w-[22px]" />
           </Action>
         </ShareSheet>
 
         <Action onClick={() => toggleSave(reel.id)} label="Save" active={isSaved}>
-          <Bookmark className={cn("h-7 w-7", isSaved && "fill-foreground")} />
+          <Bookmark strokeWidth={1.6} className={cn("h-[22px] w-[22px]", isSaved && "fill-foreground")} />
         </Action>
 
         {reel.allowDownload ? (
-          <Action onClick={handleDownload} label="Save to device">
-            <Download className="h-7 w-7" />
+          <Action onClick={handleDownload} label="Save">
+            <Download strokeWidth={1.6} className="h-[22px] w-[22px]" />
           </Action>
         ) : (
           <Action
             onClick={() => toast("The creator turned downloads off for this reel")}
             label="Off"
           >
-            <Lock className="h-6 w-6 text-muted-foreground" />
+            <Lock strokeWidth={1.6} className="h-[20px] w-[20px] text-muted-foreground" />
           </Action>
         )}
       </div>
-    </section>
+
+      {/* timeline / scrubber */}
+      <div
+        ref={barRef}
+        role="slider"
+        aria-label="Seek"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress * 100)}
+        tabIndex={0}
+        onPointerDown={onBarPointerDown}
+        onPointerMove={onBarPointerMove}
+        onPointerUp={endScrub}
+        onPointerCancel={endScrub}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute inset-x-0 bottom-0 flex touch-none cursor-pointer items-end px-3 pb-3 pt-6"
+      >
+        <div className="relative w-full">
+          <div
+            className={cn(
+              "w-full overflow-hidden rounded-full bg-foreground/20 transition-all duration-200",
+              scrubbing ? "h-1.5" : "h-[3px]",
+            )}
+          >
+            <div
+              className="h-full rounded-full bg-foreground"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+          <span
+            className={cn(
+              "pointer-events-none absolute top-1/2 -ml-[7px] h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-foreground shadow-lg transition-transform duration-200",
+              scrubbing ? "scale-100" : "scale-0",
+            )}
+            style={{ left: `${progress * 100}%` }}
+          />
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -176,12 +359,14 @@ function Action({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-14 flex-col items-center gap-1 drop-shadow transition-transform active:scale-90",
+        "flex w-14 flex-col items-center gap-1 text-foreground/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 active:scale-90",
         active && "animate-pop",
       )}
     >
       {children}
-      <span className="w-full truncate text-[11px] font-semibold">{label}</span>
+      <span className="w-full truncate text-[10px] font-medium tracking-wide text-foreground/80">
+        {label}
+      </span>
     </button>
   );
 }
