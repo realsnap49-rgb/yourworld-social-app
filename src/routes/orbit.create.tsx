@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useOrbit, type OrbitProfileDraft } from "@/lib/orbit-store";
+import { ORBIT_MOODS } from "@/lib/orbit-mood";
 
 export const Route = createFileRoute("/orbit/create")({
   head: () => ({
@@ -57,6 +58,7 @@ function OrbitCreate() {
       headline: "",
       about: "",
       interests: [],
+      mood: null,
     },
   );
 
@@ -171,6 +173,35 @@ function OrbitCreate() {
           />
           <p className="pt-1 text-right text-[11px] text-muted-foreground">
             {draft.about.length}/300
+          </p>
+        </Field>
+
+        <Field label="Interests">
+          <div className="hidden" />
+        </Field>
+
+        <Field label="Orbit Mood (optional)">
+          <div className="flex flex-wrap gap-2">
+            {ORBIT_MOODS.map((m) => {
+              const active = draft.mood === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => set("mood", active ? null : m.id)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
+                    active ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  <span aria-hidden className="mr-1">{m.emoji}</span>
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="pt-2 text-[11px] text-muted-foreground">
+            Optional. Helps Orbit show people looking for the same thing — change it anytime.
           </p>
         </Field>
 
