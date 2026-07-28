@@ -1,6 +1,25 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Camera, Image as ImageIcon, Mic, SendHorizonal, Check, CheckCheck, Play, Phone, Video } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Image as ImageIcon,
+  Mic,
+  SendHorizonal,
+  Check,
+  CheckCheck,
+  Play,
+  Phone,
+  Video,
+  MoreVertical,
+  Pencil,
+  Lock,
+  EyeOff,
+  Timer,
+  BellOff,
+  UserX,
+  Flag,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { VideoCallSheet } from "@/components/yw/VideoCallSheet";
@@ -53,6 +72,7 @@ function ThreadPage() {
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
   const [videoCall, setVideoCall] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const lead = byId(thread.userIds[0]);
 
   const send = () => {
@@ -91,7 +111,7 @@ function ThreadPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100dvh-4.75rem)] flex-col">
+    <div className="relative flex min-h-[calc(100dvh-4.75rem)] flex-col">
       <header className="sticky top-0 z-40 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-border glass px-3 py-2.5">
         <Link to="/chat" aria-label="Back" className="p-1">
           <ArrowLeft className="h-5 w-5" />
@@ -112,8 +132,48 @@ function ThreadPage() {
           <button aria-label="Video call" onClick={() => setVideoCall(true)} className="p-1">
             <Video className="h-5 w-5" strokeWidth={1.7} />
           </button>
+          <button aria-label="More options" onClick={() => setMenuOpen((v) => !v)} className="p-1">
+            <MoreVertical className="h-5 w-5" strokeWidth={1.7} />
+          </button>
         </div>
       </header>
+
+      {menuOpen && (
+        <>
+          <button
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className="fixed inset-0 z-40 cursor-default bg-background/30 backdrop-blur-[2px]"
+          />
+          <div
+            role="menu"
+            className="absolute right-3 top-14 z-50 w-60 overflow-hidden rounded-2xl border border-border/60 bg-background/85 shadow-2xl backdrop-blur-xl animate-rise"
+          >
+            {[
+              { icon: Pencil, label: "Change Display Name" },
+              { icon: Lock, label: "Secret Lock Chat" },
+              { icon: EyeOff, label: "View Once Mode" },
+              { icon: Timer, label: "Auto Delete Messages" },
+              { icon: BellOff, label: "Mute Notifications" },
+              { icon: UserX, label: "Block User" },
+              { icon: Flag, label: "Report User" },
+            ].map(({ icon: Icon, label }) => (
+              <button
+                key={label}
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  toast(label);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] font-medium transition-colors hover:bg-foreground/10"
+              >
+                <Icon strokeWidth={1.6} className="h-[17px] w-[17px] text-muted-foreground" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <VideoCallSheet open={videoCall} onClose={() => setVideoCall(false)} peer={lead} title={thread.title} />
 
