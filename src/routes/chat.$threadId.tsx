@@ -82,7 +82,7 @@ function ThreadPage() {
   // Unlocked once you're connected in Orbit, or the conversation has started.
   const meetupUnlocked =
     thread.kind !== "group" &&
-    (messages.length > 0 || thread.userIds.some((id) => connected[id]));
+    (messages.length > 0 || thread.userIds.some((id: string) => connected[id]));
 
   const pushMessage = (body: string) =>
     setMessages((p) => [
@@ -215,7 +215,9 @@ function ThreadPage() {
                   mine ? "brand-gradient text-primary-foreground" : "bg-secondary",
                 )}
               >
-                {m.kind === "text" && <p className="break-words">{m.body}</p>}
+                {m.kind === "text" && (
+                  <p className="whitespace-pre-line break-words">{m.body}</p>
+                )}
                 {m.kind === "image" && (
                   <img
                     src={m.image}
