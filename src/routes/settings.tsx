@@ -38,7 +38,7 @@ type Item = { label: string; hint?: string; icon: LucideIcon; danger?: boolean; 
 
 const items: Item[] = [
   { label: "Account", icon: User },
-  { label: "Create Channel", icon: Megaphone },
+  { label: "Create Channel", hint: "Videos, reels, posts & analytics", icon: Megaphone, to: "/channel" },
   { label: "Create Page", icon: FileText },
   { label: "Orbit", hint: "Private social discovery", icon: Globe2, to: "/orbit" },
   { label: "Privacy & Downloads", hint: "Blocked accounts", icon: Lock },
