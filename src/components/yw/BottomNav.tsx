@@ -39,17 +39,20 @@ export function BottomNav() {
                     strokeWidth={active ? 2.2 : 1.7}
                   />
                 )}
-                {isCreate ? (
-                  <span className="h-1 w-1" />
-                ) : (
-                  <span
-                    className={cn(
-                      "h-1 w-1 rounded-full transition-all duration-300",
-                      active ? "nav-active-dot" : "bg-transparent",
-                    )}
-                  />
-                )}
-                <span className="sr-only">{label}</span>
+                <span
+                  className={cn(
+                    "font-ui text-[10px] font-medium tracking-[-0.01em] transition-colors duration-200",
+                    active ? "text-foreground" : "text-muted-foreground/80",
+                  )}
+                >
+                  {label}
+                </span>
+                <span
+                  className={cn(
+                    "h-[3px] w-[3px] rounded-full transition-all duration-300",
+                    active && !isCreate ? "nav-active-dot" : "bg-transparent",
+                  )}
+                />
               </Link>
             </li>
           );
