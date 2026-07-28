@@ -9,6 +9,10 @@ export type User = {
   name: string;
   hue: number;
   bio?: string;
+  verified?: boolean;
+  category?: string;
+  location?: string;
+  website?: string;
 };
 
 export const currentUser: User = {
@@ -16,6 +20,10 @@ export const currentUser: User = {
   username: "you",
   name: "Your World",
   hue: 320,
+  verified: true,
+  category: "Creator",
+  location: "Tokyo, Japan",
+  website: "yourworld.app/you",
   bio:
     "Night photographer 🌃 reel maker · collecting small moments\n" +
     "Neon streets, slow mornings and long exposures ✨\n" +
@@ -255,6 +263,9 @@ export const messagesByThread: Record<string, Message[]> = {
 };
 
 export const profileStats = { posts: 148, followers: 24800, following: 612 };
+
+/** Up to 3 pinned posts shown first in the profile grid. */
+export const pinnedPostIds: string[] = ["p3", "p1"];
 
 export const formatCount = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;

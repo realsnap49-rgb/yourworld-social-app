@@ -1,10 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, Grid3x3, Bookmark, Play, ChevronRight } from "lucide-react";
+import {
+  Settings,
+  Grid3x3,
+  Bookmark,
+  Play,
+  ChevronRight,
+  BadgeCheck,
+  MapPin,
+  Link2,
+  Pin,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { Bio } from "@/components/yw/Bio";
-import { currentUser, formatCount, posts, profileStats, reels } from "@/lib/yw-data";
+import {
+  currentUser,
+  formatCount,
+  pinnedPostIds,
+  posts,
+  profileStats,
+  reels,
+} from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 
 export const Route = createFileRoute("/profile")({
@@ -30,10 +47,24 @@ function ProfilePage() {
   const { saved } = useYw();
   const savedPosts = posts.filter((p) => saved[p.id]);
 
+  const pinned = pinnedPostIds.slice(0, 3);
+  const gridPosts = [
+    ...pinned.map((id) => posts.find((p) => p.id === id)).filter(Boolean),
+    ...posts.filter((p) => !pinned.includes(p.id)),
+  ] as typeof posts;
+
   return (
     <main className="pb-6">
       <header className="sticky top-0 z-40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border glass px-4 py-3">
-        <h1 className="truncate font-display text-xl font-bold">@{currentUser.username}</h1>
+        <h1 className="flex min-w-0 items-center gap-1.5 font-display text-xl font-bold">
+          <span className="truncate">@{currentUser.username}</span>
+          {currentUser.verified ? (
+            <BadgeCheck
+              className="h-5 w-5 shrink-0 fill-[oklch(0.62_0.17_255)] text-background"
+              aria-label="Verified account"
+            />
+          ) : null}
+        </h1>
         <button aria-label="Settings" className="transition-transform active:scale-90">
           <Settings className="h-6 w-6" />
         </button>
@@ -55,7 +86,35 @@ function ProfilePage() {
 
         <div className="pt-3">
           <p className="font-semibold">{currentUser.name}</p>
+          {currentUser.category ? (
+            <p className="text-xs text-muted-foreground">{currentUser.category}</p>
+          ) : null}
           {currentUser.bio ? <Bio text={currentUser.bio} /> : null}
+          {(currentUser.location || currentUser.website) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1.5 text-xs">
+              {currentUser.location ? (
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  {currentUser.location}
+                </span>
+              ) : null}
+              {currentUser.website ? (
+                <a
+                  href={
+                    currentUser.website.startsWith("http")
+                      ? currentUser.website
+                      : `https://${currentUser.website}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  <Link2 className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  {currentUser.website.replace(/^https?:\/\//, "")}
+                </a>
+              ) : null}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2 pt-4">
@@ -82,7 +141,10 @@ function ProfilePage() {
         </TabsList>
 
         <TabsContent value="grid" className="mt-0">
-          <MediaGrid images={posts.map((p) => p.image)} />
+          <MediaGrid
+            images={gridPosts.map((p) => p.image)}
+            pinnedCount={pinned.length}
+          />
         </TabsContent>
         <TabsContent value="reels" className="mt-0">
           <MediaGrid images={reels.map((r) => r.poster)} />
@@ -126,12 +188,20 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MediaGrid({ images }: { images: string[] }) {
+function MediaGrid({ images, pinnedCount = 0 }: { images: string[]; pinnedCount?: number }) {
   return (
     <ul className="grid grid-cols-3 gap-0.5">
       {images.map((src, i) => (
-        <li key={`${src}-${i}`} className="aspect-square overflow-hidden bg-secondary">
+        <li key={`${src}-${i}`} className="relative aspect-square overflow-hidden bg-secondary">
           <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+          {i < pinnedCount ? (
+            <span
+              className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-background/60 backdrop-blur-sm"
+              aria-label="Pinned post"
+            >
+              <Pin className="h-3 w-3 fill-current text-foreground" strokeWidth={1.8} />
+            </span>
+          ) : null}
         </li>
       ))}
     </ul>
