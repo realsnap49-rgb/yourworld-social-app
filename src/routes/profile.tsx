@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Settings,
@@ -74,9 +74,13 @@ function ProfilePage() {
             />
           ) : null}
         </h1>
-        <button aria-label="Settings" className="transition-transform active:scale-90">
+        <Link
+          to="/settings"
+          aria-label="Settings"
+          className="transition-transform active:scale-90"
+        >
           <Settings className="h-6 w-6" />
-        </button>
+        </Link>
       </header>
 
       {profile.coverUrl ? (
@@ -186,22 +190,6 @@ function ProfilePage() {
           )}
         </TabsContent>
       </Tabs>
-
-      <section className="px-4 pt-6">
-        <h2 className="pb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Settings
-        </h2>
-        <ul className="overflow-hidden rounded-2xl bg-secondary">
-          {["Account", "Privacy & downloads", "Notifications", "Appearance", "Log out"].map((s) => (
-            <li key={s}>
-              <button className="flex w-full items-center justify-between border-b border-border px-4 py-3.5 text-sm last:border-0">
-                <span>{s}</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
 
       <EditProfileSheet
         open={editOpen}
