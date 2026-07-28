@@ -176,10 +176,6 @@ function OrbitCreate() {
           </p>
         </Field>
 
-        <Field label="Interests">
-          <div className="hidden" />
-        </Field>
-
         <Field label="Orbit Mood (optional)">
           <div className="flex flex-wrap gap-2">
             {ORBIT_MOODS.map((m) => {

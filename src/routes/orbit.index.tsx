@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
+import { ORBIT_MOODS, moodById, moodMatchScore } from "@/lib/orbit-mood";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
 import { MeetupSheet } from "@/components/yw/MeetupSheet";
 import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
@@ -76,6 +77,19 @@ function OrbitBrowse() {
       orbit.privacy.aiFakeDetection,
       orbit.privacy.hideFlaggedProfiles,
     ],
+  );
+
+  const myMood = orbit.profile?.mood ?? null;
+  const myInterests = orbit.profile?.interests ?? [];
+
+  /** Same-mood and similar-interest people are surfaced first. */
+  const ranked = useMemo(
+    () =>
+      [...visible].sort(
+        (a, b) =>
+          moodMatchScore(b, myMood, myInterests) - moodMatchScore(a, myMood, myInterests),
+      ),
+    [visible, myMood, myInterests],
   );
 
   const gate = (action: () => void) => () => {
@@ -140,8 +154,56 @@ function OrbitBrowse() {
         </div>
       </div>
 
+      {orbit.hasProfile && (
+        <section className="pt-4" aria-label="Orbit Mood">
+          <div className="flex items-center justify-between px-4 pb-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Orbit Mood
+            </p>
+            {myMood && (
+              <button
+                type="button"
+                onClick={() => {
+                  orbit.setMood(null);
+                  toast.success("Orbit Mood cleared");
+                }}
+                className="text-[11px] font-medium text-muted-foreground transition-opacity active:opacity-60"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1">
+            {ORBIT_MOODS.map((m) => {
+              const active = myMood === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    orbit.setMood(active ? null : m.id);
+                    toast.success(active ? "Orbit Mood cleared" : `Mood set to ${m.label}`);
+                  }}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-all active:scale-95 ${
+                    active ? "bg-foreground text-background" : "chip text-muted-foreground"
+                  }`}
+                >
+                  <span aria-hidden className="mr-1">{m.emoji}</span>
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="px-4 pt-2 text-[11px] text-muted-foreground">
+            Optional and private — only used to order your feed
+            {orbit.privacy.showMood ? " and shown as a small badge on your profile." : "."}
+          </p>
+        </section>
+      )}
+
       <div className={`space-y-4 px-4 pt-4 ${obscured ? "pointer-events-none blur-xl" : ""}`}>
-        {visible.map((p, i) => (
+        {ranked.map((p, i) => (
           <article
             key={p.id}
             className="surface-card animate-rise overflow-hidden rounded-[28px]"
@@ -167,6 +229,15 @@ function OrbitBrowse() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{p.headline}</p>
+                {moodById(p.mood) && (
+                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-background/60 px-2 py-0.5 text-[10px] font-medium backdrop-blur">
+                    <span aria-hidden>{moodById(p.mood)!.emoji}</span>
+                    {moodById(p.mood)!.label}
+                    {myMood && p.mood === myMood && (
+                      <span className="text-muted-foreground">· same as you</span>
+                    )}
+                  </span>
+                )}
                 <p className="flex items-center gap-1 pt-1 text-[11px] text-muted-foreground/90">
                   <MapPin className="h-3 w-3" strokeWidth={1.8} />
                   {p.area} · {approxDistance(p.distanceKm)}
@@ -274,7 +345,7 @@ function OrbitBrowse() {
           </article>
         ))}
 
-        {visible.length === 0 && (
+        {ranked.length === 0 && (
           <p className="py-16 text-center text-sm text-muted-foreground">
             No Orbit profiles to show. Check your hidden and blocked lists.
           </p>
