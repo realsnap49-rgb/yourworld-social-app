@@ -10,43 +10,46 @@ export function Stories() {
 
   return (
     <>
-      <div className="no-scrollbar flex gap-3.5 overflow-x-auto px-4 pb-4 pt-3">
-        <button className="flex w-[68px] shrink-0 flex-col items-center gap-2 transition-transform duration-200 active:scale-[0.94]">
-          <span className="relative">
-            <span className="grid h-[68px] w-[68px] place-items-center rounded-full border border-dashed border-foreground/20 p-[3px]">
-              <YwAvatar user={currentUser} size={60} />
+      <div className="no-scrollbar flex gap-4 overflow-x-auto px-4 pb-5 pt-4">
+        <button className="group flex w-[66px] shrink-0 flex-col items-center gap-2.5 transition-transform duration-300 active:scale-[0.92]">
+          <span className="relative block">
+            <span className="grid h-[66px] w-[66px] place-items-center rounded-full border border-dashed border-foreground/18 p-[3px] transition-colors duration-300 group-hover:border-foreground/35">
+              <YwAvatar user={currentUser} size={58} />
             </span>
-            <span className="glow absolute -bottom-0.5 -right-0.5 grid h-[22px] w-[22px] place-items-center rounded-full brand-gradient ring-[3px] ring-background">
+            <span className="glow absolute -bottom-0.5 -right-0.5 grid h-[21px] w-[21px] place-items-center rounded-full brand-gradient ring-[3px] ring-background">
               <Plus className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
             </span>
           </span>
-          <span className="w-full truncate text-center font-ui text-[11px] tracking-[-0.01em] text-muted-foreground">
+          <span className="w-full truncate text-center font-ui text-[10.5px] font-medium tracking-[-0.01em] text-muted-foreground">
             Your moment
           </span>
         </button>
 
-        {moments.map((m) => {
+        {moments.map((m, i) => {
           const u = byId(m.userId);
           return (
             <button
               key={m.id}
               onClick={() => setOpen(m)}
-              className="flex w-[68px] shrink-0 flex-col items-center gap-2 transition-transform duration-200 active:scale-[0.94]"
+              style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+              className="animate-rise flex w-[66px] shrink-0 flex-col items-center gap-2.5 transition-transform duration-300 active:scale-[0.92]"
             >
               <span
                 className={cn(
-                  "grid h-[68px] w-[68px] place-items-center rounded-full p-[2px]",
-                  m.seen ? "bg-foreground/12" : "ring-live",
+                  "grid h-[66px] w-[66px] place-items-center rounded-full p-[2px] transition-all duration-300",
+                  m.seen
+                    ? "bg-foreground/10"
+                    : "ring-live shadow-[0_6px_20px_-10px_oklch(0.68_0.245_356/0.9)]",
                 )}
               >
                 <span className="grid h-full w-full place-items-center rounded-full bg-background p-[2.5px]">
-                  <YwAvatar user={u} size={59} />
+                  <YwAvatar user={u} size={57} />
                 </span>
               </span>
               <span
                 className={cn(
-                  "w-full truncate text-center font-ui text-[11px] tracking-[-0.01em]",
-                  m.seen ? "text-muted-foreground" : "text-foreground/90",
+                  "w-full truncate text-center font-ui text-[10.5px] font-medium tracking-[-0.01em]",
+                  m.seen ? "text-muted-foreground/80" : "text-foreground/90",
                 )}
               >
                 {u.username}

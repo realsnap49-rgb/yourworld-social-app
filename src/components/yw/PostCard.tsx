@@ -29,20 +29,20 @@ export function PostCard({ post }: { post: Post }) {
   };
 
   return (
-    <article className="surface-card overflow-hidden rounded-[26px]">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-3">
+    <article className="surface-card overflow-hidden rounded-[28px]">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 pb-3 pt-3.5">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="ring-live grid h-10 w-10 shrink-0 place-items-center rounded-full p-[1.5px]">
+          <span className="ring-live grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full p-[1.5px]">
             <span className="grid h-full w-full place-items-center rounded-full bg-background p-[1.5px]">
-              <YwAvatar user={user} size={34} />
+              <YwAvatar user={user} size={32} />
             </span>
           </span>
           <div className="min-w-0">
-            <p className="truncate font-ui text-[13.5px] font-semibold tracking-[-0.01em]">
+            <p className="truncate font-ui text-[13.5px] font-semibold leading-tight tracking-[-0.015em]">
               @{user.username}
             </p>
             {post.location && (
-              <p className="truncate text-[11px] tracking-[0.01em] text-muted-foreground">
+              <p className="mt-0.5 truncate font-ui text-[10.5px] tracking-[0.02em] text-muted-foreground/85">
                 {post.location}
               </p>
             )}
@@ -50,72 +50,72 @@ export function PostCard({ post }: { post: Post }) {
         </div>
         <button
           aria-label="More options"
-          className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-foreground/8 hover:text-foreground active:scale-90"
+          className="action-btn grid h-8 w-8 place-items-center rounded-full text-muted-foreground"
         >
-          <MoreHorizontal className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          <MoreHorizontal className="h-[18px] w-[18px]" strokeWidth={1.7} />
         </button>
       </header>
 
       <div
         onDoubleClick={onDoubleTap}
-        className="relative mx-2.5 overflow-hidden rounded-[20px] bg-secondary select-none"
+        className="media-frame mx-2 rounded-[22px] select-none"
       >
         <img
           src={post.image}
           alt={post.caption}
           loading="lazy"
-          className="aspect-square w-full object-cover transition-transform duration-700 ease-out"
+          className="aspect-square w-full object-cover transition-transform duration-[900ms] ease-out"
         />
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[20px] ring-1 ring-inset ring-foreground/8"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/45 to-transparent"
         />
         {burst && (
           <Heart className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 animate-burst fill-primary text-primary" />
         )}
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3.5 pt-3.5">
-        <div className="flex min-w-0 items-center gap-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 pt-3">
+        <div className="flex min-w-0 items-center gap-0.5">
           <button
             onClick={() => toggleLike(post.id)}
             aria-label="Like"
             className={cn(
-              "grid h-9 w-9 place-items-center rounded-full transition-all duration-200 hover:bg-foreground/8 active:scale-90",
+              "action-btn grid h-10 w-10 place-items-center rounded-full",
               isLiked && "animate-pop",
             )}
           >
             <Heart
               className={cn(
-                "h-[22px] w-[22px]",
+                "h-[21px] w-[21px] transition-colors duration-300",
                 isLiked ? "fill-primary text-primary" : "text-foreground",
               )}
-              strokeWidth={1.8}
+              strokeWidth={1.7}
             />
           </button>
           <CommentsSheet comments={post.comments}>
             <button
               aria-label="Comment"
-              className="grid h-9 w-9 place-items-center rounded-full transition-all duration-200 hover:bg-foreground/8 active:scale-90"
+              className="action-btn grid h-10 w-10 place-items-center rounded-full"
             >
-              <MessageCircle className="h-[22px] w-[22px]" strokeWidth={1.8} />
+              <MessageCircle className="h-[21px] w-[21px]" strokeWidth={1.7} />
             </button>
           </CommentsSheet>
           <ShareSheet title={post.caption}>
             <button
               aria-label="Share"
-              className="grid h-9 w-9 place-items-center rounded-full transition-all duration-200 hover:bg-foreground/8 active:scale-90"
+              className="action-btn grid h-10 w-10 place-items-center rounded-full"
             >
-              <Send className="h-[22px] w-[22px]" strokeWidth={1.8} />
+              <Send className="h-[21px] w-[21px]" strokeWidth={1.7} />
             </button>
           </ShareSheet>
           {post.allowDownload && (
             <button
               onClick={handleDownload}
               aria-label="Download"
-              className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-foreground/8 hover:text-foreground active:scale-90"
+              className="action-btn grid h-10 w-10 place-items-center rounded-full text-muted-foreground hover:text-foreground"
             >
-              <Download className="h-[22px] w-[22px]" strokeWidth={1.8} />
+              <Download className="h-[21px] w-[21px]" strokeWidth={1.7} />
             </button>
           )}
         </div>
@@ -123,33 +123,45 @@ export function PostCard({ post }: { post: Post }) {
           onClick={() => toggleSave(post.id)}
           aria-label="Save"
           className={cn(
-            "grid h-9 w-9 place-items-center rounded-full transition-all duration-200 hover:bg-foreground/8 active:scale-90",
+            "action-btn grid h-10 w-10 place-items-center rounded-full",
             isSaved && "animate-pop",
           )}
         >
           <Bookmark
-            className={cn("h-[22px] w-[22px]", isSaved && "fill-foreground")}
-            strokeWidth={1.8}
+            className={cn("h-[21px] w-[21px]", isSaved && "fill-foreground")}
+            strokeWidth={1.7}
           />
         </button>
       </div>
 
-      <div className="space-y-1.5 px-3.5 pb-4 pt-2">
-        <p className="font-ui text-[13px] font-semibold tracking-[-0.01em]">
+      <div className="space-y-2 px-4 pb-4 pt-1.5">
+        <p className="font-ui text-[12.5px] font-semibold tracking-[-0.01em]">
           {formatCount(post.likes + (isLiked ? 1 : 0))} likes
         </p>
-        <p className="text-[13.5px] leading-relaxed text-foreground/90">
+        <p className="text-[13.5px] leading-[1.55] text-foreground/88">
           <span className="font-semibold">@{user.username}</span> {post.caption}
         </p>
-        <p className="text-[13px] text-accent/90">{post.hashtags.map((h) => `#${h}`).join(" ")}</p>
-        <CommentsSheet comments={post.comments}>
-          <button className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-            View all {post.comments.length} comments
-          </button>
-        </CommentsSheet>
-        <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
-          {post.time} ago
-        </p>
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {post.hashtags.map((h) => (
+            <span
+              key={h}
+              className="chip rounded-full px-2.5 py-1 font-ui text-[10.5px] font-medium tracking-[-0.01em]"
+            >
+              #{h}
+            </span>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <CommentsSheet comments={post.comments}>
+            <button className="font-ui text-[11.5px] text-muted-foreground transition-colors duration-200 hover:text-foreground">
+              View all {post.comments.length} comments
+            </button>
+          </CommentsSheet>
+          <span aria-hidden className="h-[3px] w-[3px] rounded-full bg-muted-foreground/45" />
+          <p className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted-foreground/65">
+            {post.time} ago
+          </p>
+        </div>
       </div>
     </article>
   );
