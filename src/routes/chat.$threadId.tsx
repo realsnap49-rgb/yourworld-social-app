@@ -111,7 +111,7 @@ function ThreadPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100dvh-4.75rem)] flex-col">
+    <div className="relative flex min-h-[calc(100dvh-4.75rem)] flex-col">
       <header className="sticky top-0 z-40 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-border glass px-3 py-2.5">
         <Link to="/chat" aria-label="Back" className="p-1">
           <ArrowLeft className="h-5 w-5" />
