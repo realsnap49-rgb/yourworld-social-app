@@ -10,15 +10,19 @@ export function Stories() {
 
   return (
     <>
-      <div className="no-scrollbar flex gap-4 overflow-x-auto px-4 py-3">
-        <button className="flex w-16 shrink-0 flex-col items-center gap-1.5 transition-transform active:scale-95">
+      <div className="no-scrollbar flex gap-3.5 overflow-x-auto px-4 pb-4 pt-3">
+        <button className="flex w-[68px] shrink-0 flex-col items-center gap-2 transition-transform duration-200 active:scale-[0.94]">
           <span className="relative">
-            <YwAvatar user={currentUser} size={64} className="ring-2 ring-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full brand-gradient ring-2 ring-background">
-              <Plus className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />
+            <span className="grid h-[68px] w-[68px] place-items-center rounded-full border border-dashed border-foreground/20 p-[3px]">
+              <YwAvatar user={currentUser} size={60} />
+            </span>
+            <span className="glow absolute -bottom-0.5 -right-0.5 grid h-[22px] w-[22px] place-items-center rounded-full brand-gradient ring-[3px] ring-background">
+              <Plus className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
             </span>
           </span>
-          <span className="w-full truncate text-[11px] text-muted-foreground">Your moment</span>
+          <span className="w-full truncate text-center font-ui text-[11px] tracking-[-0.01em] text-muted-foreground">
+            Your moment
+          </span>
         </button>
 
         {moments.map((m) => {
@@ -27,19 +31,24 @@ export function Stories() {
             <button
               key={m.id}
               onClick={() => setOpen(m)}
-              className="flex w-16 shrink-0 flex-col items-center gap-1.5 transition-transform active:scale-95"
+              className="flex w-[68px] shrink-0 flex-col items-center gap-2 transition-transform duration-200 active:scale-[0.94]"
             >
               <span
                 className={cn(
-                  "grid h-[68px] w-[68px] place-items-center rounded-full p-[2.5px]",
-                  m.seen ? "bg-secondary" : "ring-story",
+                  "grid h-[68px] w-[68px] place-items-center rounded-full p-[2px]",
+                  m.seen ? "bg-foreground/12" : "ring-live",
                 )}
               >
-                <span className="grid h-full w-full place-items-center rounded-full bg-background p-[2px]">
-                  <YwAvatar user={u} size={58} />
+                <span className="grid h-full w-full place-items-center rounded-full bg-background p-[2.5px]">
+                  <YwAvatar user={u} size={59} />
                 </span>
               </span>
-              <span className="w-full truncate text-[11px] text-muted-foreground">
+              <span
+                className={cn(
+                  "w-full truncate text-center font-ui text-[11px] tracking-[-0.01em]",
+                  m.seen ? "text-muted-foreground" : "text-foreground/90",
+                )}
+              >
                 {u.username}
               </span>
             </button>
