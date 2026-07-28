@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeft, EyeOff, MapPin, Navigation, ShieldAlert } from "lucide-react";
+import { BadgeCheck, ChevronLeft, EyeOff, MapPin, Navigation, ScanFace, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { orbitProfiles } from "@/lib/orbit-data";
