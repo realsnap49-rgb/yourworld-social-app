@@ -1,5 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Megaphone,
+  FileText,
+  Globe2,
+  Lock,
+  Bell,
+  Palette,
+  HelpCircle,
+  Info,
+  LogOut,
+  type LucideIcon,
+} from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -20,10 +34,19 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-const groups: { title: string; items: string[] }[] = [
-  { title: "Account", items: ["Account", "Privacy & downloads", "Blocked accounts"] },
-  { title: "Preferences", items: ["Notifications", "Appearance", "Language"] },
-  { title: "Support", items: ["Help centre", "About YourWorld", "Log out"] },
+type Item = { label: string; hint?: string; icon: LucideIcon; danger?: boolean };
+
+const items: Item[] = [
+  { label: "Account", icon: User },
+  { label: "Create Channel", icon: Megaphone },
+  { label: "Create Page", icon: FileText },
+  { label: "Orbit", icon: Globe2 },
+  { label: "Privacy & Downloads", hint: "Blocked accounts", icon: Lock },
+  { label: "Notifications", icon: Bell },
+  { label: "Appearance", icon: Palette },
+  { label: "Help & Support", icon: HelpCircle },
+  { label: "About", icon: Info },
+  { label: "Log Out", icon: LogOut, danger: true },
 ];
 
 function SettingsPage() {
@@ -40,24 +63,35 @@ function SettingsPage() {
         <h1 className="font-display text-lg font-bold">Settings</h1>
       </header>
 
-      <div className="space-y-6 px-4 pt-5">
-        {groups.map((group) => (
-          <section key={group.title}>
-            <h2 className="pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {group.title}
-            </h2>
-            <ul className="overflow-hidden rounded-2xl bg-secondary">
-              {group.items.map((item) => (
-                <li key={item}>
-                  <button className="flex w-full items-center justify-between border-b border-border px-4 py-3.5 text-sm last:border-0">
-                    <span>{item}</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+      <div className="px-4 pt-5">
+        <ul className="surface-card overflow-hidden rounded-3xl">
+          {items.map((item, i) => (
+            <li key={item.label} className="animate-rise" style={{ animationDelay: `${i * 28}ms` }}>
+              <button
+                className="flex w-full items-center gap-3.5 border-b border-border px-4 py-3.5 text-left transition-colors last:border-0 hover:bg-[color-mix(in_oklab,var(--foreground)_6%,transparent)] active:bg-[color-mix(in_oklab,var(--foreground)_9%,transparent)]"
+              >
+                <span
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
+                    item.danger ? "bg-destructive/15 text-destructive" : "chip"
+                  }`}
+                >
+                  <item.icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={`block truncate text-sm font-medium ${item.danger ? "text-destructive" : ""}`}
+                  >
+                    {item.label}
+                  </span>
+                  {item.hint ? (
+                    <span className="block truncate text-xs text-muted-foreground">{item.hint}</span>
+                  ) : null}
+                </span>
+                {!item.danger && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     </main>
   );
