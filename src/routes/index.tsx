@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Heart, MessageCircle } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Heart, Search } from "lucide-react";
 import { Stories } from "@/components/yw/Stories";
 import { PostCard } from "@/components/yw/PostCard";
 import { posts } from "@/lib/yw-data";
@@ -40,19 +40,17 @@ function HomePage() {
         </div>
         <div className="-mr-1.5 flex shrink-0 items-center">
           <button
+            aria-label="Search"
+            className="icon-pill grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
+          >
+            <Search className="h-[21px] w-[21px]" strokeWidth={1.6} />
+          </button>
+          <button
             aria-label="Notifications"
             className="icon-pill grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
           >
             <Heart className="h-[21px] w-[21px]" strokeWidth={1.6} />
           </button>
-          <Link
-            to="/chat"
-            aria-label="Chat"
-            className="icon-pill relative grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
-          >
-            <MessageCircle className="h-[21px] w-[21px]" strokeWidth={1.6} />
-            <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-foreground" />
-          </Link>
         </div>
       </header>
 
