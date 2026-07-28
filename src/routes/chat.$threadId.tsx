@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { VideoCallSheet } from "@/components/yw/VideoCallSheet";
 import { MeetupSheet } from "@/components/yw/MeetupSheet";
-import { useOrbit } from "@/lib/orbit-store";
+import { useOrbitOptional } from "@/lib/orbit-store";
 import { byId, messagesByThread, threads, type Message } from "@/lib/yw-data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -78,7 +78,7 @@ function ThreadPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [meetupOpen, setMeetupOpen] = useState(false);
   const lead = byId(thread.userIds[0]);
-  const { connected } = useOrbit();
+  const connected = useOrbitOptional()?.connected ?? {};
   // Unlocked once you're connected in Orbit, or the conversation has started.
   const meetupUnlocked =
     thread.kind !== "group" &&
