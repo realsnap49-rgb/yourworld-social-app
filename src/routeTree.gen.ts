@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as CreateRouteImport } from './routes/create'
@@ -20,6 +21,11 @@ import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReelsRoute = ReelsRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/create': typeof CreateRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/chat/': typeof ChatIndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/create': typeof CreateRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/chat': typeof ChatIndexRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/create': typeof CreateRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
+  '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/chat/': typeof ChatIndexRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/profile'
     | '/reels'
+    | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
     | '/chat/'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/profile'
     | '/reels'
+    | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
     | '/chat'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/profile'
     | '/reels'
+    | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
     | '/chat/'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   CreateRoute: typeof CreateRoute
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
+  SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ChatThreadIdRoute: typeof ChatThreadIdRoute
   ChatIndexRoute: typeof ChatIndexRoute
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reels': {
@@ -180,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateRoute: CreateRoute,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
+  SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ChatThreadIdRoute: ChatThreadIdRoute,
   ChatIndexRoute: ChatIndexRoute,

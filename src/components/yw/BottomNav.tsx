@@ -13,6 +13,12 @@ const items = [
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  // Bottom nav is only for the main app screens.
+  const isMainScreen =
+    pathname === "/" ||
+    items.some(({ to }) => to !== "/" && pathname.startsWith(to));
+  if (!isMainScreen) return null;
+
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-50 px-3 pt-2">
       <ul className="nav-dock relative mx-auto grid max-w-md grid-cols-5 items-end rounded-[26px] px-1.5 py-2">
