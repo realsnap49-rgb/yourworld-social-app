@@ -202,14 +202,6 @@
   background-color: color-mix(in oklab, var(--background) 55%, transparent);
   backdrop-filter: blur(30px) saturate(150%);
   border-bottom: 1px solid color-mix(in oklab, var(--foreground) 5%, transparent);
-  mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
-  mask-mode: alpha;
-}
-
-@utility header-lux-solid {
-  background-color: color-mix(in oklab, var(--background) 55%, transparent);
-  backdrop-filter: blur(30px) saturate(150%);
-  border-bottom: 1px solid color-mix(in oklab, var(--foreground) 5%, transparent);
 }
 
 @utility logo-mark {
