@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrbitRouteImport } from './routes/orbit'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as ChannelRouteImport } from './routes/channel'
 import { Route as IndexRouteImport } from './routes/index'
@@ -54,6 +55,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const OrbitRoute = OrbitRouteImport.update({
   id: '/orbit',
   path: '/orbit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
+  '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
+  '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/'
     | '/channel'
     | '/create'
+    | '/notifications'
     | '/orbit'
     | '/profile'
     | '/reels'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/create'
+    | '/notifications'
     | '/profile'
     | '/reels'
     | '/settings'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/'
     | '/channel'
     | '/create'
+    | '/notifications'
     | '/orbit'
     | '/profile'
     | '/reels'
@@ -279,6 +291,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChannelRoute: typeof ChannelRouteWithChildren
   CreateRoute: typeof CreateRoute
+  NotificationsRoute: typeof NotificationsRoute
   OrbitRoute: typeof OrbitRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       path: '/orbit'
       fullPath: '/orbit'
       preLoaderRoute: typeof OrbitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -483,6 +503,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChannelRoute: ChannelRouteWithChildren,
   CreateRoute: CreateRoute,
+  NotificationsRoute: NotificationsRoute,
   OrbitRoute: OrbitRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
