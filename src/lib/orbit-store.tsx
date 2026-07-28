@@ -24,10 +24,13 @@ export type OrbitProfileDraft = {
 export type OrbitPrivacy = {
   orbitEnabled: boolean;
   paused: boolean;
+  hiddenProfile: boolean;
   visibility: OrbitVisibility;
   whoCanLike: OrbitAudience;
   whoCanMessage: OrbitAudience;
   whoCanConnect: OrbitAudience;
+  liveLocationEnabled: boolean;
+  whoCanRequestLiveLocation: OrbitAudience;
   hiddenFrom: string[];
   blocked: string[];
   screenshotProtection: boolean;
@@ -44,10 +47,13 @@ export type OrbitState = {
 const defaultPrivacy: OrbitPrivacy = {
   orbitEnabled: true,
   paused: false,
+  hiddenProfile: false,
   visibility: "public",
   whoCanLike: "everyone",
   whoCanMessage: "connections",
   whoCanConnect: "everyone",
+  liveLocationEnabled: false,
+  whoCanRequestLiveLocation: "connections",
   hiddenFrom: [],
   blocked: [],
   screenshotProtection: true,
@@ -67,7 +73,6 @@ type Ctx = OrbitState & {
   hasProfile: boolean;
   hydrated: boolean;
   saveProfile: (p: OrbitProfileDraft) => void;
-  deleteProfile: () => void;
   setPrivacy: (patch: Partial<OrbitPrivacy>) => void;
   toggleHiddenFrom: (id: string) => void;
   toggleBlocked: (id: string) => void;
@@ -122,8 +127,6 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
       hydrated,
       hasProfile: state.profile !== null,
       saveProfile: (p) => setState((s) => ({ ...s, profile: p })),
-      deleteProfile: () =>
-        setState((s) => ({ ...defaultState, privacy: { ...s.privacy, paused: false } })),
       setPrivacy,
       toggleHiddenFrom: (id) =>
         setState((s) => ({
