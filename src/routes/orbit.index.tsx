@@ -14,10 +14,18 @@ import {
   EyeOff,
   Flag,
   Ban,
+  ScanFace,
+  AlertTriangle,
+  CalendarHeart,
+  Navigation,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
+import { analyzeProfile } from "@/lib/orbit-trust";
+import { useLiveLocation, remainingLabel } from "@/lib/live-location";
+import { MeetupSheet } from "@/components/yw/MeetupSheet";
+import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
 import { OrbitLockedSheet } from "@/components/yw/OrbitLockedSheet";
 
 export const Route = createFileRoute("/orbit/")({
@@ -45,14 +53,29 @@ function OrbitBrowse() {
   const orbit = useOrbit();
   const [locked, setLocked] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [meetupFor, setMeetupFor] = useState<OrbitProfile | null>(null);
+  const [liveFor, setLiveFor] = useState<OrbitProfile | null>(null);
+  const live = useLiveLocation();
   const obscured = useScreenCaptureShield(orbit.privacy.screenshotProtection);
 
   const visible = useMemo(
     () =>
       orbitProfiles.filter(
-        (p) => !orbit.privacy.blocked.includes(p.id) && !orbit.privacy.hiddenFrom.includes(p.id),
+        (p) =>
+          !orbit.privacy.blocked.includes(p.id) &&
+          !orbit.privacy.hiddenFrom.includes(p.id) &&
+          !(
+            orbit.privacy.aiFakeDetection &&
+            orbit.privacy.hideFlaggedProfiles &&
+            analyzeProfile(p).level === "flagged"
+          ),
       ),
-    [orbit.privacy.blocked, orbit.privacy.hiddenFrom],
+    [
+      orbit.privacy.blocked,
+      orbit.privacy.hiddenFrom,
+      orbit.privacy.aiFakeDetection,
+      orbit.privacy.hideFlaggedProfiles,
+    ],
   );
 
   const gate = (action: () => void) => () => {
