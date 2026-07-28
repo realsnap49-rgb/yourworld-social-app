@@ -264,6 +264,9 @@ export const messagesByThread: Record<string, Message[]> = {
 
 export const profileStats = { posts: 148, followers: 24800, following: 612 };
 
+/** Up to 3 pinned posts shown first in the profile grid. */
+export const pinnedPostIds: string[] = ["p3", "p1"];
+
 export const formatCount = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
