@@ -5,7 +5,6 @@ import {
   Grid3x3,
   Bookmark,
   Play,
-  ChevronRight,
   BadgeCheck,
   MapPin,
   Link2,
