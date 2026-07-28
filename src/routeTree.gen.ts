@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
@@ -36,6 +37,11 @@ const ReelsRoute = ReelsRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrbitRoute = OrbitRouteImport.update({
+  id: '/orbit',
+  path: '/orbit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -62,6 +68,7 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/orbit': typeof OrbitRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/orbit': typeof OrbitRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/orbit': typeof OrbitRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/create'
+    | '/orbit'
     | '/profile'
     | '/reels'
     | '/settings'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/create'
+    | '/orbit'
     | '/profile'
     | '/reels'
     | '/settings'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/create'
+    | '/orbit'
     | '/profile'
     | '/reels'
     | '/settings'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
+  OrbitRoute: typeof OrbitRoute
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
   SettingsRoute: typeof SettingsRoute
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orbit': {
+      id: '/orbit'
+      path: '/orbit'
+      fullPath: '/orbit'
+      preLoaderRoute: typeof OrbitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
+  OrbitRoute: OrbitRoute,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
   SettingsRoute: SettingsRoute,
