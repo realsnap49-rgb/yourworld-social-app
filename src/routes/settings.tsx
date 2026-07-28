@@ -42,7 +42,7 @@ const items: Item[] = [
   { label: "Create Page", icon: FileText },
   { label: "Orbit", hint: "Private social discovery", icon: Globe2, to: "/orbit" },
   { label: "Privacy & Downloads", hint: "Blocked accounts", icon: Lock },
-  { label: "Notifications", icon: Bell },
+  { label: "Notifications", hint: "Likes, Orbit, channel & system alerts", icon: Bell, to: "/notifications" },
   { label: "Appearance", icon: Palette },
   { label: "Help & Support", icon: HelpCircle },
   { label: "About", icon: Info },
