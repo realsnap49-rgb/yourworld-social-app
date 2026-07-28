@@ -20,11 +20,14 @@ import {
   UserX,
   Flag,
   MapPin,
+  Navigation,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { VideoCallSheet } from "@/components/yw/VideoCallSheet";
 import { MeetupSheet } from "@/components/yw/MeetupSheet";
+import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
+import { useLiveLocation, remainingLabel } from "@/lib/live-location";
 import { useOrbitOptional } from "@/lib/orbit-store";
 import { byId, messagesByThread, threads, type Message } from "@/lib/yw-data";
 import { cn } from "@/lib/utils";
@@ -77,12 +80,15 @@ function ThreadPage() {
   const [videoCall, setVideoCall] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [meetupOpen, setMeetupOpen] = useState(false);
+  const [liveOpen, setLiveOpen] = useState(false);
+  const { session: live, start: startLive, stop: stopLive } = useLiveLocation();
   const lead = byId(thread.userIds[0]);
   const connected = useOrbitOptional()?.connected ?? {};
   // Unlocked once you're connected in Orbit, or the conversation has started.
   const meetupUnlocked =
     thread.kind !== "group" &&
     (messages.length > 0 || thread.userIds.some((id: string) => connected[id]));
+  const locationUnlocked = meetupUnlocked;
 
   const pushMessage = (body: string) =>
     setMessages((p) => [
@@ -168,6 +174,15 @@ function ThreadPage() {
               ...(meetupUnlocked
                 ? [{ icon: MapPin, label: "Plan Meetup", action: "meetup" as const }]
                 : []),
+              ...(locationUnlocked
+                ? [
+                    {
+                      icon: Navigation,
+                      label: live.active ? "Stop Live Location" : "Share Live Location",
+                      action: "live" as const,
+                    },
+                  ]
+                : []),
               { icon: Pencil, label: "Change Display Name" },
               { icon: Lock, label: "Secret Lock Chat" },
               { icon: EyeOff, label: "View Once Mode" },
@@ -182,6 +197,15 @@ function ThreadPage() {
                 onClick={() => {
                   setMenuOpen(false);
                   if ("action" in rest && rest.action === "meetup") setMeetupOpen(true);
+                  else if ("action" in rest && rest.action === "live") {
+                    if (live.active) {
+                      stopLive();
+                      pushMessage("📍 Live location sharing stopped.");
+                      toast("Live location stopped");
+                    } else {
+                      setLiveOpen(true);
+                    }
+                  }
                   else toast(label);
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] font-medium transition-colors hover:bg-foreground/10"
@@ -203,6 +227,47 @@ function ThreadPage() {
           toast("Meetup suggestion sent");
         }}
       />
+      <LiveLocationSheet
+        open={liveOpen}
+        onOpenChange={setLiveOpen}
+        peerName={thread.title}
+        onConfirm={async (duration) => {
+          const ok = await startLive(duration);
+          if (ok) {
+            pushMessage(`📍 Sharing my live location ${remainingLabel(duration.ms === null ? null : Date.now() + duration.ms)}.`);
+            toast("Live location is on — stop anytime");
+          } else {
+            toast("Location wasn't shared");
+          }
+          return ok;
+        }}
+      />
+
+      {live.active && (
+        <div className="sticky top-[3.6rem] z-30 mx-3 mt-2 flex items-center gap-2.5 rounded-2xl border border-border/60 bg-background/80 px-3.5 py-2.5 shadow-lg backdrop-blur-xl animate-rise">
+          <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full brand-gradient">
+            <Navigation className="h-4 w-4 text-primary-foreground" strokeWidth={1.9} />
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold">Live location on</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              Sharing {remainingLabel(live.endsAt)}
+              {live.accuracyM !== null && ` · ±${live.accuracyM} m`}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              stopLive();
+              pushMessage("📍 Live location sharing stopped.");
+              toast("Live location stopped");
+            }}
+            className="shrink-0 rounded-full bg-destructive/15 px-3.5 py-1.5 text-xs font-semibold text-destructive transition-transform active:scale-95"
+          >
+            Stop
+          </button>
+        </div>
+      )}
 
       <ul className="flex-1 space-y-2 px-3 py-4">
         {messages.map((m) => {
