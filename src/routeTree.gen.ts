@@ -13,9 +13,13 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
+import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
+import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -38,6 +42,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrbitRoute = OrbitRouteImport.update({
+  id: '/orbit',
+  path: '/orbit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -48,10 +57,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrbitIndexRoute = OrbitIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrbitRoute,
+} as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
   id: '/chat/',
   path: '/chat/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => OrbitRoute,
+} as any)
+const OrbitCreateRoute = OrbitCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => OrbitRoute,
 } as any)
 const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   id: '/chat/$threadId',
@@ -62,12 +86,16 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/privacy': typeof OrbitPrivacyRoute
   '/chat/': typeof ChatIndexRoute
+  '/orbit/': typeof OrbitIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,30 +105,41 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/privacy': typeof OrbitPrivacyRoute
   '/chat': typeof ChatIndexRoute
+  '/orbit': typeof OrbitIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/privacy': typeof OrbitPrivacyRoute
   '/chat/': typeof ChatIndexRoute
+  '/orbit/': typeof OrbitIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/create'
+    | '/orbit'
     | '/profile'
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
+    | '/orbit/create'
+    | '/orbit/privacy'
     | '/chat/'
+    | '/orbit/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,22 +149,30 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
+    | '/orbit/create'
+    | '/orbit/privacy'
     | '/chat'
+    | '/orbit'
   id:
     | '__root__'
     | '/'
     | '/create'
+    | '/orbit'
     | '/profile'
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
+    | '/orbit/create'
+    | '/orbit/privacy'
     | '/chat/'
+    | '/orbit/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
+  OrbitRoute: typeof OrbitRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
   SettingsRoute: typeof SettingsRoute
@@ -164,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orbit': {
+      id: '/orbit'
+      path: '/orbit'
+      fullPath: '/orbit'
+      preLoaderRoute: typeof OrbitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -178,12 +232,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orbit/': {
+      id: '/orbit/'
+      path: '/'
+      fullPath: '/orbit/'
+      preLoaderRoute: typeof OrbitIndexRouteImport
+      parentRoute: typeof OrbitRoute
+    }
     '/chat/': {
       id: '/chat/'
       path: '/chat'
       fullPath: '/chat/'
       preLoaderRoute: typeof ChatIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/orbit/privacy': {
+      id: '/orbit/privacy'
+      path: '/privacy'
+      fullPath: '/orbit/privacy'
+      preLoaderRoute: typeof OrbitPrivacyRouteImport
+      parentRoute: typeof OrbitRoute
+    }
+    '/orbit/create': {
+      id: '/orbit/create'
+      path: '/create'
+      fullPath: '/orbit/create'
+      preLoaderRoute: typeof OrbitCreateRouteImport
+      parentRoute: typeof OrbitRoute
     }
     '/chat/$threadId': {
       id: '/chat/$threadId'
@@ -195,9 +270,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OrbitRouteChildren {
+  OrbitCreateRoute: typeof OrbitCreateRoute
+  OrbitPrivacyRoute: typeof OrbitPrivacyRoute
+  OrbitIndexRoute: typeof OrbitIndexRoute
+}
+
+const OrbitRouteChildren: OrbitRouteChildren = {
+  OrbitCreateRoute: OrbitCreateRoute,
+  OrbitPrivacyRoute: OrbitPrivacyRoute,
+  OrbitIndexRoute: OrbitIndexRoute,
+}
+
+const OrbitRouteWithChildren = OrbitRoute._addFileChildren(OrbitRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
+  OrbitRoute: OrbitRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
   SettingsRoute: SettingsRoute,
