@@ -22,6 +22,7 @@ import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
+import { Route as ChannelCreateRouteImport } from './routes/channel.create'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -88,16 +89,22 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   path: '/chat/$threadId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChannelCreateRoute = ChannelCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => ChannelRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/channel': typeof ChannelRoute
+  '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/channel/create': typeof ChannelCreateRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
@@ -106,12 +113,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/channel': typeof ChannelRoute
+  '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/channel/create': typeof ChannelCreateRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
@@ -121,13 +129,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/channel': typeof ChannelRoute
+  '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/channel/create': typeof ChannelCreateRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
+    | '/channel/create'
     | '/chat/$threadId'
     | '/orbit/create'
     | '/orbit/privacy'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
+    | '/channel/create'
     | '/chat/$threadId'
     | '/orbit/create'
     | '/orbit/privacy'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
+    | '/channel/create'
     | '/chat/$threadId'
     | '/orbit/create'
     | '/orbit/privacy'
@@ -183,7 +195,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ChannelRoute: typeof ChannelRoute
+  ChannelRoute: typeof ChannelRouteWithChildren
   CreateRoute: typeof CreateRoute
   OrbitRoute: typeof OrbitRouteWithChildren
   ProfileRoute: typeof ProfileRoute
@@ -287,8 +299,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatThreadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/channel/create': {
+      id: '/channel/create'
+      path: '/create'
+      fullPath: '/channel/create'
+      preLoaderRoute: typeof ChannelCreateRouteImport
+      parentRoute: typeof ChannelRoute
+    }
   }
 }
+
+interface ChannelRouteChildren {
+  ChannelCreateRoute: typeof ChannelCreateRoute
+}
+
+const ChannelRouteChildren: ChannelRouteChildren = {
+  ChannelCreateRoute: ChannelCreateRoute,
+}
+
+const ChannelRouteWithChildren =
+  ChannelRoute._addFileChildren(ChannelRouteChildren)
 
 interface OrbitRouteChildren {
   OrbitCreateRoute: typeof OrbitCreateRoute
@@ -306,7 +336,7 @@ const OrbitRouteWithChildren = OrbitRoute._addFileChildren(OrbitRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ChannelRoute: ChannelRoute,
+  ChannelRoute: ChannelRouteWithChildren,
   CreateRoute: CreateRoute,
   OrbitRoute: OrbitRouteWithChildren,
   ProfileRoute: ProfileRoute,
