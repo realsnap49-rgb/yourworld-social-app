@@ -8,6 +8,7 @@ export type User = {
   username: string;
   name: string;
   hue: number;
+  bio?: string;
 };
 
 export const currentUser: User = {
@@ -15,6 +16,12 @@ export const currentUser: User = {
   username: "you",
   name: "Your World",
   hue: 320,
+  bio:
+    "Night photographer 🌃 reel maker · collecting small moments\n" +
+    "Neon streets, slow mornings and long exposures ✨\n" +
+    "Shot on 35mm · edits in the dark\n" +
+    "#nightwalk #neon #filmlook — collabs open, DM @riko.night\n" +
+    "New drop every Friday → https://yourworld.app/you",
 };
 
 export const users: User[] = [
