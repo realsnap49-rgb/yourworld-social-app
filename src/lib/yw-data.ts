@@ -9,6 +9,10 @@ export type User = {
   name: string;
   hue: number;
   bio?: string;
+  verified?: boolean;
+  category?: string;
+  location?: string;
+  website?: string;
 };
 
 export const currentUser: User = {
@@ -16,6 +20,10 @@ export const currentUser: User = {
   username: "you",
   name: "Your World",
   hue: 320,
+  verified: true,
+  category: "Creator",
+  location: "Tokyo, Japan",
+  website: "yourworld.app/you",
   bio:
     "Night photographer 🌃 reel maker · collecting small moments\n" +
     "Neon streets, slow mornings and long exposures ✨\n" +
