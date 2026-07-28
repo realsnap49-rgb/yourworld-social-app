@@ -3,6 +3,7 @@ import { Settings, Grid3x3, Bookmark, Play, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { YwAvatar } from "@/components/yw/Avatar";
+import { Bio } from "@/components/yw/Bio";
 import { currentUser, formatCount, posts, profileStats, reels } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 
@@ -54,9 +55,7 @@ function ProfilePage() {
 
         <div className="pt-3">
           <p className="font-semibold">{currentUser.name}</p>
-          <p className="text-sm text-muted-foreground">
-            Night photographer · reel maker · collecting small moments
-          </p>
+          {currentUser.bio ? <Bio text={currentUser.bio} /> : null}
         </div>
 
         <div className="grid grid-cols-2 gap-2 pt-4">
