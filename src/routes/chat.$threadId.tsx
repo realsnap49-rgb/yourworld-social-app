@@ -1,8 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Camera, Image as ImageIcon, Mic, SendHorizonal, Check, CheckCheck, Play, Phone } from "lucide-react";
+import { ArrowLeft, Camera, Image as ImageIcon, Mic, SendHorizonal, Check, CheckCheck, Play, Phone, Video } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
+import { VideoCallSheet } from "@/components/yw/VideoCallSheet";
 import { byId, messagesByThread, threads, type Message } from "@/lib/yw-data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ function ThreadPage() {
   const [messages, setMessages] = useState<Message[]>(messagesByThread[thread.id] ?? []);
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
+  const [videoCall, setVideoCall] = useState(false);
   const lead = byId(thread.userIds[0]);
 
   const send = () => {
@@ -103,10 +105,17 @@ function ThreadPage() {
             </p>
           </div>
         </div>
-        <button aria-label="Call" onClick={() => toast("Calls are coming soon")} className="p-1">
-          <Phone className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button aria-label="Voice call" onClick={() => toast("Calls are coming soon")} className="p-1">
+            <Phone className="h-5 w-5" strokeWidth={1.7} />
+          </button>
+          <button aria-label="Video call" onClick={() => setVideoCall(true)} className="p-1">
+            <Video className="h-5 w-5" strokeWidth={1.7} />
+          </button>
+        </div>
       </header>
+
+      <VideoCallSheet open={videoCall} onClose={() => setVideoCall(false)} peer={lead} title={thread.title} />
 
       <ul className="flex-1 space-y-2 px-3 py-4">
         {messages.map((m) => {
