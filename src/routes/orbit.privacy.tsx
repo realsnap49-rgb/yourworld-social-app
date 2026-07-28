@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, MapPin, ShieldAlert, Trash2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronLeft, EyeOff, MapPin, Navigation, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { orbitProfiles } from "@/lib/orbit-data";
@@ -41,7 +41,6 @@ const AUDIENCE: { value: OrbitAudience; label: string }[] = [
 
 function OrbitPrivacy() {
   const orbit = useOrbit();
-  const navigate = useNavigate();
   const { privacy } = orbit;
   const [captureSupported, setCaptureSupported] = useState(true);
 
@@ -95,6 +94,26 @@ function OrbitPrivacy() {
               />
             }
           />
+          <Row
+            label="Hide Orbit Profile"
+            hint="Keep your profile private while you keep browsing"
+            control={
+              <Switch
+                checked={privacy.hiddenProfile}
+                onCheckedChange={(v) => {
+                  orbit.setPrivacy({ hiddenProfile: v, ...(v ? { visibility: "hidden" as const } : {}) });
+                  toast.success(v ? "Orbit Profile hidden" : "Orbit Profile visible again");
+                }}
+              />
+            }
+          />
+          <div className="flex items-start gap-3 px-4 py-3.5">
+            <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Your Orbit Profile stays linked to your account. You can turn Orbit off, pause it or
+              hide it anytime — it is never shown while any of those are on.
+            </p>
+          </div>
         </Card>
 
         <Card title="Visibility">
@@ -139,6 +158,36 @@ function OrbitPrivacy() {
             value={privacy.whoCanConnect}
             onChange={(v) => orbit.setPrivacy({ whoCanConnect: v })}
           />
+        </Card>
+
+        <Card title="Live location">
+          <Row
+            label="Allow live location sharing"
+            hint="Off by default — nothing is shared until you start a session"
+            control={
+              <Switch
+                checked={privacy.liveLocationEnabled}
+                onCheckedChange={(v) => {
+                  orbit.setPrivacy({ liveLocationEnabled: v });
+                  toast.success(v ? "Live location sharing available" : "Live location sharing disabled");
+                }}
+              />
+            }
+          />
+          {privacy.liveLocationEnabled && (
+            <Segmented
+              label="Who can request live location"
+              value={privacy.whoCanRequestLiveLocation}
+              onChange={(v) => orbit.setPrivacy({ whoCanRequestLiveLocation: v })}
+            />
+          )}
+          <div className="flex items-start gap-3 border-t border-border/60 px-4 py-3.5">
+            <Navigation className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Each session asks for permission, runs only for the window you pick, and can be
+              stopped with one tap from the chat.
+            </p>
+          </div>
         </Card>
 
         <Card title="Hide from specific users">
@@ -215,21 +264,6 @@ function OrbitPrivacy() {
               </p>
             </div>
           )}
-        </Card>
-
-        <Card title="Danger zone">
-          <button
-            type="button"
-            onClick={() => {
-              orbit.deleteProfile();
-              toast.success("Orbit Profile deleted");
-              navigate({ to: "/orbit" });
-            }}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-            Delete Orbit Profile
-          </button>
         </Card>
       </div>
     </main>
