@@ -227,6 +227,74 @@ function OrbitPrivacy() {
           </ul>
         </Card>
 
+        <Card title="Safety">
+          <Row
+            label="AI fake profile detection"
+            hint="Scans public profile details on your device and labels suspicious accounts"
+            control={
+              <Switch
+                checked={privacy.aiFakeDetection}
+                onCheckedChange={(v) => {
+                  orbit.setPrivacy({ aiFakeDetection: v });
+                  toast.success(v ? "Fake profile detection on" : "Fake profile detection off");
+                }}
+              />
+            }
+          />
+          {privacy.aiFakeDetection && (
+            <Row
+              label="Hide flagged profiles"
+              hint="Remove likely fake accounts from discovery instead of just labelling them"
+              control={
+                <Switch
+                  checked={privacy.hideFlaggedProfiles}
+                  onCheckedChange={(v) => orbit.setPrivacy({ hideFlaggedProfiles: v })}
+                />
+              }
+            />
+          )}
+          <div className="flex items-start gap-3 border-t border-border/60 px-4 py-3.5">
+            <ScanFace className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Detection runs entirely on your device using public profile details. It's a signal,
+              not a guarantee — always report anything that feels off.
+            </p>
+          </div>
+        </Card>
+
+        <Card title="Verified badge">
+          <Row
+            label="Optional verification"
+            hint={
+              privacy.verification === "verified"
+                ? "Your Orbit Profile shows a verified badge"
+                : privacy.verification === "pending"
+                  ? "Review in progress — usually under 48 hours"
+                  : "Completely optional. Orbit works fully without it."
+            }
+            control={
+              privacy.verification === "verified" ? (
+                <BadgeCheck
+                  className="h-5 w-5 fill-[oklch(0.62_0.17_255)] text-background"
+                  strokeWidth={1.8}
+                />
+              ) : (
+                <button
+                  type="button"
+                  disabled={privacy.verification === "pending"}
+                  onClick={() => {
+                    orbit.setPrivacy({ verification: "pending" });
+                    toast.success("Verification request submitted");
+                  }}
+                  className="rounded-full bg-foreground px-3.5 py-2 text-xs font-semibold text-background transition-transform active:scale-95 disabled:opacity-50"
+                >
+                  {privacy.verification === "pending" ? "Pending" : "Request"}
+                </button>
+              )
+            }
+          />
+        </Card>
+
         <Card title="Location">
           <div className="flex items-start gap-3 px-4 py-3.5">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
