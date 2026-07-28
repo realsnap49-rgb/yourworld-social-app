@@ -19,10 +19,13 @@ import {
   BellOff,
   UserX,
   Flag,
+  MapPin,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { VideoCallSheet } from "@/components/yw/VideoCallSheet";
+import { MeetupSheet } from "@/components/yw/MeetupSheet";
+import { useOrbit } from "@/lib/orbit-store";
 import { byId, messagesByThread, threads, type Message } from "@/lib/yw-data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -73,7 +76,19 @@ function ThreadPage() {
   const [recording, setRecording] = useState(false);
   const [videoCall, setVideoCall] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [meetupOpen, setMeetupOpen] = useState(false);
   const lead = byId(thread.userIds[0]);
+  const { connected } = useOrbit();
+  // Unlocked once you're connected in Orbit, or the conversation has started.
+  const meetupUnlocked =
+    thread.kind !== "group" &&
+    (messages.length > 0 || thread.userIds.some((id) => connected[id]));
+
+  const pushMessage = (body: string) =>
+    setMessages((p) => [
+      ...p,
+      { id: `mu-${Date.now()}`, from: "me", kind: "text", body, time: "now", read: false },
+    ]);
 
   const send = () => {
     if (!draft.trim()) return;
@@ -150,6 +165,9 @@ function ThreadPage() {
             className="absolute right-3 top-14 z-50 w-60 overflow-hidden rounded-2xl border border-border/60 bg-background/85 shadow-2xl backdrop-blur-xl animate-rise"
           >
             {[
+              ...(meetupUnlocked
+                ? [{ icon: MapPin, label: "Plan Meetup", action: "meetup" as const }]
+                : []),
               { icon: Pencil, label: "Change Display Name" },
               { icon: Lock, label: "Secret Lock Chat" },
               { icon: EyeOff, label: "View Once Mode" },
@@ -157,13 +175,14 @@ function ThreadPage() {
               { icon: BellOff, label: "Mute Notifications" },
               { icon: UserX, label: "Block User" },
               { icon: Flag, label: "Report User" },
-            ].map(({ icon: Icon, label }) => (
+            ].map(({ icon: Icon, label, ...rest }) => (
               <button
                 key={label}
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false);
-                  toast(label);
+                  if ("action" in rest && rest.action === "meetup") setMeetupOpen(true);
+                  else toast(label);
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] font-medium transition-colors hover:bg-foreground/10"
               >
@@ -176,6 +195,14 @@ function ThreadPage() {
       )}
 
       <VideoCallSheet open={videoCall} onClose={() => setVideoCall(false)} peer={lead} title={thread.title} />
+      <MeetupSheet
+        open={meetupOpen}
+        onOpenChange={setMeetupOpen}
+        onSend={(body) => {
+          pushMessage(body);
+          toast("Meetup suggestion sent");
+        }}
+      />
 
       <ul className="flex-1 space-y-2 px-3 py-4">
         {messages.map((m) => {
