@@ -184,6 +184,7 @@ function OrbitBrowse() {
 
             <div className="p-4">
               <p className="text-sm leading-relaxed text-muted-foreground">{p.about}</p>
+              {orbit.privacy.aiFakeDetection && <TrustChip profile={p} />}
               <div className="flex flex-wrap gap-1.5 pt-3">
                 {p.interests.map((t) => (
                   <span key={t} className="chip rounded-full px-3 py-1 text-[11px] font-medium">
@@ -228,6 +229,45 @@ function OrbitBrowse() {
                   onClick={gate(() => toast.success(`Match request sent to ${p.name}`))}
                 />
               </div>
+
+              {orbit.connected[p.id] && (
+                <div className="mt-4 rounded-2xl bg-secondary/60 p-3">
+                  <p className="pb-2 text-[11px] font-medium text-muted-foreground">
+                    Connected — chat, meetups and live location unlocked
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Link
+                      to="/chat"
+                      className="flex flex-col items-center gap-1 rounded-2xl bg-background/50 py-2.5 text-[10px] font-medium text-muted-foreground transition-transform active:scale-95"
+                    >
+                      <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.7} />
+                      Chat
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setMeetupFor(p)}
+                      className="flex flex-col items-center gap-1 rounded-2xl bg-background/50 py-2.5 text-[10px] font-medium text-muted-foreground transition-transform active:scale-95"
+                    >
+                      <CalendarHeart className="h-[18px] w-[18px]" strokeWidth={1.7} />
+                      Plan meetup
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!orbit.privacy.liveLocationEnabled) {
+                          toast.warning("Turn on live location sharing in Privacy & Safety first.");
+                          return;
+                        }
+                        setLiveFor(p);
+                      }}
+                      className="flex flex-col items-center gap-1 rounded-2xl bg-background/50 py-2.5 text-[10px] font-medium text-muted-foreground transition-transform active:scale-95"
+                    >
+                      <Navigation className="h-[18px] w-[18px]" strokeWidth={1.7} />
+                      Live location
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {menuFor === p.id && <SafetyMenu profile={p} onClose={() => setMenuFor(null)} />}
@@ -248,7 +288,66 @@ function OrbitBrowse() {
       )}
 
       <OrbitLockedSheet open={locked} onOpenChange={setLocked} />
+
+      {live.session.active && (
+        <div className="fixed inset-x-4 bottom-4 z-50 flex items-center gap-3 rounded-full border border-border/60 glass px-4 py-3">
+          <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[oklch(0.72_0.19_145)]" />
+          <p className="min-w-0 flex-1 truncate text-xs">
+            Live location on {remainingLabel(live.session.endsAt)}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              live.stop();
+              toast.success("Live location stopped");
+            }}
+            className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-semibold text-background"
+          >
+            Stop
+          </button>
+        </div>
+      )}
+
+      <MeetupSheet
+        open={meetupFor !== null}
+        onOpenChange={(o) => !o && setMeetupFor(null)}
+        onSend={() => {
+          toast.success(`Meetup suggestion sent to ${meetupFor?.name}`);
+          setMeetupFor(null);
+        }}
+      />
+
+      <LiveLocationSheet
+        open={liveFor !== null}
+        onOpenChange={(o) => !o && setLiveFor(null)}
+        peerName={liveFor?.name ?? ""}
+        onConfirm={async (duration) => {
+          const ok = await live.start(duration);
+          toast[ok ? "success" : "error"](
+            ok ? `Sharing live location with ${liveFor?.name}` : "Nothing was shared",
+          );
+          if (ok) setLiveFor(null);
+          return ok;
+        }}
+      />
     </main>
+  );
+}
+
+function TrustChip({ profile }: { profile: OrbitProfile }) {
+  const t = analyzeProfile(profile);
+  const tone =
+    t.level === "trusted"
+      ? "text-[oklch(0.75_0.16_150)]"
+      : t.level === "review"
+        ? "text-muted-foreground"
+        : "text-destructive";
+  const Icon = t.level === "flagged" ? AlertTriangle : ScanFace;
+  return (
+    <p className={`flex items-center gap-1.5 pt-3 text-[11px] font-medium ${tone}`}>
+      <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+      {t.label} · {t.score}%
+    </p>
   );
 }
 
