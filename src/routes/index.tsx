@@ -25,7 +25,8 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   return (
-    <main>
+    <main className="relative">
+      <div aria-hidden className="ambient-canvas" />
       <header className="header-lux sticky top-0 z-40 flex h-14 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="logo-mark grid h-7 w-7 shrink-0 place-items-center rounded-[9px]">
@@ -55,13 +56,19 @@ function HomePage() {
         </div>
       </header>
 
-      <section aria-label="Moments" className="border-b border-border">
+      <section aria-label="Moments" className="hairline border-b">
         <Stories />
       </section>
 
-      <section aria-label="Feed" className="pt-2">
-        {posts.map((p) => (
-          <PostCard key={p.id} post={p} />
+      <section aria-label="Feed" className="space-y-5 px-3 pt-4">
+        {posts.map((p, i) => (
+          <div
+            key={p.id}
+            className="animate-rise"
+            style={{ animationDelay: `${Math.min(i, 6) * 70}ms` }}
+          >
+            <PostCard post={p} />
+          </div>
         ))}
       </section>
     </main>
