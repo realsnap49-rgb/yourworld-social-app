@@ -34,13 +34,13 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-type Item = { label: string; hint?: string; icon: LucideIcon; danger?: boolean };
+type Item = { label: string; hint?: string; icon: LucideIcon; danger?: boolean; to?: string };
 
 const items: Item[] = [
   { label: "Account", icon: User },
   { label: "Create Channel", icon: Megaphone },
   { label: "Create Page", icon: FileText },
-  { label: "Orbit", icon: Globe2 },
+  { label: "Orbit", hint: "Private social discovery", icon: Globe2, to: "/orbit" },
   { label: "Privacy & Downloads", hint: "Blocked accounts", icon: Lock },
   { label: "Notifications", icon: Bell },
   { label: "Appearance", icon: Palette },
@@ -65,11 +65,9 @@ function SettingsPage() {
 
       <div className="px-4 pt-5">
         <ul className="surface-card overflow-hidden rounded-3xl">
-          {items.map((item, i) => (
-            <li key={item.label} className="animate-rise" style={{ animationDelay: `${i * 28}ms` }}>
-              <button
-                className="flex w-full items-center gap-3.5 border-b border-border px-4 py-3.5 text-left transition-colors last:border-0 hover:bg-[color-mix(in_oklab,var(--foreground)_6%,transparent)] active:bg-[color-mix(in_oklab,var(--foreground)_9%,transparent)]"
-              >
+          {items.map((item, i) => {
+            const inner = (
+              <>
                 <span
                   className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
                     item.danger ? "bg-destructive/15 text-destructive" : "chip"
@@ -88,9 +86,22 @@ function SettingsPage() {
                   ) : null}
                 </span>
                 {!item.danger && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-              </button>
-            </li>
-          ))}
+              </>
+            );
+            const cls =
+              "flex w-full items-center gap-3.5 border-b border-border px-4 py-3.5 text-left transition-colors last:border-0 hover:bg-[color-mix(in_oklab,var(--foreground)_6%,transparent)] active:bg-[color-mix(in_oklab,var(--foreground)_9%,transparent)]";
+            return (
+              <li key={item.label} className="animate-rise" style={{ animationDelay: `${i * 28}ms` }}>
+                {item.to ? (
+                  <Link to={item.to} className={cls}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <button className={cls}>{inner}</button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </main>

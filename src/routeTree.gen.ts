@@ -16,6 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 
@@ -54,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrbitIndexRoute = OrbitIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrbitRoute,
+} as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
   id: '/chat/',
   path: '/chat/',
@@ -68,36 +74,38 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
-  '/orbit': typeof OrbitRoute
+  '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/chat/': typeof ChatIndexRoute
+  '/orbit/': typeof OrbitIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
-  '/orbit': typeof OrbitRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/chat': typeof ChatIndexRoute
+  '/orbit': typeof OrbitIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
-  '/orbit': typeof OrbitRoute
+  '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/chat/': typeof ChatIndexRoute
+  '/orbit/': typeof OrbitIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,17 +119,18 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/chat/$threadId'
     | '/chat/'
+    | '/orbit/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/create'
-    | '/orbit'
     | '/profile'
     | '/reels'
     | '/settings'
     | '/sitemap.xml'
     | '/chat/$threadId'
     | '/chat'
+    | '/orbit'
   id:
     | '__root__'
     | '/'
@@ -133,12 +142,13 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/chat/$threadId'
     | '/chat/'
+    | '/orbit/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
-  OrbitRoute: typeof OrbitRoute
+  OrbitRoute: typeof OrbitRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
   SettingsRoute: typeof SettingsRoute
@@ -198,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orbit/': {
+      id: '/orbit/'
+      path: '/'
+      fullPath: '/orbit/'
+      preLoaderRoute: typeof OrbitIndexRouteImport
+      parentRoute: typeof OrbitRoute
+    }
     '/chat/': {
       id: '/chat/'
       path: '/chat'
@@ -215,10 +232,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OrbitRouteChildren {
+  OrbitIndexRoute: typeof OrbitIndexRoute
+}
+
+const OrbitRouteChildren: OrbitRouteChildren = {
+  OrbitIndexRoute: OrbitIndexRoute,
+}
+
+const OrbitRouteWithChildren = OrbitRoute._addFileChildren(OrbitRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
-  OrbitRoute: OrbitRoute,
+  OrbitRoute: OrbitRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
   SettingsRoute: SettingsRoute,
