@@ -25,9 +25,9 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   return (
-    <main className="relative">
+    <main className="grain relative pb-28">
       <div aria-hidden className="ambient-canvas" />
-      <header className="header-lux sticky top-0 z-40 flex h-14 items-center justify-between gap-3 px-4">
+      <header className="header-lux sticky top-0 z-40 flex h-[54px] items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="logo-mark grid h-7 w-7 shrink-0 place-items-center rounded-[9px]">
             <span className="font-ui text-[11px] font-semibold leading-none tracking-[-0.02em]">
@@ -60,7 +60,7 @@ function HomePage() {
         <Stories />
       </section>
 
-      <section aria-label="Feed" className="space-y-5 px-3 pt-4">
+      <section aria-label="Feed" className="mx-auto max-w-lg space-y-6 px-3 pt-5">
         {posts.map((p, i) => (
           <div
             key={p.id}
