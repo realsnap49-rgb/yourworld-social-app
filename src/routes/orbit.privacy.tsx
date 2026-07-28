@@ -117,6 +117,19 @@ function OrbitPrivacy() {
         </Card>
 
         <Card title="Visibility">
+          <Row
+            label="Show my Orbit Mood"
+            hint="Display your mood as a small badge on your Orbit profile"
+            control={
+              <Switch
+                checked={privacy.showMood}
+                onCheckedChange={(v) => {
+                  orbit.setPrivacy({ showMood: v });
+                  toast.success(v ? "Orbit Mood badge shown" : "Orbit Mood kept private");
+                }}
+              />
+            }
+          />
           <div className="space-y-2 px-4 py-3.5">
             {VISIBILITY.map((v) => (
               <button
