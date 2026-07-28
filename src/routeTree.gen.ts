@@ -19,6 +19,7 @@ import { Route as ChannelRouteImport } from './routes/channel'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
+import { Route as ChannelIndexRouteImport } from './routes/channel.index'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
@@ -74,6 +75,11 @@ const ChatIndexRoute = ChatIndexRouteImport.update({
   path: '/chat/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChannelIndexRoute = ChannelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ChannelRoute,
+} as any)
 const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -108,12 +114,12 @@ export interface FileRoutesByFullPath {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
+  '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/orbit/': typeof OrbitIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
@@ -123,6 +129,7 @@ export interface FileRoutesByTo {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
+  '/channel': typeof ChannelIndexRoute
   '/chat': typeof ChatIndexRoute
   '/orbit': typeof OrbitIndexRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesById {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
+  '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/orbit/': typeof OrbitIndexRoute
 }
@@ -158,12 +166,12 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/orbit/create'
     | '/orbit/privacy'
+    | '/channel/'
     | '/chat/'
     | '/orbit/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/channel'
     | '/create'
     | '/profile'
     | '/reels'
@@ -173,6 +181,7 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/orbit/create'
     | '/orbit/privacy'
+    | '/channel'
     | '/chat'
     | '/orbit'
   id:
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/orbit/create'
     | '/orbit/privacy'
+    | '/channel/'
     | '/chat/'
     | '/orbit/'
   fileRoutesById: FileRoutesById
@@ -278,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/channel/': {
+      id: '/channel/'
+      path: '/'
+      fullPath: '/channel/'
+      preLoaderRoute: typeof ChannelIndexRouteImport
+      parentRoute: typeof ChannelRoute
+    }
     '/orbit/privacy': {
       id: '/orbit/privacy'
       path: '/privacy'
@@ -311,10 +328,12 @@ declare module '@tanstack/react-router' {
 
 interface ChannelRouteChildren {
   ChannelCreateRoute: typeof ChannelCreateRoute
+  ChannelIndexRoute: typeof ChannelIndexRoute
 }
 
 const ChannelRouteChildren: ChannelRouteChildren = {
   ChannelCreateRoute: ChannelCreateRoute,
+  ChannelIndexRoute: ChannelIndexRoute,
 }
 
 const ChannelRouteWithChildren =
