@@ -26,37 +26,31 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   return (
     <main>
-      <header className="header-lux sticky top-0 z-40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 pb-3 pt-3.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="logo-mark grid h-10 w-10 shrink-0 place-items-center rounded-2xl brand-gradient">
-            <span className="font-display text-[15px] font-extrabold tracking-tight text-primary-foreground">
+      <header className="header-lux sticky top-0 z-40 flex h-14 items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="logo-mark grid h-7 w-7 shrink-0 place-items-center rounded-[9px]">
+            <span className="font-ui text-[11px] font-semibold leading-none tracking-[-0.02em]">
               YW
             </span>
           </span>
-          <span className="min-w-0">
-            <h1 className="brand-text truncate font-display text-[26px] font-extrabold leading-none">
-              YourWorld
-            </h1>
-            <span className="mt-1 block truncate text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-              Your feed of moments
-            </span>
-          </span>
+          <h1 className="truncate font-ui text-[19px] font-semibold leading-none tracking-[-0.03em] text-foreground">
+            YourWorld
+          </h1>
         </div>
-        <div className="flex shrink-0 items-center gap-2.5">
+        <div className="-mr-1.5 flex shrink-0 items-center">
           <button
             aria-label="Notifications"
-            className="icon-pill grid h-10 w-10 place-items-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:scale-90"
+            className="icon-pill grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
           >
-            <Heart className="h-5 w-5" strokeWidth={2} />
+            <Heart className="h-[21px] w-[21px]" strokeWidth={1.6} />
           </button>
           <Link
             to="/chat"
             aria-label="Chat"
-            className="icon-pill relative grid h-10 w-10 place-items-center rounded-2xl transition-all duration-200 hover:-translate-y-0.5 active:scale-90"
+            className="icon-pill relative grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
           >
-            <MessageCircle className="h-5 w-5" strokeWidth={2} />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 animate-ping rounded-full bg-primary" />
+            <MessageCircle className="h-[21px] w-[21px]" strokeWidth={1.6} />
+            <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-foreground" />
           </Link>
         </div>
       </header>
