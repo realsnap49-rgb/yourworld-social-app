@@ -11,6 +11,15 @@ export type OrbitProfile = {
   age: number;
   /** Approximate area only — never an exact address or coordinates. */
   area: string;
+  /** Private location fields — only the city is ever shown publicly. */
+  country: string;
+  state: string;
+  city: string;
+  /** Used only for Women / Men / Everyone filtering. */
+  gender: "Women" | "Men";
+  /** Who this person is here to meet. */
+  lookingFor: "Women" | "Men" | "Everyone";
+  hobbies: string[];
   distanceKm: number;
   headline: string;
   about: string;
@@ -38,6 +47,12 @@ export const orbitProfiles: OrbitProfile[] = [
     handle: "riko.night",
     age: 27,
     area: "Shibuya area",
+    country: "Japan",
+    state: "Tokyo",
+    city: "Shibuya",
+    gender: "Women",
+    lookingFor: "Everyone",
+    hobbies: ["Photography", "Art", "Food", "Movies"],
     distanceKm: 1.4,
     headline: "Night photographer · film only",
     about: "Long exposures, neon alleys and 3am ramen. Looking for people to shoot with.",
@@ -53,6 +68,12 @@ export const orbitProfiles: OrbitProfile[] = [
     handle: "sea.salt",
     age: 24,
     area: "Coastal district",
+    country: "Australia",
+    state: "New South Wales",
+    city: "Sydney",
+    gender: "Women",
+    lookingFor: "Men",
+    hobbies: ["Travel", "Adventure", "Sports", "Photography"],
     distanceKm: 6.2,
     headline: "Surf at sunrise, edit at sunset",
     about: "Ocean person. Will absolutely talk your ear off about tides and board wax.",
@@ -67,6 +88,12 @@ export const orbitProfiles: OrbitProfile[] = [
     handle: "spinsolo",
     age: 26,
     area: "Studio quarter",
+    country: "United States",
+    state: "California",
+    city: "Los Angeles",
+    gender: "Women",
+    lookingFor: "Everyone",
+    hobbies: ["Music", "Fashion", "Gym & Fitness", "Art"],
     distanceKm: 3.1,
     headline: "Dancer · one light, one take",
     about: "Choreographing for small rooms. Always down for a late rehearsal.",
@@ -82,6 +109,12 @@ export const orbitProfiles: OrbitProfile[] = [
     handle: "slowbrunch",
     age: 31,
     area: "Old town",
+    country: "Germany",
+    state: "Bavaria",
+    city: "Munich",
+    gender: "Men",
+    lookingFor: "Women",
+    hobbies: ["Food", "Shopping", "Music", "Friends & Fun"],
     distanceKm: 12.5,
     headline: "Pastry-led lifestyle",
     about: "Sunday tables, no plans. I make a decent croissant and a terrible espresso.",
@@ -96,6 +129,12 @@ export const orbitProfiles: OrbitProfile[] = [
     handle: "wavelen",
     age: 29,
     area: "Riverside",
+    country: "United Kingdom",
+    state: "England",
+    city: "London",
+    gender: "Men",
+    lookingFor: "Everyone",
+    hobbies: ["Music", "Technology", "Gym & Fitness", "Reading"],
     distanceKm: 22,
     headline: "Sound design & synths",
     about: "Making ambient loops nobody asked for. Collabs welcome.",
@@ -110,6 +149,12 @@ export const orbitProfiles: OrbitProfile[] = [
     handle: "moss.club",
     age: 25,
     area: "Green belt",
+    country: "Canada",
+    state: "Ontario",
+    city: "Toronto",
+    gender: "Women",
+    lookingFor: "Women",
+    hobbies: ["Art", "Pets", "Adventure", "Reading"],
     distanceKm: 44,
     headline: "Plants, ceramics, quiet weekends",
     about: "Trading cuttings and mugs. Introvert with strong opinions on soil.",

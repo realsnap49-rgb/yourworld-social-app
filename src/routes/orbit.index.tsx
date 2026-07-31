@@ -28,6 +28,13 @@ import { useLiveLocation, remainingLabel } from "@/lib/live-location";
 import { MeetupSheet } from "@/components/yw/MeetupSheet";
 import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
 import { OrbitLockedSheet } from "@/components/yw/OrbitLockedSheet";
+import {
+  OrbitFilterBar,
+  OrbitFiltersSheet,
+  emptyOrbitFilters,
+  matchesOrbitFilters,
+  type OrbitFilterState,
+} from "@/components/yw/OrbitFilters";
 
 export const Route = createFileRoute("/orbit/")({
   head: () => ({
@@ -56,6 +63,8 @@ function OrbitBrowse() {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [meetupFor, setMeetupFor] = useState<OrbitProfile | null>(null);
   const [liveFor, setLiveFor] = useState<OrbitProfile | null>(null);
+  const [filters, setFilters] = useState<OrbitFilterState>(emptyOrbitFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const live = useLiveLocation();
   const obscured = useScreenCaptureShield(orbit.privacy.screenshotProtection);
 
@@ -85,11 +94,13 @@ function OrbitBrowse() {
   /** Same-mood and similar-interest people are surfaced first. */
   const ranked = useMemo(
     () =>
-      [...visible].sort(
+      visible
+        .filter((p) => matchesOrbitFilters(p, filters))
+        .sort(
         (a, b) =>
           moodMatchScore(b, myMood, myInterests) - moodMatchScore(a, myMood, myInterests),
       ),
-    [visible, myMood, myInterests],
+    [visible, myMood, myInterests, filters],
   );
 
   const gate = (action: () => void) => () => {
@@ -146,6 +157,13 @@ function OrbitBrowse() {
           </Link>
         </div>
       )}
+
+      <OrbitFilterBar
+        filters={filters}
+        onChange={setFilters}
+        onOpen={() => setFiltersOpen(true)}
+        resultCount={ranked.length}
+      />
 
       {orbit.hasProfile && (
         <section className="pt-4" aria-label="Orbit Mood">
@@ -349,7 +367,7 @@ function OrbitBrowse() {
 
         {ranked.length === 0 && (
           <p className="w-full py-16 text-center text-sm text-muted-foreground">
-            No Orbit profiles to show. Check your hidden and blocked lists.
+            No Orbit profiles match your search or filters.
           </p>
         )}
       </div>
@@ -367,6 +385,14 @@ function OrbitBrowse() {
       )}
 
       <OrbitLockedSheet open={locked} onOpenChange={setLocked} />
+
+      <OrbitFiltersSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        filters={filters}
+        onChange={setFilters}
+        resultCount={ranked.length}
+      />
 
       {live.session.active && (
         <div className="fixed inset-x-4 bottom-4 z-50 flex items-center gap-3 rounded-full border border-border/60 glass px-4 py-3">
