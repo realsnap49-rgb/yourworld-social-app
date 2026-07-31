@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   CalendarHeart,
   Navigation,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
@@ -123,9 +124,23 @@ function OrbitBrowse() {
         </Link>
         <h1 className="font-display text-lg font-bold">Orbit</h1>
         <Link
+          to="/orbit/notifications"
+          aria-label={
+            orbitUnread > 0 ? `Orbit notifications, ${orbitUnread} unread` : "Orbit notifications"
+          }
+          className="relative ml-auto grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+        >
+          <Bell className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          {orbitUnread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
+              {orbitUnread > 99 ? "99+" : orbitUnread}
+            </span>
+          )}
+        </Link>
+        <Link
           to="/orbit/privacy"
           aria-label="Orbit privacy & safety"
-          className="ml-auto grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+          className="grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
         >
           <Settings2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
         </Link>
