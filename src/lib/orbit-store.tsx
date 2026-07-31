@@ -25,6 +25,40 @@ export type OrbitPhoto = {
 
 export const ORBIT_PHOTO_MAX = 6;
 
+export const ORBIT_HOBBY_MAX = 5;
+
+export const ORBIT_HOBBIES = [
+  "Travel",
+  "Adventure",
+  "Trip with Friends",
+  "Shopping",
+  "Friends & Fun",
+  "Music",
+  "Movies",
+  "Food",
+  "Photography",
+  "Reading",
+  "Gaming",
+  "Fashion",
+  "Art",
+  "Technology",
+  "Business",
+  "Pets",
+  "Sleeping",
+  "Sports",
+  "Gym & Fitness",
+  "Other",
+] as const;
+
+export const ORBIT_LOOKING_FOR = [
+  "Friendship",
+  "Relationship",
+  "Casual Chat",
+  "Activity Partner",
+  "Networking",
+  "Not Sure Yet",
+] as const;
+
 export type OrbitProfileDraft = {
   name: string;
   age: string;
@@ -33,7 +67,10 @@ export type OrbitProfileDraft = {
   state: string;
   city: string;
   about: string;
-  interests: string[];
+  /** Up to ORBIT_HOBBY_MAX hobbies. */
+  hobbies: string[];
+  /** What the person is here for. Optional. */
+  lookingFor: string;
   /** At least one photo is required. Up to ORBIT_PHOTO_MAX. */
   photos: OrbitPhoto[];
   /** Who can view the original (unstylized) photo. */

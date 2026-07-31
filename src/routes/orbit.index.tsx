@@ -80,7 +80,7 @@ function OrbitBrowse() {
   );
 
   const myMood = orbit.profile?.mood ?? null;
-  const myInterests = orbit.profile?.interests ?? [];
+  const myInterests = orbit.profile?.hobbies ?? [];
 
   /** Same-mood and similar-interest people are surfaced first. */
   const ranked = useMemo(
