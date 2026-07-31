@@ -280,6 +280,29 @@ function OrbitPrivacy() {
           />
         </Card>
 
+        <Card title="Calls">
+          <Row
+            label="Allow voice &amp; video calls"
+            hint="Calls are only ever possible after a match or connection"
+            control={
+              <Switch
+                checked={privacy.callsEnabled}
+                onCheckedChange={(v) => {
+                  orbit.setPrivacy({ callsEnabled: v });
+                  toast.success(v ? "Calls enabled" : "Calls turned off");
+                }}
+              />
+            }
+          />
+          {privacy.callsEnabled && (
+            <Segmented
+              label="Who can call you"
+              value={privacy.whoCanCall}
+              onChange={(v) => orbit.setPrivacy({ whoCanCall: v })}
+            />
+          )}
+        </Card>
+
         <Card title="Live location">
           <Row
             label="Allow live location sharing"
