@@ -86,6 +86,9 @@ export type OrbitPrivacy = {
   whoCanConnect: OrbitAudience;
   liveLocationEnabled: boolean;
   whoCanRequestLiveLocation: OrbitAudience;
+  /** Voice/video calls master switch. Calls are only ever possible after a match/connection. */
+  callsEnabled: boolean;
+  whoCanCall: OrbitAudience;
   hiddenFrom: string[];
   blocked: string[];
   screenshotProtection: boolean;
@@ -129,6 +132,8 @@ const defaultPrivacy: OrbitPrivacy = {
   whoCanConnect: "everyone",
   liveLocationEnabled: false,
   whoCanRequestLiveLocation: "connections",
+  callsEnabled: true,
+  whoCanCall: "connections",
   hiddenFrom: [],
   blocked: [],
   screenshotProtection: true,

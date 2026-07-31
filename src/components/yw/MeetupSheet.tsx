@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Clock3, MapPin, Shield, X } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
@@ -16,14 +16,22 @@ export function MeetupSheet({
   open,
   onOpenChange,
   onSend,
+  initialCategory,
+  title = "Plan a meetup",
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSend: (body: string) => void;
+  initialCategory?: MeetupCategoryId;
+  title?: string;
 }) {
-  const [category, setCategory] = useState<MeetupCategoryId>("cafes");
+  const [category, setCategory] = useState<MeetupCategoryId>(initialCategory ?? "cafes");
   const [when, setWhen] = useState<MeetupTimeSlot>(meetupTimeSlots[0]);
   const places = placesFor(category);
+
+  useEffect(() => {
+    if (open && initialCategory) setCategory(initialCategory);
+  }, [open, initialCategory]);
 
   const send = (place: MeetupPlace) => {
     onSend(meetupMessage(place, when));
@@ -51,7 +59,7 @@ export function MeetupSheet({
             </button>
           </div>
 
-          <h2 className="pt-4 font-display text-lg font-bold">Plan a meetup</h2>
+          <h2 className="pt-4 font-display text-lg font-bold">{title}</h2>
           <p className="pt-1.5 text-sm leading-relaxed text-muted-foreground">
             Safe, busy public places picked from the approximate areas you both share.
           </p>
