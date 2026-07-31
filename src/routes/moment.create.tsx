@@ -420,8 +420,8 @@ function MomentStudio() {
                     setVideoDur(d);
                     setTrim((t) => t ?? { start: 0, end: d });
                   }
+                  e.currentTarget.playbackRate = effect === "slowmo" ? 0.5 : 1;
                 }}
-                ref2-playbackrate={effect}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -459,6 +459,11 @@ function MomentStudio() {
                   onChange={(t) => patchSticker(s.id, { x: t.x, y: t.y, scale: t.scale, rotation: t.rotation })}
                 >
                   <span
+                    onDoubleClick={() => {
+                      if (s.type !== "text") return;
+                      const next = window.prompt("Edit text", s.content);
+                      if (next !== null) patchSticker(s.id, { content: next || s.content });
+                    }}
                     className={cn(
                       "block whitespace-pre px-1 drop-shadow-[0_4px_14px_rgba(0,0,0,0.55)]",
                       s.type === "text" ? "font-display text-[22px] font-bold" : "text-4xl",
