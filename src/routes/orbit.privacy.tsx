@@ -218,14 +218,14 @@ function OrbitPrivacy() {
 
         <Card title="Visibility">
           <Row
-            label="Show my Orbit Mood"
-            hint="Display your mood as a small badge on your Orbit profile"
+            label="Show my Looking For"
+            hint="Display your Looking For preference as a small badge on your Orbit profile"
             control={
               <Switch
                 checked={privacy.showMood}
                 onCheckedChange={(v) => {
                   orbit.setPrivacy({ showMood: v });
-                  toast.success(v ? "Orbit Mood badge shown" : "Orbit Mood kept private");
+                  toast.success(v ? "Looking For badge shown" : "Looking For kept private");
                 }}
               />
             }
@@ -304,8 +304,17 @@ function OrbitPrivacy() {
         </Card>
 
         <Card title="Hide from specific users">
+          <div className="px-4 pt-3.5">
+            <Input
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              placeholder="Search users"
+              aria-label="Search users"
+              className="rounded-2xl"
+            />
+          </div>
           <ul className="px-4 py-2">
-            {orbitProfiles.map((p) => (
+            {filteredProfiles.map((p) => (
               <li key={p.id} className="flex items-center justify-between border-b border-border/60 py-3 last:border-0">
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">{p.name}</span>
@@ -337,6 +346,9 @@ function OrbitPrivacy() {
                 </span>
               </li>
             ))}
+            {filteredProfiles.length === 0 && (
+              <li className="py-4 text-center text-xs text-muted-foreground">No users found</li>
+            )}
           </ul>
         </Card>
 
@@ -445,6 +457,21 @@ function OrbitPrivacy() {
               </p>
             </div>
           )}
+          <div className="border-t border-border/60">
+            <Row
+              label="Notify me about screen capture"
+              hint="Notify me if someone takes a screenshot or screen recording (on supported devices). If detected, both users are instantly notified."
+              control={
+                <Switch
+                  checked={privacy.screenshotAlerts}
+                  onCheckedChange={(v) => {
+                    orbit.setPrivacy({ screenshotAlerts: v });
+                    toast.success(v ? "Screen capture alerts on" : "Screen capture alerts off");
+                  }}
+                />
+              }
+            />
+          </div>
         </Card>
       </div>
 
