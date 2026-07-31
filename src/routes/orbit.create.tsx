@@ -5,8 +5,13 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useOrbit, type OrbitProfileDraft } from "@/lib/orbit-store";
-import { ORBIT_MOODS } from "@/lib/orbit-mood";
+import {
+  useOrbit,
+  ORBIT_HOBBIES,
+  ORBIT_HOBBY_MAX,
+  ORBIT_LOOKING_FOR,
+  type OrbitProfileDraft,
+} from "@/lib/orbit-store";
 import { OrbitPhotos } from "@/components/yw/OrbitPhotos";
 import { GEO_COUNTRIES, citiesOf, statesOf } from "@/lib/geo-data";
 import {
@@ -38,21 +43,6 @@ export const Route = createFileRoute("/orbit/create")({
   component: OrbitCreate,
 });
 
-const INTERESTS = [
-  "Photography",
-  "Music",
-  "Travel",
-  "Food",
-  "Fitness",
-  "Gaming",
-  "Art",
-  "Film",
-  "Books",
-  "Coffee",
-  "Surf",
-  "Dance",
-];
-
 function OrbitCreate() {
   const orbit = useOrbit();
   const navigate = useNavigate();
@@ -63,7 +53,8 @@ function OrbitCreate() {
     state: "",
     city: "",
     about: "",
-    interests: [],
+    hobbies: [],
+    lookingFor: "",
     photos: [],
     originalPhotoPrivacy: "matched",
     mood: null,
