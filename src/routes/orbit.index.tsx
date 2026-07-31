@@ -195,14 +195,23 @@ function OrbitBrowse() {
         </section>
       )}
 
-      <div className={`space-y-4 px-4 pt-4 ${obscured ? "pointer-events-none blur-xl" : ""}`}>
+      <div
+        className={`no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden px-4 pt-4 ${
+          obscured ? "pointer-events-none blur-xl" : ""
+        }`}
+      >
         {ranked.map((p, i) => (
           <article
             key={p.id}
-            className="surface-card animate-rise overflow-hidden rounded-[28px]"
+            className="surface-card animate-rise relative w-[86vw] max-w-md shrink-0 snap-center overflow-hidden rounded-[28px]"
             style={{ animationDelay: `${i * 40}ms` }}
           >
-            <div className="relative aspect-[4/5] w-full overflow-hidden">
+            <Link
+              to="/orbit/$profileId"
+              params={{ profileId: p.id }}
+              aria-label={`Open ${p.name}'s Orbit profile`}
+              className="relative block aspect-[4/5] w-full overflow-hidden"
+            >
               <img
                 src={p.photo}
                 alt={`${p.name}, ${p.headline}`}
@@ -236,7 +245,8 @@ function OrbitBrowse() {
                   {p.area} · {approxDistance(p.distanceKm)}
                 </p>
               </div>
-              <button
+            </Link>
+            <button
                 type="button"
                 onClick={() => setMenuFor(menuFor === p.id ? null : p.id)}
                 aria-label={`Safety options for ${p.name}`}
@@ -244,7 +254,6 @@ function OrbitBrowse() {
               >
                 <Flag className="h-[15px] w-[15px]" strokeWidth={1.7} />
               </button>
-            </div>
 
             <div className="p-4">
               <p className="text-sm leading-relaxed text-muted-foreground">{p.about}</p>
@@ -339,11 +348,17 @@ function OrbitBrowse() {
         ))}
 
         {ranked.length === 0 && (
-          <p className="py-16 text-center text-sm text-muted-foreground">
+          <p className="w-full py-16 text-center text-sm text-muted-foreground">
             No Orbit profiles to show. Check your hidden and blocked lists.
           </p>
         )}
       </div>
+
+      {ranked.length > 1 && (
+        <p className="px-4 pt-3 text-center text-[11px] text-muted-foreground">
+          Swipe left or right to browse · tap a photo or name to open the profile
+        </p>
+      )}
 
       {obscured && (
         <p className="fixed inset-x-0 bottom-6 z-50 px-6 text-center text-xs text-muted-foreground">
