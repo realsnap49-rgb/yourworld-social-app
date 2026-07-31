@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { CheckCheck, ChevronLeft, Radio, Settings2, X } from "lucide-react";
 import {
   NOTIFICATION_KINDS,
+  ORBIT_KINDS,
   kindMeta,
   timeAgo,
   useNotifications,
@@ -32,11 +33,26 @@ export const Route = createFileRoute("/notifications")({
 type Filter = "all" | "unread" | NotificationKind;
 
 function NotificationsPage() {
-  const { items, unread, unreadByKind, prefs, live, setLive, setPref, markRead, markAllRead, remove } =
+  const {
+    items: allItems,
+    unreadHome: unread,
+    unreadByKind,
+    prefs,
+    live,
+    setLive,
+    setPref,
+    markRead,
+    markAllRead,
+    remove,
+  } =
     useNotifications();
   const [filter, setFilter] = useState<Filter>("all");
   const [tuning, setTuning] = useState(false);
   const navigate = useNavigate();
+
+  /** Orbit, Connections and Matches live only inside the Orbit section. */
+  const items = useMemo(() => allItems.filter((i) => !ORBIT_KINDS.includes(i.kind)), [allItems]);
+  const homeKinds = useMemo(() => NOTIFICATION_KINDS.filter((k) => !ORBIT_KINDS.includes(k.id)), []);
 
   const list = useMemo(() => {
     const base =
@@ -102,7 +118,7 @@ function NotificationsPage() {
             label="Unread"
             count={unread}
           />
-          {NOTIFICATION_KINDS.filter((k) => prefs[k.id]).map((k) => (
+          {homeKinds.filter((k) => prefs[k.id]).map((k) => (
             <Chip
               key={k.id}
               active={filter === k.id}
@@ -117,7 +133,7 @@ function NotificationsPage() {
       {tuning && (
         <section aria-label="Notification types" className="px-4 pt-4">
           <ul className="surface-card overflow-hidden rounded-3xl">
-            {NOTIFICATION_KINDS.map((k) => (
+            {homeKinds.map((k) => (
               <li
                 key={k.id}
                 className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-0"
