@@ -183,7 +183,7 @@ function OrbitCreate() {
             onValueChange={(v) => set("lookingFor", v)}
           >
             <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue placeholder="What you're here for" />
+              <SelectValue placeholder="Select Preference" />
             </SelectTrigger>
             <SelectContent>
               {ORBIT_LOOKING_FOR.map((o) => (
@@ -193,6 +193,10 @@ function OrbitCreate() {
               ))}
             </SelectContent>
           </Select>
+          <p className="pt-2 text-[11px] text-muted-foreground">
+            Only used to personalize Orbit recommendations and matching. You can change it
+            anytime.
+          </p>
         </Field>
 
         <Field label={`Hobbies (Max ${ORBIT_HOBBY_MAX})`}>

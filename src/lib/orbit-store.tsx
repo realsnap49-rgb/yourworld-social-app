@@ -51,12 +51,9 @@ export const ORBIT_HOBBIES = [
 ] as const;
 
 export const ORBIT_LOOKING_FOR = [
-  "Friendship",
-  "Relationship",
-  "Casual Chat",
-  "Activity Partner",
-  "Networking",
-  "Not Sure Yet",
+  "Women",
+  "Men",
+  "Everyone",
 ] as const;
 
 export type OrbitProfileDraft = {
