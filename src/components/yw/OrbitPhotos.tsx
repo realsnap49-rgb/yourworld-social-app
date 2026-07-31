@@ -13,10 +13,27 @@ const STYLES: { id: OrbitPhotoStyle; emoji: string; label: string }[] = [
   { id: "stylized", emoji: "😎", label: "Stylized Photo" },
 ];
 
-const PRIVACY: { id: OrbitPhotoPrivacy; label: string; hint: string }[] = [
-  { id: "everyone", label: "Everyone", hint: "Anyone in Orbit can see your original photo." },
-  { id: "matched", label: "Only Matched Users", hint: "Visible after you match with someone." },
-  { id: "permission", label: "Only with My Permission", hint: "Each request is approved by you." },
+const PRIVACY: {
+  id: OrbitPhotoPrivacy;
+  emoji: string;
+  label: string;
+  hint: string;
+  recommended?: boolean;
+}[] = [
+  {
+    id: "matched",
+    emoji: "⭐",
+    label: "Only Matched Users",
+    hint: "Visible after match.",
+    recommended: true,
+  },
+  {
+    id: "permission",
+    emoji: "🔐",
+    label: "Only with My Permission",
+    hint: "You approve every request.",
+  },
+  { id: "everyone", emoji: "🌍", label: "Everyone", hint: "Visible to everyone." },
 ];
 
 const STYLE_ICON = { real: Camera, avatar: Wand2, stylized: Sparkles } as const;
@@ -156,10 +173,22 @@ export function OrbitPhotos({
                 >
                   {active && <span className="h-2 w-2 rounded-full bg-background" />}
                 </span>
-                <span>
-                  <span className="block text-sm font-medium">{o.label}</span>
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+                    <span aria-hidden>{o.emoji}</span>
+                    {o.label}
+                    {o.recommended && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+                          active ? "bg-background/20" : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        Recommended
+                      </span>
+                    )}
+                  </span>
                   <span
-                    className={`block text-[11px] ${active ? "opacity-70" : "text-muted-foreground"}`}
+                    className={`block pt-0.5 text-[11px] ${active ? "opacity-70" : "text-muted-foreground"}`}
                   >
                     {o.hint}
                   </span>
