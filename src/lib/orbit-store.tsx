@@ -13,6 +13,17 @@ export type OrbitVisibility = "public" | "friends" | "hidden";
 export type OrbitAudience = "everyone" | "connections" | "nobody";
 export type OrbitVerification = "none" | "pending" | "verified";
 
+export type OrbitPhotoStyle = "real" | "avatar" | "stylized";
+export type OrbitPhotoPrivacy = "everyone" | "matched" | "permission";
+
+export type OrbitPhoto = {
+  id: string;
+  url: string;
+  style: OrbitPhotoStyle;
+};
+
+export const ORBIT_PHOTO_MAX = 6;
+
 export type OrbitProfileDraft = {
   name: string;
   handle: string;
@@ -21,6 +32,10 @@ export type OrbitProfileDraft = {
   headline: string;
   about: string;
   interests: string[];
+  /** At least one photo is required. Up to ORBIT_PHOTO_MAX. */
+  photos: OrbitPhoto[];
+  /** Who can view the original (unstylized) photo. */
+  originalPhotoPrivacy: OrbitPhotoPrivacy;
   /** Optional — never required to use Orbit. */
   mood?: OrbitMoodId | null;
 };
