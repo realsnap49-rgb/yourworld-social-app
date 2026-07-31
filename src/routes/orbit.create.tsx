@@ -50,20 +50,19 @@ const AREAS = ["Nearby area", "City centre", "Coastal district", "Old town", "Ri
 function OrbitCreate() {
   const orbit = useOrbit();
   const navigate = useNavigate();
-  const [draft, setDraft] = useState<OrbitProfileDraft>(
-    orbit.profile ?? {
-      name: "",
-      handle: "",
-      age: "",
-      area: AREAS[0],
-      headline: "",
-      about: "",
-      interests: [],
-      photos: [],
-      originalPhotoPrivacy: "matched",
-      mood: null,
-    },
-  );
+  const [draft, setDraft] = useState<OrbitProfileDraft>({
+    name: "",
+    handle: "",
+    age: "",
+    area: AREAS[0],
+    headline: "",
+    about: "",
+    interests: [],
+    photos: [],
+    originalPhotoPrivacy: "matched",
+    mood: null,
+    ...(orbit.profile ?? {}),
+  });
 
   const set = <K extends keyof OrbitProfileDraft>(k: K, v: OrbitProfileDraft[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
