@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { OrbitMoodId } from "@/lib/orbit-mood";
+import { ORBIT_KEY, notifyOrbitPrefsChanged } from "@/lib/orbit-prefs";
 
 export type OrbitVisibility = "public" | "friends" | "hidden";
 export type OrbitAudience = "everyone" | "connections" | "nobody";
@@ -62,6 +63,16 @@ export type OrbitPrivacy = {
   verification: OrbitVerification;
   /** Mood is private by default in the sense that it is never shown unless on. */
   showMood: boolean;
+  /** Require a PIN/password before Orbit opens on this device. */
+  lockEnabled: boolean;
+  /** Random per-device salt for the PIN digest. Never the PIN itself. */
+  pinSalt: string | null;
+  /** SHA-256 digest of salt + PIN. The PIN is never stored. */
+  pinHash: string | null;
+  /** Hide the Orbit entry point across the app. */
+  hideOrbitEntry: boolean;
+  /** Suppress every Orbit-related notification. */
+  hideOrbitNotifications: boolean;
 };
 
 export type OrbitState = {
@@ -89,6 +100,11 @@ const defaultPrivacy: OrbitPrivacy = {
   hideFlaggedProfiles: false,
   verification: "none",
   showMood: true,
+  lockEnabled: false,
+  pinSalt: null,
+  pinHash: null,
+  hideOrbitEntry: false,
+  hideOrbitNotifications: false,
 };
 
 const defaultState: OrbitState = {
@@ -98,7 +114,54 @@ const defaultState: OrbitState = {
   connected: {},
 };
 
-const KEY = "yw.orbit.v1";
+const KEY = ORBIT_KEY;
+
+const UNLOCK_KEY = "yw.orbit.unlocked";
+
+function randomSalt() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** PIN is hashed with a per-device salt; the raw value never leaves the input. */
+async function digestPin(salt: string, pin: string) {
+  const data = new TextEncoder().encode(`${salt}:${pin}`);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Constant-time-ish string compare so timing never leaks the digest. */
+function safeEqual(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+export function markUnlockedForSession() {
+  try {
+    window.sessionStorage.setItem(UNLOCK_KEY, "1");
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function isUnlockedForSession() {
+  try {
+    return window.sessionStorage.getItem(UNLOCK_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function clearSessionUnlock() {
+  try {
+    window.sessionStorage.removeItem(UNLOCK_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 type Ctx = OrbitState & {
   hasProfile: boolean;
@@ -106,6 +169,9 @@ type Ctx = OrbitState & {
   saveProfile: (p: OrbitProfileDraft) => void;
   setMood: (mood: OrbitMoodId | null) => void;
   setPrivacy: (patch: Partial<OrbitPrivacy>) => void;
+  setOrbitPin: (pin: string) => Promise<void>;
+  verifyOrbitPin: (pin: string) => Promise<boolean>;
+  disableOrbitLock: () => void;
   toggleHiddenFrom: (id: string) => void;
   toggleBlocked: (id: string) => void;
   toggleLike: (id: string) => void;
@@ -139,6 +205,7 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     try {
       window.localStorage.setItem(KEY, JSON.stringify(state));
+      notifyOrbitPrefsChanged();
     } catch {
       /* storage unavailable */
     }
@@ -162,6 +229,25 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
       setMood: (mood) =>
         setState((s) => (s.profile ? { ...s, profile: { ...s.profile, mood } } : s)),
       setPrivacy,
+      setOrbitPin: async (pin: string) => {
+        const salt = randomSalt();
+        const pinHash = await digestPin(salt, pin);
+        setState((s) => ({ ...s, privacy: { ...s.privacy, lockEnabled: true, pinSalt: salt, pinHash } }));
+        markUnlockedForSession();
+      },
+      verifyOrbitPin: async (pin: string) => {
+        const { pinSalt, pinHash } = state.privacy;
+        if (!pinSalt || !pinHash) return false;
+        const candidate = await digestPin(pinSalt, pin);
+        const ok = safeEqual(candidate, pinHash);
+        if (ok) markUnlockedForSession();
+        return ok;
+      },
+      disableOrbitLock: () =>
+        setState((s) => ({
+          ...s,
+          privacy: { ...s.privacy, lockEnabled: false, pinSalt: null, pinHash: null },
+        })),
       toggleHiddenFrom: (id) =>
         setState((s) => ({
           ...s,
