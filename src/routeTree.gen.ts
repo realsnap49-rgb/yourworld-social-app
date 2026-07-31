@@ -26,6 +26,7 @@ import { Route as OrbitNotificationsRouteImport } from './routes/orbit.notificat
 import { Route as OrbitMessagesRouteImport } from './routes/orbit.messages'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as OrbitProfileIdRouteImport } from './routes/orbit.$profileId'
+import { Route as MomentCreateRouteImport } from './routes/moment.create'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 import { Route as ChannelVideosRouteImport } from './routes/channel.videos'
 import { Route as ChannelSubscribersRouteImport } from './routes/channel.subscribers'
@@ -120,6 +121,11 @@ const OrbitProfileIdRoute = OrbitProfileIdRouteImport.update({
   path: '/$profileId',
   getParentRoute: () => OrbitRoute,
 } as any)
+const MomentCreateRoute = MomentCreateRouteImport.update({
+  id: '/moment/create',
+  path: '/moment/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   id: '/chat/$threadId',
   path: '/chat/$threadId',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/messages': typeof OrbitMessagesRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/messages': typeof OrbitMessagesRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
   '/orbit/messages': typeof OrbitMessagesRoute
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
+    | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
     | '/orbit/messages'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
+    | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
     | '/orbit/messages'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
+    | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
     | '/orbit/messages'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ChatThreadIdRoute: typeof ChatThreadIdRoute
+  MomentCreateRoute: typeof MomentCreateRoute
   ChatIndexRoute: typeof ChatIndexRoute
 }
 
@@ -458,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrbitProfileIdRouteImport
       parentRoute: typeof OrbitRoute
     }
+    '/moment/create': {
+      id: '/moment/create'
+      path: '/moment/create'
+      fullPath: '/moment/create'
+      preLoaderRoute: typeof MomentCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat/$threadId': {
       id: '/chat/$threadId'
       path: '/chat/$threadId'
@@ -573,18 +593,9 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ChatThreadIdRoute: ChatThreadIdRoute,
+  MomentCreateRoute: MomentCreateRoute,
   ChatIndexRoute: ChatIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
