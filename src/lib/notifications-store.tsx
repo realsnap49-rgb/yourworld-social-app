@@ -120,6 +120,10 @@ const KEY = "yw.notifications.v1";
 type Ctx = {
   items: NotificationItem[];
   unread: number;
+  /** Unread excluding Orbit-only kinds (Orbit, Connections, Matches). */
+  unreadHome: number;
+  /** Unread across Orbit-only kinds. */
+  unreadOrbit: number;
   unreadByKind: Record<NotificationKind, number>;
   prefs: NotificationPrefs;
   live: boolean;
