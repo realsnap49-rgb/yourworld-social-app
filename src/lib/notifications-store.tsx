@@ -138,6 +138,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
   const [live, setLive] = useState(true);
   const [hydrated, setHydrated] = useState(false);
+  const { hideOrbitNotifications } = useOrbitAppPrefs();
   const cursor = useRef(0);
 
   useEffect(() => {
@@ -187,8 +188,6 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     schedule();
     return () => window.clearTimeout(timer);
   }, [hydrated, live, prefs, hideOrbitNotifications]);
-
-  const { hideOrbitNotifications } = useOrbitAppPrefs();
 
   const setPref = useCallback((k: NotificationKind, v: boolean) => {
     setPrefs((p) => ({ ...p, [k]: v }));
