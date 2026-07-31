@@ -22,6 +22,7 @@ import {
   Bell,
   type LucideIcon,
 } from "lucide-react";
+import { useOrbitAppPrefs } from "@/lib/orbit-prefs";
 
 export type NotificationKind =
   | "like"
@@ -70,6 +71,9 @@ export const NOTIFICATION_KINDS: KindMeta[] = [
   { id: "monetization", label: "Monetization", emoji: "💰", icon: Coins, tint: "text-amber-400" },
   { id: "system", label: "System", emoji: "🔔", icon: Bell, tint: "text-muted-foreground" },
 ];
+
+/** Kinds suppressed by the "Hide Orbit notifications" privacy control. */
+export const ORBIT_KINDS: NotificationKind[] = ["orbit", "connection", "match"];
 
 export const kindMeta = (k: NotificationKind) =>
   NOTIFICATION_KINDS.find((m) => m.id === k) ?? NOTIFICATION_KINDS[NOTIFICATION_KINDS.length - 1];
@@ -172,7 +176,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
           const t = liveTemplates[cursor.current % liveTemplates.length];
           cursor.current += 1;
           setItems((prev) =>
-            prefs[t.kind]
+            prefs[t.kind] && !(hideOrbitNotifications && ORBIT_KINDS.includes(t.kind))
               ? [{ ...t, id: `live-${Date.now()}`, at: Date.now(), read: false }, ...prev].slice(0, 80)
               : prev,
           );
@@ -182,7 +186,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     };
     schedule();
     return () => window.clearTimeout(timer);
-  }, [hydrated, live, prefs]);
+  }, [hydrated, live, prefs, hideOrbitNotifications]);
 
   const { hideOrbitNotifications } = useOrbitAppPrefs();
 
