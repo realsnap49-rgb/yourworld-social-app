@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
+import { useNotifications } from "@/lib/notifications-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
 import { ORBIT_MOODS, moodById, moodMatchScore } from "@/lib/orbit-mood";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
@@ -60,6 +61,7 @@ export const Route = createFileRoute("/orbit/")({
 
 function OrbitBrowse() {
   const orbit = useOrbit();
+  const { unreadOrbit: orbitUnread } = useNotifications();
   const [locked, setLocked] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [meetupFor, setMeetupFor] = useState<OrbitProfile | null>(null);
