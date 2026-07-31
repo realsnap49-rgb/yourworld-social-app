@@ -27,10 +27,11 @@ export const ORBIT_PHOTO_MAX = 6;
 
 export type OrbitProfileDraft = {
   name: string;
-  handle: string;
   age: string;
-  area: string;
-  headline: string;
+  /** Country and state stay private — only the city is ever shown publicly. */
+  country: string;
+  state: string;
+  city: string;
   about: string;
   interests: string[];
   /** At least one photo is required. Up to ORBIT_PHOTO_MAX. */
