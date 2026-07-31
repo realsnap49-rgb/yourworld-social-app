@@ -120,6 +120,10 @@ const KEY = "yw.notifications.v1";
 type Ctx = {
   items: NotificationItem[];
   unread: number;
+  /** Unread excluding Orbit-only kinds (Orbit, Connections, Matches). */
+  unreadHome: number;
+  /** Unread across Orbit-only kinds. */
+  unreadOrbit: number;
   unreadByKind: Record<NotificationKind, number>;
   prefs: NotificationPrefs;
   live: boolean;
@@ -204,6 +208,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return {
       items: visible,
       unread: visible.filter((i) => !i.read).length,
+      unreadHome: visible.filter((i) => !i.read && !ORBIT_KINDS.includes(i.kind)).length,
+      unreadOrbit: visible.filter((i) => !i.read && ORBIT_KINDS.includes(i.kind)).length,
       unreadByKind,
       prefs,
       live,

@@ -18,10 +18,12 @@ import {
   AlertTriangle,
   CalendarHeart,
   Navigation,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
+import { useNotifications } from "@/lib/notifications-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
 import { ORBIT_MOODS, moodById, moodMatchScore } from "@/lib/orbit-mood";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
@@ -59,6 +61,7 @@ export const Route = createFileRoute("/orbit/")({
 
 function OrbitBrowse() {
   const orbit = useOrbit();
+  const { unreadOrbit: orbitUnread } = useNotifications();
   const [locked, setLocked] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [meetupFor, setMeetupFor] = useState<OrbitProfile | null>(null);
@@ -123,9 +126,23 @@ function OrbitBrowse() {
         </Link>
         <h1 className="font-display text-lg font-bold">Orbit</h1>
         <Link
+          to="/orbit/notifications"
+          aria-label={
+            orbitUnread > 0 ? `Orbit notifications, ${orbitUnread} unread` : "Orbit notifications"
+          }
+          className="relative ml-auto grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+        >
+          <Bell className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          {orbitUnread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
+              {orbitUnread > 99 ? "99+" : orbitUnread}
+            </span>
+          )}
+        </Link>
+        <Link
           to="/orbit/privacy"
           aria-label="Orbit privacy & safety"
-          className="ml-auto grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+          className="grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
         >
           <Settings2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
         </Link>

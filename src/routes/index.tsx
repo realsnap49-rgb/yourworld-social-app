@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { unread } = useNotifications();
+  const { unreadHome: unread } = useNotifications();
   return (
     <main className="grain relative pb-28">
       <div aria-hidden className="ambient-canvas" />

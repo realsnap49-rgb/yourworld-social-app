@@ -22,6 +22,7 @@ import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChannelIndexRouteImport } from './routes/channel.index'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
+import { Route as OrbitNotificationsRouteImport } from './routes/orbit.notifications'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as OrbitProfileIdRouteImport } from './routes/orbit.$profileId'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
@@ -98,6 +99,11 @@ const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => OrbitRoute,
 } as any)
+const OrbitNotificationsRoute = OrbitNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => OrbitRoute,
+} as any)
 const OrbitCreateRoute = OrbitCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
   '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
   '/channel': typeof ChannelIndexRoute
   '/chat': typeof ChatIndexRoute
@@ -218,6 +226,7 @@ export interface FileRoutesById {
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
   '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
@@ -245,6 +254,7 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/orbit/$profileId'
     | '/orbit/create'
+    | '/orbit/notifications'
     | '/orbit/privacy'
     | '/channel/'
     | '/chat/'
@@ -268,6 +278,7 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/orbit/$profileId'
     | '/orbit/create'
+    | '/orbit/notifications'
     | '/orbit/privacy'
     | '/channel'
     | '/chat'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/chat/$threadId'
     | '/orbit/$profileId'
     | '/orbit/create'
+    | '/orbit/notifications'
     | '/orbit/privacy'
     | '/channel/'
     | '/chat/'
@@ -406,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrbitPrivacyRouteImport
       parentRoute: typeof OrbitRoute
     }
+    '/orbit/notifications': {
+      id: '/orbit/notifications'
+      path: '/notifications'
+      fullPath: '/orbit/notifications'
+      preLoaderRoute: typeof OrbitNotificationsRouteImport
+      parentRoute: typeof OrbitRoute
+    }
     '/orbit/create': {
       id: '/orbit/create'
       path: '/create'
@@ -507,6 +526,7 @@ const ChannelRouteWithChildren =
 interface OrbitRouteChildren {
   OrbitProfileIdRoute: typeof OrbitProfileIdRoute
   OrbitCreateRoute: typeof OrbitCreateRoute
+  OrbitNotificationsRoute: typeof OrbitNotificationsRoute
   OrbitPrivacyRoute: typeof OrbitPrivacyRoute
   OrbitIndexRoute: typeof OrbitIndexRoute
 }
@@ -514,6 +534,7 @@ interface OrbitRouteChildren {
 const OrbitRouteChildren: OrbitRouteChildren = {
   OrbitProfileIdRoute: OrbitProfileIdRoute,
   OrbitCreateRoute: OrbitCreateRoute,
+  OrbitNotificationsRoute: OrbitNotificationsRoute,
   OrbitPrivacyRoute: OrbitPrivacyRoute,
   OrbitIndexRoute: OrbitIndexRoute,
 }
@@ -536,13 +557,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
