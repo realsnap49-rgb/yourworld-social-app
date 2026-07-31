@@ -282,6 +282,7 @@ function OrbitPrivacy() {
 
         <Card title="Live location">
           <Row
+          <Row
             label="Allow live location sharing"
             hint="Off by default — nothing is shared until you start a session"
             control={
