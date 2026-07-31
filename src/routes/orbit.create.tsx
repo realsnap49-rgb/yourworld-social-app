@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useOrbit, type OrbitProfileDraft } from "@/lib/orbit-store";
 import { ORBIT_MOODS } from "@/lib/orbit-mood";
+import { OrbitPhotos } from "@/components/yw/OrbitPhotos";
 
 export const Route = createFileRoute("/orbit/create")({
   head: () => ({
@@ -58,6 +59,8 @@ function OrbitCreate() {
       headline: "",
       about: "",
       interests: [],
+      photos: [],
+      originalPhotoPrivacy: "matched",
       mood: null,
     },
   );
@@ -65,7 +68,8 @@ function OrbitCreate() {
   const set = <K extends keyof OrbitProfileDraft>(k: K, v: OrbitProfileDraft[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
 
-  const valid = draft.name.trim() && draft.handle.trim() && Number(draft.age) >= 18;
+  const valid =
+    draft.name.trim() && draft.handle.trim() && Number(draft.age) >= 18 && draft.photos.length >= 1;
 
   return (
     <main className="min-h-screen pb-12">
@@ -83,6 +87,15 @@ function OrbitCreate() {
       </header>
 
       <div className="space-y-4 px-4 pt-5">
+        <Field label="Profile Photos">
+          <OrbitPhotos
+            photos={draft.photos}
+            privacy={draft.originalPhotoPrivacy}
+            onChange={(p) => set("photos", p)}
+            onPrivacyChange={(p) => set("originalPhotoPrivacy", p)}
+          />
+        </Field>
+
         <Field label="Orbit Display Name">
           <Input
             value={draft.name}
