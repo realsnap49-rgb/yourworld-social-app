@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { useOrbit, type OrbitProfileDraft } from "@/lib/orbit-store";
 import { ORBIT_MOODS } from "@/lib/orbit-mood";
 import { OrbitPhotos } from "@/components/yw/OrbitPhotos";
+import { GEO_COUNTRIES, citiesOf, statesOf } from "@/lib/geo-data";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/orbit/create")({
   head: () => ({
@@ -45,17 +53,15 @@ const INTERESTS = [
   "Dance",
 ];
 
-const AREAS = ["Nearby area", "City centre", "Coastal district", "Old town", "Riverside"];
-
 function OrbitCreate() {
   const orbit = useOrbit();
   const navigate = useNavigate();
   const [draft, setDraft] = useState<OrbitProfileDraft>({
     name: "",
-    handle: "",
     age: "",
-    area: AREAS[0],
-    headline: "",
+    country: "",
+    state: "",
+    city: "",
     about: "",
     interests: [],
     photos: [],
@@ -68,7 +74,11 @@ function OrbitCreate() {
     setDraft((d) => ({ ...d, [k]: v }));
 
   const valid =
-    draft.name.trim() && draft.handle.trim() && Number(draft.age) >= 18 && draft.photos.length >= 1;
+    draft.name.trim() &&
+    Number(draft.age) >= 18 &&
+    draft.photos.length >= 1 &&
+    draft.country &&
+    draft.city;
 
   return (
     <main className="min-h-screen pb-12">
@@ -105,21 +115,6 @@ function OrbitCreate() {
           />
         </Field>
 
-        <Field label="Orbit Handle">
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-              @
-            </span>
-            <Input
-              value={draft.handle}
-              maxLength={30}
-              onChange={(e) => set("handle", e.target.value.replace(/[^\w.]/g, "").toLowerCase())}
-              placeholder="orbit.handle"
-              className="h-11 rounded-xl pl-7"
-            />
-          </div>
-        </Field>
-
         <Field label="Age (18+)">
           <Input
             value={draft.age}
@@ -131,35 +126,64 @@ function OrbitCreate() {
           />
         </Field>
 
-        <Field label="Approximate area">
-          <div className="flex flex-wrap gap-2">
-            {AREAS.map((a) => (
-              <button
-                key={a}
-                type="button"
-                onClick={() => set("area", a)}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
-                  draft.area === a ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                {a}
-              </button>
-            ))}
+        <Field label="Location">
+          <div className="space-y-2">
+            <Select
+              value={draft.country || undefined}
+              onValueChange={(v) =>
+                setDraft((d) => ({ ...d, country: v, state: "", city: "" }))
+              }
+            >
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="Country" />
+              </SelectTrigger>
+              <SelectContent>
+                {GEO_COUNTRIES.map((c) => (
+                  <SelectItem key={c.name} value={c.name}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={draft.state || undefined}
+              disabled={!draft.country}
+              onValueChange={(v) => setDraft((d) => ({ ...d, state: v, city: "" }))}
+            >
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="State / Region" />
+              </SelectTrigger>
+              <SelectContent>
+                {statesOf(draft.country).map((s) => (
+                  <SelectItem key={s.name} value={s.name}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={draft.city || undefined}
+              disabled={!draft.state}
+              onValueChange={(v) => set("city", v)}
+            >
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="City" />
+              </SelectTrigger>
+              <SelectContent>
+                {citiesOf(draft.country, draft.state).map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <p className="flex items-center gap-1 pt-2 text-[11px] text-muted-foreground">
             <MapPin className="h-3 w-3" strokeWidth={1.8} />
-            Only a broad area is ever shared — never your exact location.
+            Only your city is visible publicly — your exact location is never shared.
           </p>
-        </Field>
-
-        <Field label="Headline">
-          <Input
-            value={draft.headline}
-            maxLength={60}
-            onChange={(e) => set("headline", e.target.value)}
-            placeholder="One line about you"
-            className="h-11 rounded-xl"
-          />
         </Field>
 
         <Field label="About">
