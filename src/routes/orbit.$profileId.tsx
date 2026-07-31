@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
 import { useOrbit } from "@/lib/orbit-store";
 import { moodById } from "@/lib/orbit-mood";
+import { OrbitCallActions } from "@/components/yw/OrbitCallActions";
 
 export const Route = createFileRoute("/orbit/$profileId")({
   head: () => ({
@@ -154,6 +155,8 @@ function OrbitProfilePage() {
             onClick={gate(() => toast.success(`Match request sent to ${p.name}`))}
           />
         </div>
+
+        <OrbitCallActions profile={p} />
 
         <p className="pt-5 text-[11px] leading-relaxed text-muted-foreground">
           Only approximate areas are ever shown — never an exact location.
