@@ -177,60 +177,42 @@ function OrbitCreate() {
           </p>
         </Field>
 
-        <Field label="About">
-          <Textarea
-            value={draft.about}
-            maxLength={300}
-            rows={5}
-            onChange={(e) => set("about", e.target.value)}
-            placeholder="What you're here for"
-            className="min-h-28 rounded-xl leading-relaxed"
-          />
-          <p className="pt-1 text-right text-[11px] text-muted-foreground">
-            {draft.about.length}/300
-          </p>
+        <Field label="Looking For">
+          <Select
+            value={draft.lookingFor || undefined}
+            onValueChange={(v) => set("lookingFor", v)}
+          >
+            <SelectTrigger className="h-11 rounded-xl">
+              <SelectValue placeholder="What you're here for" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORBIT_LOOKING_FOR.map((o) => (
+                <SelectItem key={o} value={o}>
+                  {o}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
 
-        <Field label="Orbit Mood (optional)">
+        <Field label={`Hobbies (Max ${ORBIT_HOBBY_MAX})`}>
           <div className="flex flex-wrap gap-2">
-            {ORBIT_MOODS.map((m) => {
-              const active = draft.mood === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => set("mood", active ? null : m.id)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
-                    active ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  <span aria-hidden className="mr-1">{m.emoji}</span>
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="pt-2 text-[11px] text-muted-foreground">
-            Optional. Helps Orbit show people looking for the same thing — change it anytime.
-          </p>
-        </Field>
-
-        <Field label="Interests">
-          <div className="flex flex-wrap gap-2">
-            {INTERESTS.map((t) => {
-              const active = draft.interests.includes(t);
+            {ORBIT_HOBBIES.map((t) => {
+              const active = draft.hobbies.includes(t);
+              const full = draft.hobbies.length >= ORBIT_HOBBY_MAX;
               return (
                 <button
                   key={t}
                   type="button"
+                  aria-pressed={active}
+                  disabled={!active && full}
                   onClick={() =>
                     set(
-                      "interests",
-                      active ? draft.interests.filter((x) => x !== t) : [...draft.interests, t],
+                      "hobbies",
+                      active ? draft.hobbies.filter((x) => x !== t) : [...draft.hobbies, t],
                     )
                   }
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 disabled:opacity-40 ${
                     active ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"
                   }`}
                 >
@@ -239,6 +221,23 @@ function OrbitCreate() {
               );
             })}
           </div>
+          <p className="pt-2 text-[11px] text-muted-foreground">
+            {draft.hobbies.length}/{ORBIT_HOBBY_MAX} selected
+          </p>
+        </Field>
+
+        <Field label="About">
+          <Textarea
+            value={draft.about}
+            maxLength={300}
+            rows={5}
+            onChange={(e) => set("about", e.target.value)}
+            placeholder="A little about you"
+            className="min-h-28 rounded-xl leading-relaxed"
+          />
+          <p className="pt-1 text-right text-[11px] text-muted-foreground">
+            {draft.about.length}/300
+          </p>
         </Field>
 
         <div className="grid grid-cols-2 gap-3 border-t border-border/60 pt-4">
