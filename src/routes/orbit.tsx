@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { OrbitProvider } from "@/lib/orbit-store";
+import { OrbitLockGate } from "@/components/yw/OrbitLockGate";
 
 export const Route = createFileRoute("/orbit")({
   component: OrbitLayout,
@@ -8,7 +9,9 @@ export const Route = createFileRoute("/orbit")({
 function OrbitLayout() {
   return (
     <OrbitProvider>
-      <Outlet />
+      <OrbitLockGate>
+        <Outlet />
+      </OrbitLockGate>
     </OrbitProvider>
   );
 }
