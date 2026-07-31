@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BadgeCheck, ChevronLeft, EyeOff, MapPin, Navigation, ScanFace, ShieldAlert } from "lucide-react";
+import { BadgeCheck, BellOff, ChevronLeft, EyeOff, Lock, MapPin, Navigation, ScanFace, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { orbitProfiles } from "@/lib/orbit-data";
-import { useOrbit, type OrbitAudience, type OrbitVisibility } from "@/lib/orbit-store";
+import { clearSessionUnlock, useOrbit, type OrbitAudience, type OrbitVisibility } from "@/lib/orbit-store";
 
 export const Route = createFileRoute("/orbit/privacy")({
   head: () => ({
@@ -43,6 +52,10 @@ function OrbitPrivacy() {
   const orbit = useOrbit();
   const { privacy } = orbit;
   const [captureSupported, setCaptureSupported] = useState(true);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => {
     // OS-level screenshot blocking is only available in native/secure shells.
@@ -112,6 +125,93 @@ function OrbitPrivacy() {
             <p className="text-xs leading-relaxed text-muted-foreground">
               Your Orbit Profile stays linked to your account. You can turn Orbit off, pause it or
               hide it anytime — it is never shown while any of those are on.
+            </p>
+          </div>
+        </Card>
+
+        <Card title="Private &amp; secure">
+          <Row
+            label="Lock Orbit"
+            hint={
+              privacy.lockEnabled
+                ? "A PIN or password is required to open Orbit"
+                : "Ask for a PIN or password before Orbit opens"
+            }
+            control={
+              <Switch
+                checked={privacy.lockEnabled}
+                onCheckedChange={(v) => {
+                  if (v) {
+                    setPin("");
+                    setPinConfirm("");
+                    setPinError(null);
+                    setPinOpen(true);
+                  } else {
+                    orbit.disableOrbitLock();
+                    clearSessionUnlock();
+                    toast.success("Orbit lock removed");
+                  }
+                }}
+              />
+            }
+          />
+          {privacy.lockEnabled && (
+            <Row
+              label="Change PIN"
+              hint="Set a new PIN or password for this device"
+              control={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPin("");
+                    setPinConfirm("");
+                    setPinError(null);
+                    setPinOpen(true);
+                  }}
+                  className="rounded-full bg-secondary px-3.5 py-2 text-xs font-semibold transition-transform active:scale-95"
+                >
+                  Change
+                </button>
+              }
+            />
+          )}
+          <Row
+            label="Hide Orbit"
+            hint="Remove Orbit from menus and search on this device"
+            control={
+              <Switch
+                checked={privacy.hideOrbitEntry}
+                onCheckedChange={(v) => {
+                  orbit.setPrivacy({ hideOrbitEntry: v });
+                  toast.success(v ? "Orbit hidden from menus" : "Orbit visible in menus");
+                }}
+              />
+            }
+          />
+          <Row
+            label="Hide Orbit notifications"
+            hint="Mute Orbit, connection and match alerts everywhere"
+            control={
+              <Switch
+                checked={privacy.hideOrbitNotifications}
+                onCheckedChange={(v) => {
+                  orbit.setPrivacy({ hideOrbitNotifications: v });
+                  toast.success(v ? "Orbit notifications hidden" : "Orbit notifications restored");
+                }}
+              />
+            }
+          />
+          <div className="flex items-start gap-3 border-t border-border/60 px-4 py-3.5">
+            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Your PIN is hashed on this device and never stored or sent anywhere. If you forget it,
+              turn the lock off from this screen after unlocking.
+            </p>
+          </div>
+          <div className="flex items-start gap-3 border-t border-border/60 px-4 py-3.5">
+            <BellOff className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Hiding Orbit keeps your profile and matches intact — it only removes Orbit from view.
             </p>
           </div>
         </Card>
@@ -347,6 +447,67 @@ function OrbitPrivacy() {
           )}
         </Card>
       </div>
+
+      <Dialog open={pinOpen} onOpenChange={setPinOpen}>
+        <DialogContent className="rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Set Orbit PIN</DialogTitle>
+            <DialogDescription>
+              4 characters or more. Stored hashed on this device only.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              type="password"
+              inputMode="numeric"
+              value={pin}
+              maxLength={64}
+              autoComplete="new-password"
+              onChange={(e) => {
+                setPin(e.target.value);
+                setPinError(null);
+              }}
+              placeholder="New PIN or password"
+              aria-label="New Orbit PIN"
+              className="h-11 rounded-xl"
+            />
+            <Input
+              type="password"
+              inputMode="numeric"
+              value={pinConfirm}
+              maxLength={64}
+              autoComplete="new-password"
+              onChange={(e) => {
+                setPinConfirm(e.target.value);
+                setPinError(null);
+              }}
+              placeholder="Confirm PIN"
+              aria-label="Confirm Orbit PIN"
+              className="h-11 rounded-xl"
+            />
+            {pinError && <p className="text-xs text-destructive">{pinError}</p>}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <Button variant="secondary" className="h-11 rounded-full" onClick={() => setPinOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="h-11 rounded-full"
+                onClick={async () => {
+                  if (pin.trim().length < 4) return setPinError("Use at least 4 characters.");
+                  if (pin !== pinConfirm) return setPinError("PINs don't match.");
+                  await orbit.setOrbitPin(pin);
+                  setPinOpen(false);
+                  setPin("");
+                  setPinConfirm("");
+                  toast.success("Orbit lock enabled");
+                }}
+              >
+                Save PIN
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

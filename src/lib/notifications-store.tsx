@@ -22,6 +22,7 @@ import {
   Bell,
   type LucideIcon,
 } from "lucide-react";
+import { useOrbitAppPrefs } from "@/lib/orbit-prefs";
 
 export type NotificationKind =
   | "like"
@@ -70,6 +71,9 @@ export const NOTIFICATION_KINDS: KindMeta[] = [
   { id: "monetization", label: "Monetization", emoji: "💰", icon: Coins, tint: "text-amber-400" },
   { id: "system", label: "System", emoji: "🔔", icon: Bell, tint: "text-muted-foreground" },
 ];
+
+/** Kinds suppressed by the "Hide Orbit notifications" privacy control. */
+export const ORBIT_KINDS: NotificationKind[] = ["orbit", "connection", "match"];
 
 export const kindMeta = (k: NotificationKind) =>
   NOTIFICATION_KINDS.find((m) => m.id === k) ?? NOTIFICATION_KINDS[NOTIFICATION_KINDS.length - 1];
@@ -134,6 +138,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
   const [live, setLive] = useState(true);
   const [hydrated, setHydrated] = useState(false);
+  const { hideOrbitNotifications } = useOrbitAppPrefs();
   const cursor = useRef(0);
 
   useEffect(() => {
@@ -172,7 +177,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
           const t = liveTemplates[cursor.current % liveTemplates.length];
           cursor.current += 1;
           setItems((prev) =>
-            prefs[t.kind]
+            prefs[t.kind] && !(hideOrbitNotifications && ORBIT_KINDS.includes(t.kind))
               ? [{ ...t, id: `live-${Date.now()}`, at: Date.now(), read: false }, ...prev].slice(0, 80)
               : prev,
           );
@@ -182,14 +187,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     };
     schedule();
     return () => window.clearTimeout(timer);
-  }, [hydrated, live, prefs]);
+  }, [hydrated, live, prefs, hideOrbitNotifications]);
 
   const setPref = useCallback((k: NotificationKind, v: boolean) => {
     setPrefs((p) => ({ ...p, [k]: v }));
   }, []);
 
   const value = useMemo<Ctx>(() => {
-    const visible = items.filter((i) => prefs[i.kind]);
+    const visible = items.filter(
+      (i) => prefs[i.kind] && !(hideOrbitNotifications && ORBIT_KINDS.includes(i.kind)),
+    );
     const unreadByKind = Object.fromEntries(
       NOTIFICATION_KINDS.map((k) => [k.id, visible.filter((i) => i.kind === k.id && !i.read).length]),
     ) as Record<NotificationKind, number>;
@@ -207,7 +214,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       remove: (id) => setItems((p) => p.filter((i) => i.id !== id)),
       clearAll: () => setItems([]),
     };
-  }, [items, prefs, live, setPref]);
+  }, [items, prefs, live, setPref, hideOrbitNotifications]);
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }
