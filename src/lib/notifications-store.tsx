@@ -208,6 +208,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return {
       items: visible,
       unread: visible.filter((i) => !i.read).length,
+      unreadHome: visible.filter((i) => !i.read && !ORBIT_KINDS.includes(i.kind)).length,
+      unreadOrbit: visible.filter((i) => !i.read && ORBIT_KINDS.includes(i.kind)).length,
       unreadByKind,
       prefs,
       live,
