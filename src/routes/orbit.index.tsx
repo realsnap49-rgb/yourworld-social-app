@@ -140,6 +140,13 @@ function OrbitBrowse() {
           )}
         </Link>
         <Link
+          to="/orbit/messages"
+          aria-label="Orbit messages"
+          className="grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+        >
+          <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
+        </Link>
+        <Link
           to="/orbit/privacy"
           aria-label="Orbit privacy & safety"
           className="grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
