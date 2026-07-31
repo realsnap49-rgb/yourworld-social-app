@@ -89,6 +89,8 @@ export type OrbitPrivacy = {
   hiddenFrom: string[];
   blocked: string[];
   screenshotProtection: boolean;
+  /** Notify both users when a screenshot or recording is detected. */
+  screenshotAlerts: boolean;
   approximateLocationOnly: true;
   /** On-device heuristic scan that flags likely fake profiles. */
   aiFakeDetection: boolean;
@@ -130,6 +132,7 @@ const defaultPrivacy: OrbitPrivacy = {
   hiddenFrom: [],
   blocked: [],
   screenshotProtection: true,
+  screenshotAlerts: true,
   approximateLocationOnly: true,
   aiFakeDetection: true,
   hideFlaggedProfiles: false,
