@@ -56,6 +56,13 @@ function OrbitPrivacy() {
   const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
+  const [userQuery, setUserQuery] = useState("");
+  const q = userQuery.trim().toLowerCase();
+  const filteredProfiles = q
+    ? orbitProfiles.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.handle.toLowerCase().includes(q),
+      )
+    : orbitProfiles;
 
   useEffect(() => {
     // OS-level screenshot blocking is only available in native/secure shells.
