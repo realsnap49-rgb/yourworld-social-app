@@ -14,6 +14,7 @@ import {
   LogOut,
   type LucideIcon,
 } from "lucide-react";
+import { useOrbitAppPrefs } from "@/lib/orbit-prefs";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -50,6 +51,9 @@ const items: Item[] = [
 ];
 
 function SettingsPage() {
+  const { hideOrbitEntry } = useOrbitAppPrefs();
+  const visibleItems = items.filter((i) => !(hideOrbitEntry && i.to === "/orbit"));
+
   return (
     <main className="min-h-screen pb-10">
       <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border glass px-3 py-3">
@@ -65,7 +69,7 @@ function SettingsPage() {
 
       <div className="px-4 pt-5">
         <ul className="surface-card overflow-hidden rounded-3xl">
-          {items.map((item, i) => {
+          {visibleItems.map((item, i) => {
             const inner = (
               <>
                 <span

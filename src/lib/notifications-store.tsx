@@ -184,12 +184,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [hydrated, live, prefs]);
 
+  const { hideOrbitNotifications } = useOrbitAppPrefs();
+
   const setPref = useCallback((k: NotificationKind, v: boolean) => {
     setPrefs((p) => ({ ...p, [k]: v }));
   }, []);
 
   const value = useMemo<Ctx>(() => {
-    const visible = items.filter((i) => prefs[i.kind]);
+    const visible = items.filter(
+      (i) => prefs[i.kind] && !(hideOrbitNotifications && ORBIT_KINDS.includes(i.kind)),
+    );
     const unreadByKind = Object.fromEntries(
       NOTIFICATION_KINDS.map((k) => [k.id, visible.filter((i) => i.kind === k.id && !i.read).length]),
     ) as Record<NotificationKind, number>;
@@ -207,7 +211,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       remove: (id) => setItems((p) => p.filter((i) => i.id !== id)),
       clearAll: () => setItems([]),
     };
-  }, [items, prefs, live, setPref]);
+  }, [items, prefs, live, setPref, hideOrbitNotifications]);
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }
