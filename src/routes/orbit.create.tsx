@@ -82,18 +82,6 @@ function OrbitCreate() {
         </h1>
       </header>
 
-      <div className="px-4 pt-4">
-        <div className="surface-card flex items-start gap-3 rounded-3xl p-4">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-secondary">
-            <ShieldCheck className="h-5 w-5" strokeWidth={1.7} />
-          </span>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Your Orbit Profile is completely separate from your main YourWorld profile. Nothing here
-            appears on your main profile, and you can pause or delete it anytime.
-          </p>
-        </div>
-      </div>
-
       <div className="space-y-4 px-4 pt-5">
         <Field label="Orbit Display Name">
           <Input
