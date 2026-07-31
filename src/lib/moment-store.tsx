@@ -17,10 +17,13 @@ export type Sticker = {
   id: string;
   /** emoji glyph or image url */
   content: string;
-  type: "emoji" | "gif";
+  type: "emoji" | "gif" | "text";
   x: number; // 0..1
   y: number; // 0..1
   scale: number;
+  /** degrees */
+  rotation?: number;
+  color?: string;
 };
 
 export type MomentPoll = {
@@ -44,6 +47,10 @@ export type MyMoment = {
   textBg: string;
   music?: string;
   stickers: Sticker[];
+  /** transparent PNG data url from the drawing tool */
+  drawing?: string;
+  /** seconds, video moments only */
+  trim?: { start: number; end: number };
   location?: string;
   mentions: string[];
   privacy: MomentPrivacy;
