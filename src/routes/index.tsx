@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Heart, Search } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { Stories } from "@/components/yw/Stories";
 import { PostCard } from "@/components/yw/PostCard";
 import { posts } from "@/lib/yw-data";
@@ -52,7 +52,7 @@ function HomePage() {
             aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
             className="icon-pill relative grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
           >
-            <Heart className="h-[21px] w-[21px]" strokeWidth={1.6} />
+            <Bell className="h-[21px] w-[21px]" strokeWidth={1.6} />
             {unread > 0 && (
               <span className="absolute right-1.5 top-1.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
                 {unread > 99 ? "99+" : unread}
