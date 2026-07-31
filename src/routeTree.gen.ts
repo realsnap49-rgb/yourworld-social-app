@@ -27,6 +27,7 @@ import { Route as OrbitMessagesRouteImport } from './routes/orbit.messages'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as OrbitProfileIdRouteImport } from './routes/orbit.$profileId'
 import { Route as MomentCreateRouteImport } from './routes/moment.create'
+import { Route as MomentMomentIdRouteImport } from './routes/moment.$momentId'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 import { Route as ChannelVideosRouteImport } from './routes/channel.videos'
 import { Route as ChannelSubscribersRouteImport } from './routes/channel.subscribers'
@@ -126,6 +127,11 @@ const MomentCreateRoute = MomentCreateRouteImport.update({
   path: '/moment/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MomentMomentIdRoute = MomentMomentIdRouteImport.update({
+  id: '/moment/$momentId',
+  path: '/moment/$momentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   id: '/chat/$threadId',
   path: '/chat/$threadId',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/moment/$momentId': typeof MomentMomentIdRoute
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/moment/$momentId': typeof MomentMomentIdRoute
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/moment/$momentId': typeof MomentMomentIdRoute
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
+    | '/moment/$momentId'
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
+    | '/moment/$momentId'
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/channel/subscribers'
     | '/channel/videos'
     | '/chat/$threadId'
+    | '/moment/$momentId'
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
@@ -346,6 +358,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ChatThreadIdRoute: typeof ChatThreadIdRoute
+  MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
   ChatIndexRoute: typeof ChatIndexRoute
 }
@@ -478,6 +491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MomentCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/moment/$momentId': {
+      id: '/moment/$momentId'
+      path: '/moment/$momentId'
+      fullPath: '/moment/$momentId'
+      preLoaderRoute: typeof MomentMomentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat/$threadId': {
       id: '/chat/$threadId'
       path: '/chat/$threadId'
@@ -593,6 +613,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ChatThreadIdRoute: ChatThreadIdRoute,
+  MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
   ChatIndexRoute: ChatIndexRoute,
 }
