@@ -20,6 +20,7 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
+          gender: string | null
           id: string
           updated_at: string
           username: string | null
@@ -29,6 +30,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          gender?: string | null
           id: string
           updated_at?: string
           username?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          gender?: string | null
           id?: string
           updated_at?: string
           username?: string | null
@@ -49,7 +52,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_username_available: { Args: { _username: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
