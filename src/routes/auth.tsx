@@ -223,7 +223,7 @@ function AuthPage() {
     }
   };
 
-  const saveProfileBits = async (patch: Record<string, string | null>, next: Step) => {
+  const saveProfileBits = async (patch: { gender?: string | null; avatar_url?: string | null }, next: Step) => {
     setBusy(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
