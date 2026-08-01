@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useOrbitAppPrefs } from "@/lib/orbit-prefs";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -50,7 +52,17 @@ const items: Item[] = [
 
 function SettingsPage() {
   const { hideOrbitEntry } = useOrbitAppPrefs();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const visibleItems = items.filter((i) => !(hideOrbitEntry && i.to === "/orbit"));
+
+  const handleLogout = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  };
 
   return (
     <main className="min-h-screen pb-10">
@@ -99,7 +111,12 @@ function SettingsPage() {
                     {inner}
                   </Link>
                 ) : (
-                  <button className={cls}>{inner}</button>
+                  <button
+                    className={cls}
+                    onClick={item.label === "Log Out" ? handleLogout : undefined}
+                  >
+                    {inner}
+                  </button>
                 )}
               </li>
             );

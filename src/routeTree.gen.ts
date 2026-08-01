@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as ChannelRouteImport } from './routes/channel'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
@@ -47,6 +49,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReelsRoute = ReelsRouteImport.update({
   id: '/reels',
   path: '/reels',
@@ -75,6 +82,11 @@ const CreateRoute = CreateRouteImport.update({
 const ChannelRoute = ChannelRouteImport.update({
   id: '/channel',
   path: '/channel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -175,12 +187,14 @@ const ChannelAnalyticsRoute = ChannelAnalyticsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
@@ -204,10 +218,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
@@ -232,12 +248,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/channel': typeof ChannelRouteWithChildren
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
@@ -263,12 +281,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/channel'
     | '/create'
     | '/notifications'
     | '/orbit'
     | '/profile'
     | '/reels'
+    | '/reset-password'
     | '/settings'
     | '/sitemap.xml'
     | '/channel/analytics'
@@ -292,10 +312,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/create'
     | '/notifications'
     | '/profile'
     | '/reels'
+    | '/reset-password'
     | '/settings'
     | '/sitemap.xml'
     | '/channel/analytics'
@@ -319,12 +341,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/channel'
     | '/create'
     | '/notifications'
     | '/orbit'
     | '/profile'
     | '/reels'
+    | '/reset-password'
     | '/settings'
     | '/sitemap.xml'
     | '/channel/analytics'
@@ -349,12 +373,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   ChannelRoute: typeof ChannelRouteWithChildren
   CreateRoute: typeof CreateRoute
   NotificationsRoute: typeof NotificationsRoute
   OrbitRoute: typeof OrbitRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ChatThreadIdRoute: typeof ChatThreadIdRoute
@@ -377,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reels': {
@@ -419,6 +452,13 @@ declare module '@tanstack/react-router' {
       path: '/channel'
       fullPath: '/channel'
       preLoaderRoute: typeof ChannelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -604,12 +644,14 @@ const OrbitRouteWithChildren = OrbitRoute._addFileChildren(OrbitRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   ChannelRoute: ChannelRouteWithChildren,
   CreateRoute: CreateRoute,
   NotificationsRoute: NotificationsRoute,
   OrbitRoute: OrbitRouteWithChildren,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ChatThreadIdRoute: ChatThreadIdRoute,
