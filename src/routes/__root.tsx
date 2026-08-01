@@ -15,6 +15,7 @@ import { BottomNav } from "@/components/yw/BottomNav";
 import { YwStoreProvider } from "@/lib/yw-store";
 import { NotificationsProvider } from "@/lib/notifications-store";
 import { MomentProvider } from "@/lib/moment-store";
+import { AuthProvider, AuthGate } from "@/lib/auth-store";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -140,18 +141,22 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <YwStoreProvider>
-        <NotificationsProvider>
-          <MomentProvider>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <div className="mx-auto min-h-screen w-full max-w-lg pb-20">
-              <Outlet />
-            </div>
-            <BottomNav />
-            <Toaster position="top-center" />
-          </MomentProvider>
-        </NotificationsProvider>
-      </YwStoreProvider>
+      <AuthProvider>
+        <YwStoreProvider>
+          <NotificationsProvider>
+            <MomentProvider>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <AuthGate>
+                <div className="mx-auto min-h-screen w-full max-w-lg pb-20">
+                  <Outlet />
+                </div>
+                <BottomNav />
+              </AuthGate>
+              <Toaster position="top-center" />
+            </MomentProvider>
+          </NotificationsProvider>
+        </YwStoreProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
