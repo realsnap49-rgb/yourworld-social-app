@@ -75,9 +75,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
     if (!session && !publicRoute) {
       navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
     }
-    if (session && pathname === "/auth") {
-      navigate({ to: "/", replace: true });
-    }
   }, [loading, session, publicRoute, pathname, navigate]);
 
   if (loading) {
