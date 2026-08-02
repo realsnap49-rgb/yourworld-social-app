@@ -86,7 +86,7 @@ export function Stories() {
                 )}
               >
                 <span className="grid h-full w-full place-items-center rounded-full bg-background p-[2px]">
-                  <YwAvatar user={u} size={52} />
+                  <YwAvatar user={u} size={56} />
                 </span>
               </span>
               <span
