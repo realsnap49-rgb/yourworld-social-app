@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Check } from "lucide-react";
+import { ArrowLeft, Camera, Check, Loader2, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,44 @@ function normalizePhone(value: string) {
   return digits.startsWith("+") ? digits : `+${digits}`;
 }
 
+type Channel = "email" | "phone" | null;
+
+/** Auto-detect what the user is typing. */
+function detectChannel(value: string): Channel {
+  const v = value.trim();
+  if (!v) return null;
+  if (isEmail(v)) return "email";
+  if (isPhone(v)) return "phone";
+  if (v.includes("@")) return "email";
+  if (/^[+0-9][0-9\s-]*$/.test(v)) return "phone";
+  return null;
+}
+
+/** Turn raw auth errors into calm, human messages. */
+function friendlyError(err: unknown, channel: Channel): string {
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const m = raw.toLowerCase();
+  if (
+    channel === "phone" &&
+    (m.includes("sms") ||
+      m.includes("phone provider") ||
+      m.includes("unsupported phone provider") ||
+      m.includes("provider is not enabled") ||
+      m.includes("signups not allowed for otp"))
+  ) {
+    return "SMS codes aren't available yet — no SMS provider is configured. Please use your email address instead.";
+  }
+  if (m.includes("invalid login credentials")) return "That phone/email and password don't match.";
+  if (m.includes("token has expired") || m.includes("invalid token") || m.includes("otp"))
+    return "That code is invalid or expired. Request a new one.";
+  if (m.includes("rate limit") || m.includes("too many"))
+    return "Too many attempts. Please wait a minute and try again.";
+  if (m.includes("user already registered")) return "An account already exists — try signing in.";
+  if (m.includes("failed to fetch") || m.includes("network"))
+    return "Network issue. Check your connection and try again.";
+  return raw || "Something went wrong. Please try again.";
+}
+
 async function shrinkImage(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const size = 256;
@@ -81,8 +119,11 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [gender, setGender] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
-  const usingPhone = isPhone(identifier) && !isEmail(identifier);
+  const channel = detectChannel(identifier);
+  const usingPhone = channel === "phone";
+  const identifierValid = isEmail(identifier) || isPhone(identifier);
 
   const go = (f: Flow) => {
     setFlow(f);
@@ -90,19 +131,36 @@ function AuthPage() {
     setCode("");
     setPassword("");
     setConfirm("");
+    setFieldError(null);
   };
 
   const finish = () => {
     navigate({ to: redirect && redirect.startsWith("/") ? redirect : "/", replace: true });
   };
 
-  const fail = (err: unknown) =>
-    toast.error(err instanceof Error ? err.message : "Something went wrong");
+  const fail = (err: unknown) => {
+    const message = friendlyError(err, channel);
+    setFieldError(message);
+    toast.error(message);
+  };
 
   /* ---------- actions ---------- */
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldError(null);
+    if (!identifierValid) {
+      const message = "Enter a valid phone number or email address.";
+      setFieldError(message);
+      toast.error(message);
+      return;
+    }
+    if (password.length < 6) {
+      const message = "Password must be at least 6 characters.";
+      setFieldError(message);
+      toast.error(message);
+      return;
+    }
     setBusy(true);
     try {
       const creds = usingPhone
@@ -121,8 +179,11 @@ function AuthPage() {
 
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isEmail(identifier) && !isPhone(identifier)) {
-      toast.error("Enter a valid phone number or email");
+    setFieldError(null);
+    if (!identifierValid) {
+      const message = "Enter a valid phone number or email address.";
+      setFieldError(message);
+      toast.error(message);
       return;
     }
     setBusy(true);
@@ -138,7 +199,9 @@ function AuthPage() {
             options: { shouldCreateUser, emailRedirectTo: window.location.origin },
           });
       if (error) throw error;
-      toast.success(`Code sent to ${usingPhone ? normalizePhone(identifier) : identifier.trim()}`);
+      toast.success(
+        `${usingPhone ? "SMS" : "Email"} code sent to ${usingPhone ? normalizePhone(identifier) : identifier.trim()}`,
+      );
       setCode("");
       setStep("otp");
     } catch (err) {
@@ -149,6 +212,7 @@ function AuthPage() {
   };
 
   const verifyOtp = async (value: string) => {
+    setFieldError(null);
     setBusy(true);
     try {
       const { error } = usingPhone
@@ -173,9 +237,12 @@ function AuthPage() {
 
   const saveUsername = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldError(null);
     const handle = username.trim().toLowerCase();
     if (!/^[a-z0-9._]{3,20}$/.test(handle)) {
-      toast.error("3–20 characters: letters, numbers, dot or underscore");
+      const message = "3–20 characters: letters, numbers, dot or underscore.";
+      setFieldError(message);
+      toast.error(message);
       return;
     }
     setBusy(true);
@@ -199,12 +266,17 @@ function AuthPage() {
 
   const savePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldError(null);
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      const message = "Password must be at least 6 characters.";
+      setFieldError(message);
+      toast.error(message);
       return;
     }
     if (password !== confirm) {
-      toast.error("Passwords do not match");
+      const message = "Passwords do not match.";
+      setFieldError(message);
+      toast.error(message);
       return;
     }
     setBusy(true);
