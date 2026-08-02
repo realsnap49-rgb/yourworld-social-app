@@ -373,30 +373,72 @@ function AuthPage() {
         {/* IDENTIFIER */}
         {step === "identifier" && (
           <form onSubmit={flow === "login" ? login : sendOtp} className="space-y-3 pt-6">
-            <Input
-              required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="Phone number or email"
-              aria-label="Phone number or email"
-              autoComplete="username"
-              className="h-12 rounded-xl"
-            />
+            <div className="relative">
+              <Input
+                required
+                value={identifier}
+                onChange={(e) => {
+                  setIdentifier(e.target.value);
+                  setFieldError(null);
+                }}
+                placeholder="Phone number or email"
+                aria-label="Phone number or email"
+                autoComplete="username"
+                inputMode={channel === "phone" ? "tel" : "email"}
+                className="h-12 rounded-xl pr-11"
+              />
+              {channel && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-opacity"
+                >
+                  {channel === "phone" ? <Phone size={16} /> : <Mail size={16} />}
+                </span>
+              )}
+            </div>
+            {channel && flow !== "login" && (
+              <p className="px-1 text-[11px] text-muted-foreground">
+                {channel === "phone"
+                  ? `We'll text a 6-digit code to ${identifierValid ? normalizePhone(identifier) : "your number"}.`
+                  : "We'll email you a 6-digit code."}
+              </p>
+            )}
             {flow === "login" && (
               <Input
                 type="password"
                 required
                 minLength={6}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setFieldError(null);
+                }}
                 placeholder="Password"
                 aria-label="Password"
                 autoComplete="current-password"
                 className="h-12 rounded-xl"
               />
             )}
-            <Button type="submit" disabled={busy} className="h-12 w-full rounded-full">
-              {flow === "login" ? "Continue" : "Send code"}
+            {fieldError && (
+              <p role="alert" className="px-1 text-[12px] leading-relaxed text-destructive">
+                {fieldError}
+              </p>
+            )}
+            <Button
+              type="submit"
+              disabled={busy || !identifierValid}
+              className="h-12 w-full rounded-full"
+            >
+              {busy && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {flow === "login"
+                ? busy
+                  ? "Signing in…"
+                  : "Continue"
+                : busy
+                  ? "Sending code…"
+                  : usingPhone
+                    ? "Send SMS code"
+                    : "Send code"}
             </Button>
           </form>
         )}
@@ -409,6 +451,7 @@ function AuthPage() {
               value={code}
               onChange={(v) => {
                 setCode(v);
+                setFieldError(null);
                 if (v.length === 6) void verifyOtp(v);
               }}
             >
@@ -418,13 +461,19 @@ function AuthPage() {
                 ))}
               </InputOTPGroup>
             </InputOTP>
+            {fieldError && (
+              <p role="alert" className="px-1 text-[12px] leading-relaxed text-destructive">
+                {fieldError}
+              </p>
+            )}
             <Button
               type="button"
               disabled={busy || code.length !== 6}
               onClick={() => void verifyOtp(code)}
               className="h-12 w-full rounded-full"
             >
-              Verify
+              {busy && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {busy ? "Verifying…" : "Verify"}
             </Button>
             <button
               type="button"
@@ -447,14 +496,23 @@ function AuthPage() {
               <Input
                 required
                 value={username}
-                onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
+                onChange={(e) => {
+                  setUsername(e.target.value.replace(/\s/g, ""));
+                  setFieldError(null);
+                }}
                 placeholder="username"
                 aria-label="Username"
                 className="h-12 rounded-xl pl-8"
               />
             </div>
+            {fieldError && (
+              <p role="alert" className="px-1 text-[12px] leading-relaxed text-destructive">
+                {fieldError}
+              </p>
+            )}
             <Button type="submit" disabled={busy} className="h-12 w-full rounded-full">
-              Continue
+              {busy && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {busy ? "Checking…" : "Continue"}
             </Button>
           </form>
         )}
@@ -467,7 +525,10 @@ function AuthPage() {
               required
               minLength={6}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setFieldError(null);
+              }}
               placeholder={step === "newPassword" ? "New password" : "Password"}
               aria-label={step === "newPassword" ? "New password" : "Password"}
               autoComplete="new-password"
@@ -478,14 +539,23 @@ function AuthPage() {
               required
               minLength={6}
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={(e) => {
+                setConfirm(e.target.value);
+                setFieldError(null);
+              }}
               placeholder="Confirm password"
               aria-label="Confirm password"
               autoComplete="new-password"
               className="h-12 rounded-xl"
             />
+            {fieldError && (
+              <p role="alert" className="px-1 text-[12px] leading-relaxed text-destructive">
+                {fieldError}
+              </p>
+            )}
             <Button type="submit" disabled={busy} className="h-12 w-full rounded-full">
-              Continue
+              {busy && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {busy ? "Saving…" : "Continue"}
             </Button>
           </form>
         )}
