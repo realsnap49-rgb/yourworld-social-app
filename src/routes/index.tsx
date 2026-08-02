@@ -29,32 +29,32 @@ function HomePage() {
   return (
     <main className="grain relative pb-28">
       <div aria-hidden className="ambient-canvas" />
-      <header className="header-lux sticky top-0 z-40 flex h-[54px] items-center justify-between gap-3 px-4">
+      <header className="header-lux sticky top-0 z-40 flex h-14 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="logo-mark grid h-7 w-7 shrink-0 place-items-center rounded-[9px]">
+          <span className="logo-mark grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[8px]">
             <span className="font-ui text-[11px] font-semibold leading-none tracking-[-0.02em]">
               YW
             </span>
           </span>
-          <h1 className="truncate font-ui text-[19px] font-semibold leading-none tracking-[-0.03em] text-foreground">
+          <h1 className="truncate font-ui text-[18px] font-semibold leading-none tracking-[-0.03em] text-foreground">
             YourWorld
           </h1>
         </div>
-        <div className="-mr-1.5 flex shrink-0 items-center">
+        <div className="-mr-1.5 flex shrink-0 items-center gap-0.5">
           <button
             aria-label="Search"
             className="icon-pill grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
           >
-            <Search className="h-[21px] w-[21px]" strokeWidth={1.6} />
+            <Search className="h-5 w-5" strokeWidth={1.7} />
           </button>
           <Link
             to="/notifications"
             aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
             className="icon-pill relative grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
           >
-            <Bell className="h-[21px] w-[21px]" strokeWidth={1.6} />
+            <Bell className="h-5 w-5" strokeWidth={1.7} />
             {unread > 0 && (
-              <span className="absolute right-1.5 top-1.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
+              <span className="absolute right-1 top-1 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-primary px-1 font-ui text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
                 {unread > 99 ? "99+" : unread}
               </span>
             )}
@@ -66,7 +66,7 @@ function HomePage() {
         <Stories />
       </section>
 
-      <section aria-label="Feed" className="mx-auto max-w-lg space-y-6 px-3 pt-5">
+      <section aria-label="Feed" className="mx-auto max-w-lg space-y-4 px-4 pt-4">
         {posts.map((p, i) => (
           <div
             key={p.id}
