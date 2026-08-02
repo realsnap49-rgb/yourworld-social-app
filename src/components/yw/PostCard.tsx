@@ -29,20 +29,20 @@ export function PostCard({ post }: { post: Post }) {
   };
 
   return (
-    <article className="surface-card overflow-hidden rounded-[28px]">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 pb-3 pt-3.5">
+    <article className="surface-card overflow-hidden rounded-[26px]">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 pb-3 pt-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="ring-live grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full p-[1.5px]">
-            <span className="grid h-full w-full place-items-center rounded-full bg-background p-[1.5px]">
-              <YwAvatar user={user} size={32} />
+          <span className="ring-live grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full p-[2px]">
+            <span className="grid h-full w-full place-items-center rounded-full bg-background p-[2px]">
+              <YwAvatar user={user} size={30} />
             </span>
           </span>
           <div className="min-w-0">
-            <p className="truncate font-ui text-[13.5px] font-semibold leading-tight tracking-[-0.015em]">
+            <p className="truncate font-ui text-[13px] font-semibold leading-[1.25] tracking-[-0.015em]">
               @{user.username}
             </p>
             {post.location && (
-              <p className="mt-0.5 truncate font-ui text-[10.5px] tracking-[0.02em] text-muted-foreground/85">
+              <p className="mt-[3px] truncate font-ui text-[10.5px] leading-none tracking-[0.01em] text-muted-foreground/80">
                 {post.location}
               </p>
             )}
@@ -50,7 +50,7 @@ export function PostCard({ post }: { post: Post }) {
         </div>
         <button
           aria-label="More options"
-          className="action-btn grid h-8 w-8 place-items-center rounded-full text-muted-foreground"
+          className="action-btn -mr-1 grid h-9 w-9 place-items-center rounded-full text-muted-foreground"
         >
           <MoreHorizontal className="h-[18px] w-[18px]" strokeWidth={1.7} />
         </button>
@@ -58,7 +58,7 @@ export function PostCard({ post }: { post: Post }) {
 
       <div
         onDoubleClick={onDoubleTap}
-        className="media-frame mx-2 rounded-[22px] select-none"
+        className="media-frame mx-3 rounded-[18px] select-none"
       >
         <img
           src={post.image}
@@ -75,7 +75,7 @@ export function PostCard({ post }: { post: Post }) {
         )}
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 pt-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-[3px] pt-2">
         <div className="flex min-w-0 items-center gap-0.5">
           <button
             onClick={() => toggleLike(post.id)}
@@ -134,31 +134,31 @@ export function PostCard({ post }: { post: Post }) {
         </button>
       </div>
 
-      <div className="space-y-2 px-4 pb-4 pt-1.5">
-        <p className="font-ui text-[12.5px] font-semibold tracking-[-0.01em]">
+      <div className="space-y-2 px-3 pb-4 pt-0.5">
+        <p className="font-ui text-[12.5px] font-semibold leading-none tracking-[-0.01em]">
           {formatCount(post.likes + (isLiked ? 1 : 0))} likes
         </p>
-        <p className="text-[13.5px] leading-[1.55] text-foreground/88">
+        <p className="text-[13px] leading-[1.55] text-foreground/85">
           <span className="font-semibold">@{user.username}</span> {post.caption}
         </p>
-        <div className="flex flex-wrap gap-1.5 pt-0.5">
+        <div className="flex flex-wrap gap-1.5">
           {post.hashtags.map((h) => (
             <span
               key={h}
-              className="chip rounded-full px-2.5 py-1 font-ui text-[10.5px] font-medium tracking-[-0.01em]"
+              className="chip rounded-full px-2.5 py-[3px] font-ui text-[10.5px] font-medium leading-[1.5] tracking-[-0.01em]"
             >
               #{h}
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-0.5">
           <CommentsSheet comments={post.comments}>
-            <button className="font-ui text-[11.5px] text-muted-foreground transition-colors duration-200 hover:text-foreground">
+            <button className="font-ui text-[11.5px] leading-none text-muted-foreground transition-colors duration-200 hover:text-foreground">
               View all {post.comments.length} comments
             </button>
           </CommentsSheet>
           <span aria-hidden className="h-[3px] w-[3px] rounded-full bg-muted-foreground/45" />
-          <p className="font-ui text-[10px] uppercase tracking-[0.16em] text-muted-foreground/65">
+          <p className="font-ui text-[9.5px] uppercase leading-none tracking-[0.16em] text-muted-foreground/60">
             {post.time} ago
           </p>
         </div>
