@@ -79,8 +79,9 @@ function friendlyError(err: unknown, channel: Channel): string {
   ) {
     return "SMS codes aren't available yet — no SMS provider is configured. Please use your email address instead.";
   }
-  if (m.includes("invalid login credentials")) return "That phone/email and password don't match.";
-  if (m.includes("token has expired") || m.includes("invalid token") || m.includes("otp"))
+  if (m.includes("signups not allowed") || m.includes("user not found"))
+    return "No account found with that email. Tap “Sign up” to create one.";
+  if (m.includes("token has expired") || m.includes("invalid token") || m.includes("otp expired"))
     return "That code is invalid or expired. Request a new one.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "Too many attempts. Please wait a minute and try again.";
@@ -146,37 +147,6 @@ function AuthPage() {
 
   /* ---------- actions ---------- */
 
-  const login = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFieldError(null);
-    if (!identifierValid) {
-      const message = "Enter a valid phone number or email address.";
-      setFieldError(message);
-      toast.error(message);
-      return;
-    }
-    if (password.length < 6) {
-      const message = "Password must be at least 6 characters.";
-      setFieldError(message);
-      toast.error(message);
-      return;
-    }
-    setBusy(true);
-    try {
-      const creds = usingPhone
-        ? { phone: normalizePhone(identifier), password }
-        : { email: identifier.trim(), password };
-      const { error } = await supabase.auth.signInWithPassword(creds);
-      if (error) throw error;
-      toast.success("Welcome back");
-      finish();
-    } catch (err) {
-      fail(err);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldError(null);
@@ -196,7 +166,10 @@ function AuthPage() {
           })
         : await supabase.auth.signInWithOtp({
             email: identifier.trim(),
-            options: { shouldCreateUser, emailRedirectTo: window.location.origin },
+            // No emailRedirectTo: this makes Supabase send a 6-digit OTP code
+            // instead of a magic link. (Requires the email template to include
+            // the {{ .Token }} variable.)
+            options: { shouldCreateUser },
           });
       if (error) throw error;
       toast.success(
@@ -227,7 +200,15 @@ function AuthPage() {
             type: "email",
           });
       if (error) throw error;
-      setStep(flow === "signup" ? "username" : "newPassword");
+      if (flow === "signup") {
+        setStep("username");
+      } else if (flow === "forgot") {
+        setStep("newPassword");
+      } else {
+        // login: OTP verified means we now have a session — go straight in.
+        toast.success("Welcome back");
+        finish();
+      }
     } catch (err) {
       fail(err);
     } finally {
@@ -321,7 +302,8 @@ function AuthPage() {
   /* ---------- shell ---------- */
 
   const titles: Record<string, { title: string; sub: string }> = {
-    "login:identifier": { title: "Sign in", sub: "Sign in to continue to your world." },
+    "login:identifier": { title: "Sign in", sub: "Enter your email and we'll send you a 6-digit code." },
+    "login:otp": { title: "Verify it's you", sub: `Enter the 6-digit code sent to ${identifier}.` },
     "signup:identifier": {
       title: "Create account",
       sub: "Use your phone number or email to get started.",
@@ -372,7 +354,7 @@ function AuthPage() {
 
         {/* IDENTIFIER */}
         {step === "identifier" && (
-          <form onSubmit={flow === "login" ? login : sendOtp} className="space-y-3 pt-6">
+          <form onSubmit={sendOtp} className="space-y-3 pt-6">
             <div className="relative">
               <Input
                 required
@@ -396,28 +378,12 @@ function AuthPage() {
                 </span>
               )}
             </div>
-            {channel && flow !== "login" && (
+            {channel && (
               <p className="px-1 text-[11px] text-muted-foreground">
                 {channel === "phone"
                   ? `We'll text a 6-digit code to ${identifierValid ? normalizePhone(identifier) : "your number"}.`
                   : "We'll email you a 6-digit code."}
               </p>
-            )}
-            {flow === "login" && (
-              <Input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setFieldError(null);
-                }}
-                placeholder="Password"
-                aria-label="Password"
-                autoComplete="current-password"
-                className="h-12 rounded-xl"
-              />
             )}
             {fieldError && (
               <p role="alert" className="px-1 text-[12px] leading-relaxed text-destructive">
@@ -430,15 +396,7 @@ function AuthPage() {
               className="h-12 w-full rounded-full"
             >
               {busy && <Loader2 size={16} className="mr-2 animate-spin" />}
-              {flow === "login"
-                ? busy
-                  ? "Signing in…"
-                  : "Continue"
-                : busy
-                  ? "Sending code…"
-                  : usingPhone
-                    ? "Send SMS code"
-                    : "Send code"}
+              {busy ? "Sending code…" : usingPhone ? "Send SMS code" : "Send code"}
             </Button>
           </form>
         )}
