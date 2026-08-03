@@ -26,6 +26,7 @@ import {
 import { useYw } from "@/lib/yw-store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { MediaEditor } from "@/components/yw/editor/MediaEditor";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -62,6 +63,7 @@ function CameraPage() {
   const [recSecs, setRecSecs] = useState(0);
   const [shot, setShot] = useState<{ url: string; type: string; name: string } | null>(null);
   const [composer, setComposer] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -140,7 +142,7 @@ function CameraPage() {
     rec.onstop = () => {
       const blob = new Blob(chunks, { type: "video/webm" });
       setShot({ url: URL.createObjectURL(blob), type: "video/webm", name: "reel.webm" });
-      setComposer(true);
+      setEditing(true);
     };
     recRef.current = rec;
     rec.start();
@@ -170,7 +172,7 @@ function CameraPage() {
     const url = capturePhoto();
     if (!url) return;
     setShot({ url, type: "image/jpeg", name: "photo.jpg" });
-    setComposer(true);
+    setEditing(true);
   };
 
   const onPick = (file?: File) => {
@@ -180,8 +182,25 @@ function CameraPage() {
       return;
     }
     setShot({ url: URL.createObjectURL(file), type: file.type, name: file.name });
-    setComposer(true);
+    setEditing(true);
   };
+
+  if (editing && shot) {
+    return (
+      <MediaEditor
+        media={shot}
+        kind={mode === "REEL" ? "reel" : "post"}
+        onBack={() => {
+          setEditing(false);
+          setShot(null);
+        }}
+        onNext={() => {
+          setEditing(false);
+          setComposer(true);
+        }}
+      />
+    );
+  }
 
   if (composer && shot) {
     return (
@@ -190,7 +209,7 @@ function CameraPage() {
         kind={mode === "REEL" ? "reel" : "post"}
         onBack={() => {
           setComposer(false);
-          setShot(null);
+          setEditing(true);
         }}
       />
     );
