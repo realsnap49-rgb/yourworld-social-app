@@ -13,6 +13,9 @@ const items = [
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
+  // The Create camera is full-screen and has its own mode selector.
+  if (pathname.startsWith("/create")) return null;
+
   // Bottom nav is only for the main app screens.
   const isMainScreen =
     pathname === "/" ||
