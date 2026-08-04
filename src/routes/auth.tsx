@@ -106,6 +106,10 @@ async function shrinkImage(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.8);
 }
 
+/** Development shortcut: this code lets you enter the app without a real OTP. */
+const TEST_OTP = "123456";
+const TEST_PASSWORD = "yourworld-test-123456";
+
 function AuthPage() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
