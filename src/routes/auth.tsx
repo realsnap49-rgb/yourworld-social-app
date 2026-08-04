@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Check, Loader2, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
