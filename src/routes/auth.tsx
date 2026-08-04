@@ -177,10 +177,14 @@ function AuthPage() {
             // the {{ .Token }} variable.)
             options: { shouldCreateUser },
           });
-      if (error) throw error;
-      toast.success(
-        `${usingPhone ? "SMS" : "Email"} code sent to ${usingPhone ? normalizePhone(identifier) : identifier.trim()}`,
-      );
+      if (error) {
+        // Delivery isn't set up yet — let testing continue with the test code.
+        toast.error(`${friendlyError(error, channel)} You can use the test code ${TEST_OTP}.`);
+      } else {
+        toast.success(
+          `${usingPhone ? "SMS" : "Email"} code sent to ${usingPhone ? normalizePhone(identifier) : identifier.trim()}`,
+        );
+      }
       setCode("");
       setStep("otp");
     } catch (err) {
