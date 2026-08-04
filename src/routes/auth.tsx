@@ -107,7 +107,6 @@ async function shrinkImage(file: File): Promise<string> {
 }
 
 function AuthPage() {
-  // Development shortcut: any account can be entered with this code.
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
 
