@@ -17,21 +17,21 @@ export function Stories() {
         <Link
           to="/moment/create"
           aria-label="Create your moment"
-          className="group flex w-16 shrink-0 flex-col items-center gap-2 transition-transform duration-300 active:scale-[0.92]"
+          className="group flex w-[54px] shrink-0 flex-col items-center gap-2 transition-transform duration-300 active:scale-[0.92]"
         >
           <span className="relative block">
             <span
               className={cn(
-                "grid h-16 w-16 place-items-center rounded-full p-[2px] transition-colors duration-300",
+                "grid h-[54px] w-[54px] place-items-center rounded-full p-[2px] transition-colors duration-300",
                 myMoments.length > 0
                   ? "ring-live"
                   : "border border-dashed border-foreground/18 group-hover:border-foreground/35",
               )}
             >
-              <YwAvatar user={currentUser} size={56} />
+              <YwAvatar user={currentUser} size={46} />
             </span>
-            <span className="glow absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full brand-gradient ring-[3px] ring-background">
-              <Plus className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
+            <span className="glow absolute bottom-0 right-0 grid h-4 w-4 place-items-center rounded-full brand-gradient ring-2 ring-background">
+              <Plus className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={3} />
             </span>
           </span>
           <span className="w-full truncate text-center font-ui text-[10.5px] font-medium leading-none tracking-[-0.01em] text-muted-foreground">
@@ -44,9 +44,9 @@ export function Stories() {
             key={m.id}
             to="/moment/$momentId"
             params={{ momentId: m.id }}
-            className="flex w-16 shrink-0 flex-col items-center gap-2 transition-transform duration-300 active:scale-[0.92]"
+            className="flex w-[54px] shrink-0 flex-col items-center gap-2 transition-transform duration-300 active:scale-[0.92]"
           >
-            <span className="ring-live grid h-16 w-16 place-items-center rounded-full p-[2px]">
+            <span className="ring-live grid h-[54px] w-[54px] place-items-center rounded-full p-[2px]">
               <span className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-background p-[2px]">
                 {m.kind === "text" || !m.media ? (
                   <span
@@ -75,18 +75,18 @@ export function Stories() {
               key={m.id}
               onClick={() => setOpen(m)}
               style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-              className="animate-rise flex w-16 shrink-0 flex-col items-center gap-2 transition-transform duration-300 active:scale-[0.92]"
+              className="animate-rise flex w-[54px] shrink-0 flex-col items-center gap-2 transition-transform duration-300 active:scale-[0.92]"
             >
               <span
                 className={cn(
-                  "grid h-16 w-16 place-items-center rounded-full p-[2px] transition-all duration-300",
+                  "grid h-[54px] w-[54px] place-items-center rounded-full p-[2px] transition-all duration-300",
                   m.seen
                     ? "bg-foreground/10"
                     : "ring-live shadow-[0_6px_20px_-10px_oklch(0.68_0.245_356/0.9)]",
                 )}
               >
                 <span className="grid h-full w-full place-items-center rounded-full bg-background p-[2px]">
-                  <YwAvatar user={u} size={56} />
+                  <YwAvatar user={u} size={46} />
                 </span>
               </span>
               <span
