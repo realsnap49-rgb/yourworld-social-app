@@ -72,10 +72,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
-    if (!session && !publicRoute) {
-      navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
-    }
-  }, [loading, session, publicRoute, pathname, navigate]);
+    // Auth redirect disabled — app opens directly on home feed
+  }, [loading]);
 
   if (loading) {
     return (
@@ -84,6 +82,5 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (!session && !publicRoute) return null;
   return <>{children}</>;
 }
