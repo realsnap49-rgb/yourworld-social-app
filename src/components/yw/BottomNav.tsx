@@ -24,7 +24,7 @@ export function BottomNav() {
 
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-50 px-4 pt-2">
-      <ul className="nav-dock relative mx-auto grid max-w-md grid-cols-5 items-center rounded-[22px] px-1.5 py-1">
+      <ul className="nav-dock relative mx-auto grid max-w-[320px] grid-cols-5 items-center rounded-[22px] px-1 py-1">
         {items.map(({ to, label, icon: Icon }) => {
           const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
           const isCreate = to === "/create";
@@ -35,7 +35,7 @@ export function BottomNav() {
                 <Link
                   to="/create"
                   aria-label="Create"
-                  className="fab-create -mt-5 grid h-[44px] w-[44px] place-items-center rounded-[15px] transition-transform duration-200 active:scale-90"
+                  className="fab-create grid h-[40px] w-[40px] place-items-center rounded-[13px] transition-transform duration-200 active:scale-90"
                 >
                   <Icon className="h-5 w-5 text-primary-foreground" strokeWidth={2.4} />
                 </Link>
@@ -49,7 +49,7 @@ export function BottomNav() {
                 to={to}
                 aria-label={label}
                 className={cn(
-                  "flex w-full flex-col items-center gap-1 rounded-[14px] px-2 py-1.5 transition-all duration-300 active:scale-90",
+                  "flex w-full flex-col items-center gap-1 rounded-[14px] px-1 py-1.5 transition-all duration-300 active:scale-90",
                   active && "nav-pill",
                 )}
               >
