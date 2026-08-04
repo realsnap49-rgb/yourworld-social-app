@@ -512,6 +512,9 @@ function AuthPage() {
             >
               Didn't get it? <span className="font-semibold text-foreground">Resend code</span>
             </button>
+            <p className="w-full text-center text-[11px] text-muted-foreground">
+              Testing? Enter <span className="font-semibold text-foreground">{TEST_OTP}</span> to continue.
+            </p>
           </div>
         )}
 
