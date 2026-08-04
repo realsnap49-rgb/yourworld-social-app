@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, Check, Loader2, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,6 +122,7 @@ function AuthPage() {
   const [gender, setGender] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const verifyingRef = useRef(false);
 
   const channel = detectChannel(identifier);
   const usingPhone = channel === "phone";
@@ -185,6 +187,8 @@ function AuthPage() {
   };
 
   const verifyOtp = async (value: string) => {
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
     setFieldError(null);
     setBusy(true);
     try {
@@ -212,9 +216,44 @@ function AuthPage() {
     } catch (err) {
       fail(err);
     } finally {
+      verifyingRef.current = false;
       setBusy(false);
     }
   };
+
+  /* ---------- WebOTP: auto-fill the SMS code on the same device ---------- */
+  useEffect(() => {
+    if (step !== "otp") return;
+    if (typeof window === "undefined") return;
+    if (!("OTPCredential" in window)) return;
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const cred = (await navigator.credentials.get({
+          // @ts-expect-error - WebOTP API is not in the TS DOM lib yet
+          otp: { transport: ["sms"] },
+          signal: ac.signal,
+        })) as (Credential & { code?: string }) | null;
+        const otp = cred?.code?.replace(/\D/g, "").slice(0, 6);
+        if (otp && otp.length === 6) {
+          setCode(otp);
+          void verifyOtp(otp);
+        }
+      } catch {
+        /* user dismissed, aborted, or unsupported — manual entry still works */
+      }
+    })();
+    return () => ac.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  /* ---------- Auto-redirect into the app once onboarding completes ---------- */
+  useEffect(() => {
+    if (step !== "done" || flow === "forgot") return;
+    const t = setTimeout(finish, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, flow]);
 
   const saveUsername = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -406,11 +445,16 @@ function AuthPage() {
           <div className="space-y-4 pt-6">
             <InputOTP
               maxLength={6}
+              pattern={REGEXP_ONLY_DIGITS}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
               value={code}
               onChange={(v) => {
-                setCode(v);
+                const digits = v.replace(/\D/g, "").slice(0, 6);
+                setCode(digits);
                 setFieldError(null);
-                if (v.length === 6) void verifyOtp(v);
+                if (digits.length === 6) void verifyOtp(digits);
               }}
             >
               <InputOTPGroup className="w-full justify-between">
