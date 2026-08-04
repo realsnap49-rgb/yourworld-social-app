@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -47,6 +48,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
@@ -289,6 +298,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reels'
     | '/reset-password'
+    | '/search'
     | '/settings'
     | '/sitemap.xml'
     | '/channel/analytics'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reels'
     | '/reset-password'
+    | '/search'
     | '/settings'
     | '/sitemap.xml'
     | '/channel/analytics'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reels'
     | '/reset-password'
+    | '/search'
     | '/settings'
     | '/sitemap.xml'
     | '/channel/analytics'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ChatThreadIdRoute: typeof ChatThreadIdRoute
@@ -403,6 +416,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -652,6 +672,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ChatThreadIdRoute: ChatThreadIdRoute,

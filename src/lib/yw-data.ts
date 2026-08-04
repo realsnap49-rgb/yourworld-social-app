@@ -267,6 +267,44 @@ export const profileStats = { posts: 148, followers: 24800, following: 612 };
 /** Up to 3 pinned posts shown first in the profile grid. */
 export const pinnedPostIds: string[] = ["p3", "p1"];
 
+export type Hashtag = {
+  tag: string;
+  postCount: number;
+  trending?: boolean;
+};
+
+export const hashtags: Hashtag[] = [
+  { tag: "streetphotography", postCount: 7800000, trending: true },
+  { tag: "tokyo", postCount: 2100000, trending: true },
+  { tag: "goldenhour", postCount: 4500000, trending: true },
+  { tag: "cinematic", postCount: 780000, trending: true },
+  { tag: "nightwalk", postCount: 482000, trending: true },
+  { tag: "surf", postCount: 1200000, trending: true },
+  { tag: "neon", postCount: 890000 },
+  { tag: "35mm", postCount: 950000 },
+  { tag: "filmlook", postCount: 320000 },
+  { tag: "ocean", postCount: 5600000 },
+  { tag: "brunch", postCount: 3400000 },
+  { tag: "slowmornings", postCount: 156000 },
+  { tag: "minimalism", postCount: 2300000 },
+  { tag: "darkmode", postCount: 445000 },
+  { tag: "coffeetime", postCount: 1900000 },
+  { tag: "analog", postCount: 610000 },
+  { tag: "architecture", postCount: 8100000 },
+  { tag: "portrait", postCount: 12000000 },
+];
+
+export type SuggestedUser = User & { followerCount: number };
+
+export const suggestedUsers: SuggestedUser[] = [
+  { id: "u1", username: "riko.night", name: "Riko Tan", hue: 300, verified: true, category: "Photographer", followerCount: 48200 },
+  { id: "u2", username: "sea.salt", name: "Mara Vega", hue: 190, category: "Surfer", followerCount: 31800 },
+  { id: "u3", username: "spinsolo", name: "Ada Kim", hue: 40, verified: true, category: "DJ · Producer", followerCount: 92400 },
+  { id: "u4", username: "slowbrunch", name: "Noah Ferre", hue: 15, category: "Food & Travel", followerCount: 14600 },
+  { id: "u5", username: "wavelen", name: "Kai Oduya", hue: 250, category: "Filmmaker", followerCount: 67100 },
+  { id: "u6", username: "moss.club", name: "Ines Roth", hue: 150, verified: true, category: "Artist", followerCount: 23900 },
+];
+
 export const formatCount = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;

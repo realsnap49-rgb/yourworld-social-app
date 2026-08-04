@@ -41,12 +41,13 @@ function HomePage() {
           </h1>
         </div>
         <div className="-mr-1 flex shrink-0 items-center gap-1">
-          <button
+          <Link
+            to="/search"
             aria-label="Search"
             className="icon-pill grid h-10 w-10 place-items-center transition-all duration-200 active:scale-90"
           >
             <Search className="h-[22px] w-[22px]" strokeWidth={1.6} />
-          </button>
+          </Link>
           <Link
             to="/notifications"
             aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}

@@ -16,6 +16,7 @@ import { YwStoreProvider } from "@/lib/yw-store";
 import { NotificationsProvider } from "@/lib/notifications-store";
 import { MomentProvider } from "@/lib/moment-store";
 import { AuthProvider, AuthGate } from "@/lib/auth-store";
+import { SearchProvider } from "@/lib/search-store";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -145,14 +146,16 @@ function RootComponent() {
         <YwStoreProvider>
           <NotificationsProvider>
             <MomentProvider>
-              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-              <AuthGate>
-                <div className="mx-auto min-h-screen w-full max-w-lg pb-20">
-                  <Outlet />
-                </div>
-                <BottomNav />
-              </AuthGate>
-              <Toaster position="top-center" />
+              <SearchProvider>
+                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                <AuthGate>
+                  <div className="mx-auto min-h-screen w-full max-w-lg pb-20">
+                    <Outlet />
+                  </div>
+                  <BottomNav />
+                </AuthGate>
+                <Toaster position="top-center" />
+              </SearchProvider>
             </MomentProvider>
           </NotificationsProvider>
         </YwStoreProvider>
