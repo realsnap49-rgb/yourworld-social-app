@@ -192,6 +192,25 @@ function AuthPage() {
     setFieldError(null);
     setBusy(true);
     try {
+      // ---- Universal test code (development shortcut) ----
+      if (value === TEST_OTP) {
+        const creds = usingPhone
+          ? { phone: normalizePhone(identifier), password: TEST_PASSWORD }
+          : { email: identifier.trim(), password: TEST_PASSWORD };
+        let { error: signInError } = await supabase.auth.signInWithPassword(creds);
+        if (signInError) {
+          const { error: signUpError } = await supabase.auth.signUp(creds);
+          if (signUpError) throw signUpError;
+          const retry = await supabase.auth.signInWithPassword(creds);
+          signInError = retry.error;
+        }
+        if (signInError) throw signInError;
+        toast.success("Test code accepted");
+        if (flow === "signup") setStep("username");
+        else if (flow === "forgot") setStep("newPassword");
+        else finish();
+        return;
+      }
       const { error } = usingPhone
         ? await supabase.auth.verifyOtp({
             phone: normalizePhone(identifier),
