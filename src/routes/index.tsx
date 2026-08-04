@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bell, Search } from "lucide-react";
+import { Heart, Search } from "lucide-react";
 import { Stories } from "@/components/yw/Stories";
 import { PostCard } from "@/components/yw/PostCard";
 import { posts } from "@/lib/yw-data";
@@ -40,21 +40,21 @@ function HomePage() {
             YourWorld
           </h1>
         </div>
-        <div className="-mr-1.5 flex shrink-0 items-center gap-0.5">
+        <div className="-mr-1 flex shrink-0 items-center gap-1">
           <button
             aria-label="Search"
-            className="icon-pill grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
+            className="icon-pill grid h-10 w-10 place-items-center transition-all duration-200 active:scale-90"
           >
-            <Search className="h-5 w-5" strokeWidth={1.7} />
+            <Search className="h-[22px] w-[22px]" strokeWidth={1.6} />
           </button>
           <Link
             to="/notifications"
             aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
-            className="icon-pill relative grid h-9 w-9 place-items-center transition-all duration-200 active:scale-90"
+            className="icon-pill relative grid h-10 w-10 place-items-center transition-all duration-200 active:scale-90"
           >
-            <Bell className="h-5 w-5" strokeWidth={1.7} />
+            <Heart className="h-6 w-6" strokeWidth={1.6} />
             {unread > 0 && (
-              <span className="absolute right-1 top-1 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-primary px-1 font-ui text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
+              <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 font-ui text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
                 {unread > 99 ? "99+" : unread}
               </span>
             )}
