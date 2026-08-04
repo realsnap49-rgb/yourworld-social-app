@@ -106,6 +106,10 @@ async function shrinkImage(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.8);
 }
 
+/** Development shortcut: this code lets you enter the app without a real OTP. */
+const TEST_OTP = "123456";
+const TEST_PASSWORD = "yourworld-test-123456";
+
 function AuthPage() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
@@ -173,10 +177,14 @@ function AuthPage() {
             // the {{ .Token }} variable.)
             options: { shouldCreateUser },
           });
-      if (error) throw error;
-      toast.success(
-        `${usingPhone ? "SMS" : "Email"} code sent to ${usingPhone ? normalizePhone(identifier) : identifier.trim()}`,
-      );
+      if (error) {
+        // Delivery isn't set up yet — let testing continue with the test code.
+        toast.error(`${friendlyError(error, channel)} You can use the test code ${TEST_OTP}.`);
+      } else {
+        toast.success(
+          `${usingPhone ? "SMS" : "Email"} code sent to ${usingPhone ? normalizePhone(identifier) : identifier.trim()}`,
+        );
+      }
       setCode("");
       setStep("otp");
     } catch (err) {
@@ -192,6 +200,25 @@ function AuthPage() {
     setFieldError(null);
     setBusy(true);
     try {
+      // ---- Universal test code (development shortcut) ----
+      if (value === TEST_OTP) {
+        const creds = usingPhone
+          ? { phone: normalizePhone(identifier), password: TEST_PASSWORD }
+          : { email: identifier.trim(), password: TEST_PASSWORD };
+        let { error: signInError } = await supabase.auth.signInWithPassword(creds);
+        if (signInError) {
+          const { error: signUpError } = await supabase.auth.signUp(creds);
+          if (signUpError) throw signUpError;
+          const retry = await supabase.auth.signInWithPassword(creds);
+          signInError = retry.error;
+        }
+        if (signInError) throw signInError;
+        toast.success("Test code accepted");
+        if (flow === "signup") setStep("username");
+        else if (flow === "forgot") setStep("newPassword");
+        else finish();
+        return;
+      }
       const { error } = usingPhone
         ? await supabase.auth.verifyOtp({
             phone: normalizePhone(identifier),
@@ -485,6 +512,9 @@ function AuthPage() {
             >
               Didn't get it? <span className="font-semibold text-foreground">Resend code</span>
             </button>
+            <p className="w-full text-center text-[11px] text-muted-foreground">
+              Testing? Enter <span className="font-semibold text-foreground">{TEST_OTP}</span> to continue.
+            </p>
           </div>
         )}
 
