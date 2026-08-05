@@ -9,91 +9,41 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AccountRouteImport } from './routes/account'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as ChannelRouteImport } from './routes/channel'
-import { Route as CreateRouteImport } from './routes/create'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as OrbitRouteImport } from './routes/orbit'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as ReelsRouteImport } from './routes/reels'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ChannelIndexRouteImport } from './routes/channel.index'
-import { Route as ChannelAnalyticsRouteImport } from './routes/channel.analytics'
-import { Route as ChannelCreateRouteImport } from './routes/channel.create'
-import { Route as ChannelMonetizationRouteImport } from './routes/channel.monetization'
-import { Route as ChannelPostsRouteImport } from './routes/channel.posts'
-import { Route as ChannelReelsRouteImport } from './routes/channel.reels'
-import { Route as ChannelSubscribersRouteImport } from './routes/channel.subscribers'
-import { Route as ChannelVideosRouteImport } from './routes/channel.videos'
-import { Route as ChatIndexRouteImport } from './routes/chat.index'
-import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
-import { Route as MomentMomentIdRouteImport } from './routes/moment.$momentId'
-import { Route as MomentCreateRouteImport } from './routes/moment.create'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReelsRouteImport } from './routes/reels'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OrbitRouteImport } from './routes/orbit'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as ChannelRouteImport } from './routes/channel'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
-import { Route as OrbitProfileIdRouteImport } from './routes/orbit.$profileId'
-import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
-import { Route as OrbitMessagesRouteImport } from './routes/orbit.messages'
-import { Route as OrbitNotificationsRouteImport } from './routes/orbit.notifications'
+import { Route as ChatIndexRouteImport } from './routes/chat.index'
+import { Route as ChannelIndexRouteImport } from './routes/channel.index'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
+import { Route as OrbitNotificationsRouteImport } from './routes/orbit.notifications'
+import { Route as OrbitMessagesRouteImport } from './routes/orbit.messages'
+import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
+import { Route as OrbitProfileIdRouteImport } from './routes/orbit.$profileId'
+import { Route as MomentCreateRouteImport } from './routes/moment.create'
+import { Route as MomentMomentIdRouteImport } from './routes/moment.$momentId'
+import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
+import { Route as ChannelVideosRouteImport } from './routes/channel.videos'
+import { Route as ChannelSubscribersRouteImport } from './routes/channel.subscribers'
+import { Route as ChannelReelsRouteImport } from './routes/channel.reels'
+import { Route as ChannelPostsRouteImport } from './routes/channel.posts'
+import { Route as ChannelMonetizationRouteImport } from './routes/channel.monetization'
+import { Route as ChannelCreateRouteImport } from './routes/channel.create'
+import { Route as ChannelAnalyticsRouteImport } from './routes/channel.analytics'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChannelRoute = ChannelRouteImport.update({
-  id: '/channel',
-  path: '/channel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreateRoute = CreateRouteImport.update({
-  id: '/create',
-  path: '/create',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrbitRoute = OrbitRouteImport.update({
-  id: '/orbit',
-  path: '/orbit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReelsRoute = ReelsRouteImport.update({
-  id: '/reels',
-  path: '/reels',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -101,69 +51,59 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChannelIndexRoute = ChannelIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ChannelRoute,
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ChannelAnalyticsRoute = ChannelAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => ChannelRoute,
-} as any)
-const ChannelCreateRoute = ChannelCreateRouteImport.update({
-  id: '/create',
-  path: '/create',
-  getParentRoute: () => ChannelRoute,
-} as any)
-const ChannelMonetizationRoute = ChannelMonetizationRouteImport.update({
-  id: '/monetization',
-  path: '/monetization',
-  getParentRoute: () => ChannelRoute,
-} as any)
-const ChannelPostsRoute = ChannelPostsRouteImport.update({
-  id: '/posts',
-  path: '/posts',
-  getParentRoute: () => ChannelRoute,
-} as any)
-const ChannelReelsRoute = ChannelReelsRouteImport.update({
+const ReelsRoute = ReelsRouteImport.update({
   id: '/reels',
   path: '/reels',
-  getParentRoute: () => ChannelRoute,
-} as any)
-const ChannelSubscribersRoute = ChannelSubscribersRouteImport.update({
-  id: '/subscribers',
-  path: '/subscribers',
-  getParentRoute: () => ChannelRoute,
-} as any)
-const ChannelVideosRoute = ChannelVideosRouteImport.update({
-  id: '/videos',
-  path: '/videos',
-  getParentRoute: () => ChannelRoute,
-} as any)
-const ChatIndexRoute = ChatIndexRouteImport.update({
-  id: '/chat/',
-  path: '/chat/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
-  id: '/chat/$threadId',
-  path: '/chat/$threadId',
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MomentMomentIdRoute = MomentMomentIdRouteImport.update({
-  id: '/moment/$momentId',
-  path: '/moment/$momentId',
+const OrbitRoute = OrbitRouteImport.update({
+  id: '/orbit',
+  path: '/orbit',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MomentCreateRoute = MomentCreateRouteImport.update({
-  id: '/moment/create',
-  path: '/moment/create',
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateRoute = CreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelRoute = ChannelRouteImport.update({
+  id: '/channel',
+  path: '/channel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrbitIndexRoute = OrbitIndexRouteImport.update({
@@ -171,19 +111,19 @@ const OrbitIndexRoute = OrbitIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrbitRoute,
 } as any)
-const OrbitProfileIdRoute = OrbitProfileIdRouteImport.update({
-  id: '/$profileId',
-  path: '/$profileId',
-  getParentRoute: () => OrbitRoute,
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/chat/',
+  path: '/chat/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const OrbitCreateRoute = OrbitCreateRouteImport.update({
-  id: '/create',
-  path: '/create',
-  getParentRoute: () => OrbitRoute,
+const ChannelIndexRoute = ChannelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ChannelRoute,
 } as any)
-const OrbitMessagesRoute = OrbitMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
+const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => OrbitRoute,
 } as any)
 const OrbitNotificationsRoute = OrbitNotificationsRouteImport.update({
@@ -191,10 +131,70 @@ const OrbitNotificationsRoute = OrbitNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => OrbitRoute,
 } as any)
-const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
+const OrbitMessagesRoute = OrbitMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
   getParentRoute: () => OrbitRoute,
+} as any)
+const OrbitCreateRoute = OrbitCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => OrbitRoute,
+} as any)
+const OrbitProfileIdRoute = OrbitProfileIdRouteImport.update({
+  id: '/$profileId',
+  path: '/$profileId',
+  getParentRoute: () => OrbitRoute,
+} as any)
+const MomentCreateRoute = MomentCreateRouteImport.update({
+  id: '/moment/create',
+  path: '/moment/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MomentMomentIdRoute = MomentMomentIdRouteImport.update({
+  id: '/moment/$momentId',
+  path: '/moment/$momentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
+  id: '/chat/$threadId',
+  path: '/chat/$threadId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelVideosRoute = ChannelVideosRouteImport.update({
+  id: '/videos',
+  path: '/videos',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const ChannelSubscribersRoute = ChannelSubscribersRouteImport.update({
+  id: '/subscribers',
+  path: '/subscribers',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const ChannelReelsRoute = ChannelReelsRouteImport.update({
+  id: '/reels',
+  path: '/reels',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const ChannelPostsRoute = ChannelPostsRouteImport.update({
+  id: '/posts',
+  path: '/posts',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const ChannelMonetizationRoute = ChannelMonetizationRouteImport.update({
+  id: '/monetization',
+  path: '/monetization',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const ChannelCreateRoute = ChannelCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => ChannelRoute,
+} as any)
+const ChannelAnalyticsRoute = ChannelAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => ChannelRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -417,81 +417,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account': {
-      id: '/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/channel': {
-      id: '/channel'
-      path: '/channel'
-      fullPath: '/channel'
-      preLoaderRoute: typeof ChannelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create': {
-      id: '/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof CreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/orbit': {
-      id: '/orbit'
-      path: '/orbit'
-      fullPath: '/orbit'
-      preLoaderRoute: typeof OrbitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reels': {
-      id: '/reels'
-      path: '/reels'
-      fullPath: '/reels'
-      preLoaderRoute: typeof ReelsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -501,95 +431,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/channel/': {
-      id: '/channel/'
-      path: '/'
-      fullPath: '/channel/'
-      preLoaderRoute: typeof ChannelIndexRouteImport
-      parentRoute: typeof ChannelRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/channel/analytics': {
-      id: '/channel/analytics'
-      path: '/analytics'
-      fullPath: '/channel/analytics'
-      preLoaderRoute: typeof ChannelAnalyticsRouteImport
-      parentRoute: typeof ChannelRoute
-    }
-    '/channel/create': {
-      id: '/channel/create'
-      path: '/create'
-      fullPath: '/channel/create'
-      preLoaderRoute: typeof ChannelCreateRouteImport
-      parentRoute: typeof ChannelRoute
-    }
-    '/channel/monetization': {
-      id: '/channel/monetization'
-      path: '/monetization'
-      fullPath: '/channel/monetization'
-      preLoaderRoute: typeof ChannelMonetizationRouteImport
-      parentRoute: typeof ChannelRoute
-    }
-    '/channel/posts': {
-      id: '/channel/posts'
-      path: '/posts'
-      fullPath: '/channel/posts'
-      preLoaderRoute: typeof ChannelPostsRouteImport
-      parentRoute: typeof ChannelRoute
-    }
-    '/channel/reels': {
-      id: '/channel/reels'
+    '/reels': {
+      id: '/reels'
       path: '/reels'
-      fullPath: '/channel/reels'
-      preLoaderRoute: typeof ChannelReelsRouteImport
-      parentRoute: typeof ChannelRoute
-    }
-    '/channel/subscribers': {
-      id: '/channel/subscribers'
-      path: '/subscribers'
-      fullPath: '/channel/subscribers'
-      preLoaderRoute: typeof ChannelSubscribersRouteImport
-      parentRoute: typeof ChannelRoute
-    }
-    '/channel/videos': {
-      id: '/channel/videos'
-      path: '/videos'
-      fullPath: '/channel/videos'
-      preLoaderRoute: typeof ChannelVideosRouteImport
-      parentRoute: typeof ChannelRoute
-    }
-    '/chat/': {
-      id: '/chat/'
-      path: '/chat'
-      fullPath: '/chat/'
-      preLoaderRoute: typeof ChatIndexRouteImport
+      fullPath: '/reels'
+      preLoaderRoute: typeof ReelsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chat/$threadId': {
-      id: '/chat/$threadId'
-      path: '/chat/$threadId'
-      fullPath: '/chat/$threadId'
-      preLoaderRoute: typeof ChatThreadIdRouteImport
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/moment/$momentId': {
-      id: '/moment/$momentId'
-      path: '/moment/$momentId'
-      fullPath: '/moment/$momentId'
-      preLoaderRoute: typeof MomentMomentIdRouteImport
+    '/orbit': {
+      id: '/orbit'
+      path: '/orbit'
+      fullPath: '/orbit'
+      preLoaderRoute: typeof OrbitRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/moment/create': {
-      id: '/moment/create'
-      path: '/moment/create'
-      fullPath: '/moment/create'
-      preLoaderRoute: typeof MomentCreateRouteImport
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channel': {
+      id: '/channel'
+      path: '/channel'
+      fullPath: '/channel'
+      preLoaderRoute: typeof ChannelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orbit/': {
@@ -599,25 +515,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrbitIndexRouteImport
       parentRoute: typeof OrbitRoute
     }
-    '/orbit/$profileId': {
-      id: '/orbit/$profileId'
-      path: '/$profileId'
-      fullPath: '/orbit/$profileId'
-      preLoaderRoute: typeof OrbitProfileIdRouteImport
-      parentRoute: typeof OrbitRoute
+    '/chat/': {
+      id: '/chat/'
+      path: '/chat'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/orbit/create': {
-      id: '/orbit/create'
-      path: '/create'
-      fullPath: '/orbit/create'
-      preLoaderRoute: typeof OrbitCreateRouteImport
-      parentRoute: typeof OrbitRoute
+    '/channel/': {
+      id: '/channel/'
+      path: '/'
+      fullPath: '/channel/'
+      preLoaderRoute: typeof ChannelIndexRouteImport
+      parentRoute: typeof ChannelRoute
     }
-    '/orbit/messages': {
-      id: '/orbit/messages'
-      path: '/messages'
-      fullPath: '/orbit/messages'
-      preLoaderRoute: typeof OrbitMessagesRouteImport
+    '/orbit/privacy': {
+      id: '/orbit/privacy'
+      path: '/privacy'
+      fullPath: '/orbit/privacy'
+      preLoaderRoute: typeof OrbitPrivacyRouteImport
       parentRoute: typeof OrbitRoute
     }
     '/orbit/notifications': {
@@ -627,12 +543,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrbitNotificationsRouteImport
       parentRoute: typeof OrbitRoute
     }
-    '/orbit/privacy': {
-      id: '/orbit/privacy'
-      path: '/privacy'
-      fullPath: '/orbit/privacy'
-      preLoaderRoute: typeof OrbitPrivacyRouteImport
+    '/orbit/messages': {
+      id: '/orbit/messages'
+      path: '/messages'
+      fullPath: '/orbit/messages'
+      preLoaderRoute: typeof OrbitMessagesRouteImport
       parentRoute: typeof OrbitRoute
+    }
+    '/orbit/create': {
+      id: '/orbit/create'
+      path: '/create'
+      fullPath: '/orbit/create'
+      preLoaderRoute: typeof OrbitCreateRouteImport
+      parentRoute: typeof OrbitRoute
+    }
+    '/orbit/$profileId': {
+      id: '/orbit/$profileId'
+      path: '/$profileId'
+      fullPath: '/orbit/$profileId'
+      preLoaderRoute: typeof OrbitProfileIdRouteImport
+      parentRoute: typeof OrbitRoute
+    }
+    '/moment/create': {
+      id: '/moment/create'
+      path: '/moment/create'
+      fullPath: '/moment/create'
+      preLoaderRoute: typeof MomentCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/moment/$momentId': {
+      id: '/moment/$momentId'
+      path: '/moment/$momentId'
+      fullPath: '/moment/$momentId'
+      preLoaderRoute: typeof MomentMomentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat/$threadId': {
+      id: '/chat/$threadId'
+      path: '/chat/$threadId'
+      fullPath: '/chat/$threadId'
+      preLoaderRoute: typeof ChatThreadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/channel/videos': {
+      id: '/channel/videos'
+      path: '/videos'
+      fullPath: '/channel/videos'
+      preLoaderRoute: typeof ChannelVideosRouteImport
+      parentRoute: typeof ChannelRoute
+    }
+    '/channel/subscribers': {
+      id: '/channel/subscribers'
+      path: '/subscribers'
+      fullPath: '/channel/subscribers'
+      preLoaderRoute: typeof ChannelSubscribersRouteImport
+      parentRoute: typeof ChannelRoute
+    }
+    '/channel/reels': {
+      id: '/channel/reels'
+      path: '/reels'
+      fullPath: '/channel/reels'
+      preLoaderRoute: typeof ChannelReelsRouteImport
+      parentRoute: typeof ChannelRoute
+    }
+    '/channel/posts': {
+      id: '/channel/posts'
+      path: '/posts'
+      fullPath: '/channel/posts'
+      preLoaderRoute: typeof ChannelPostsRouteImport
+      parentRoute: typeof ChannelRoute
+    }
+    '/channel/monetization': {
+      id: '/channel/monetization'
+      path: '/monetization'
+      fullPath: '/channel/monetization'
+      preLoaderRoute: typeof ChannelMonetizationRouteImport
+      parentRoute: typeof ChannelRoute
+    }
+    '/channel/create': {
+      id: '/channel/create'
+      path: '/create'
+      fullPath: '/channel/create'
+      preLoaderRoute: typeof ChannelCreateRouteImport
+      parentRoute: typeof ChannelRoute
+    }
+    '/channel/analytics': {
+      id: '/channel/analytics'
+      path: '/analytics'
+      fullPath: '/channel/analytics'
+      preLoaderRoute: typeof ChannelAnalyticsRouteImport
+      parentRoute: typeof ChannelRoute
     }
   }
 }
@@ -704,3 +704,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
