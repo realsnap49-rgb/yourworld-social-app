@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, PhoneOff, Video, VideoOff, SwitchCamera, ShieldCheck } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  PhoneOff,
+  Video,
+  VideoOff,
+  SwitchCamera,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +35,7 @@ export function OrbitCallSheet({
   const streamRef = useRef<MediaStream | null>(null);
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
+  const [blurFace, setBlurFace] = useState(true);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [status, setStatus] = useState("Connecting…");
   const [seconds, setSeconds] = useState(0);
@@ -66,6 +77,7 @@ export function OrbitCallSheet({
     if (!open) {
       setSeconds(0);
       setStatus("Connecting…");
+      setBlurFace(true);
       return;
     }
     const id = window.setInterval(() => setSeconds((s) => s + 1), 1000);
@@ -101,9 +113,16 @@ export function OrbitCallSheet({
               muted
               className={cn(
                 "absolute inset-0 h-full w-full object-cover opacity-90",
+                blurFace && "blur-2xl scale-110",
                 camOff && "hidden",
               )}
             />
+          )}
+
+          {mode === "video" && blurFace && !camOff && (
+            <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full bg-background/70 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur">
+              Face blurred · tap the eye to reveal
+            </div>
           )}
 
           <div className="relative z-10 flex flex-col items-center text-center">
@@ -128,6 +147,13 @@ export function OrbitCallSheet({
             </CallBtn>
             {mode === "video" && (
               <>
+                <CallBtn
+                  onClick={() => setBlurFace((b) => !b)}
+                  label={blurFace ? "Unblur face" : "Blur face"}
+                  active={blurFace}
+                >
+                  {blurFace ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </CallBtn>
                 <CallBtn onClick={toggleCam} label={camOff ? "Camera on" : "Camera off"}>
                   {camOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
                 </CallBtn>
@@ -158,17 +184,23 @@ function CallBtn({
   onClick,
   label,
   children,
+  active,
 }: {
   onClick: () => void;
   label: string;
   children: React.ReactNode;
+  active?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-12 w-12 place-items-center rounded-full bg-secondary/80 backdrop-blur transition-transform active:scale-90"
+      aria-pressed={active}
+      className={cn(
+        "grid h-12 w-12 place-items-center rounded-full backdrop-blur transition-transform active:scale-90",
+        active ? "bg-foreground text-background" : "bg-secondary/80",
+      )}
     >
       {children}
     </button>
