@@ -255,6 +255,7 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
           ...defaultState,
           ...parsed,
           privacy: { ...defaultPrivacy, ...(parsed.privacy ?? {}) },
+          requests: parsed.requests ?? seededRequests,
         });
       }
     } catch {
