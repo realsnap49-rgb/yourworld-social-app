@@ -159,8 +159,8 @@ function OrbitMessagesPage() {
           {threads.map((p) => (
             <li key={p.id}>
               <Link
-                to="/orbit/$profileId"
-                params={{ profileId: p.id }}
+                to="/orbit/chat/$userId"
+                params={{ userId: p.id }}
                 className="flex items-center gap-3 rounded-2xl px-2 py-3 transition-colors hover:bg-[color-mix(in_oklab,var(--foreground)_6%,transparent)]"
               >
                 <img

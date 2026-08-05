@@ -40,6 +40,7 @@ import { Route as ChannelPostsRouteImport } from './routes/channel.posts'
 import { Route as ChannelMonetizationRouteImport } from './routes/channel.monetization'
 import { Route as ChannelCreateRouteImport } from './routes/channel.create'
 import { Route as ChannelAnalyticsRouteImport } from './routes/channel.analytics'
+import { Route as OrbitChatUserIdRouteImport } from './routes/orbit.chat.$userId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -196,6 +197,11 @@ const ChannelAnalyticsRoute = ChannelAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => ChannelRoute,
 } as any)
+const OrbitChatUserIdRoute = OrbitChatUserIdRouteImport.update({
+  id: '/chat/$userId',
+  path: '/chat/$userId',
+  getParentRoute: () => OrbitRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -229,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/orbit/': typeof OrbitIndexRoute
+  '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/channel': typeof ChannelIndexRoute
   '/chat': typeof ChatIndexRoute
   '/orbit': typeof OrbitIndexRoute
+  '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
   '/orbit/': typeof OrbitIndexRoute
+  '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/channel/'
     | '/chat/'
     | '/orbit/'
+    | '/orbit/chat/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
     | '/channel'
     | '/chat'
     | '/orbit'
+    | '/orbit/chat/$userId'
   id:
     | '__root__'
     | '/'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/channel/'
     | '/chat/'
     | '/orbit/'
+    | '/orbit/chat/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -634,6 +646,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelAnalyticsRouteImport
       parentRoute: typeof ChannelRoute
     }
+    '/orbit/chat/$userId': {
+      id: '/orbit/chat/$userId'
+      path: '/chat/$userId'
+      fullPath: '/orbit/chat/$userId'
+      preLoaderRoute: typeof OrbitChatUserIdRouteImport
+      parentRoute: typeof OrbitRoute
+    }
   }
 }
 
@@ -669,6 +688,7 @@ interface OrbitRouteChildren {
   OrbitNotificationsRoute: typeof OrbitNotificationsRoute
   OrbitPrivacyRoute: typeof OrbitPrivacyRoute
   OrbitIndexRoute: typeof OrbitIndexRoute
+  OrbitChatUserIdRoute: typeof OrbitChatUserIdRoute
 }
 
 const OrbitRouteChildren: OrbitRouteChildren = {
@@ -678,6 +698,7 @@ const OrbitRouteChildren: OrbitRouteChildren = {
   OrbitNotificationsRoute: OrbitNotificationsRoute,
   OrbitPrivacyRoute: OrbitPrivacyRoute,
   OrbitIndexRoute: OrbitIndexRoute,
+  OrbitChatUserIdRoute: OrbitChatUserIdRoute,
 }
 
 const OrbitRouteWithChildren = OrbitRoute._addFileChildren(OrbitRouteChildren)
