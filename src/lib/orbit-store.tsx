@@ -120,6 +120,21 @@ export type OrbitState = {
   privacy: OrbitPrivacy;
   liked: Record<string, boolean>;
   connected: Record<string, boolean>;
+  /** One chat request per person. Direction is relative to the current user. */
+  requests: Record<string, OrbitChatRequest>;
+};
+
+export type OrbitChatRequest = {
+  direction: "outgoing" | "incoming";
+  status: "pending" | "accepted" | "declined";
+  /** Initial message allowed before acceptance (text only, max 1). */
+  intro?: string;
+};
+
+/** Demo inbound requests so the recipient flow is reachable. */
+const seededRequests: Record<string, OrbitChatRequest> = {
+  o2: { direction: "incoming", status: "pending", intro: "Hey! Saw you shoot film too — coffee sometime?" },
+  o5: { direction: "incoming", status: "pending", intro: "Your playlist taste is unreal. Hi 👋" },
 };
 
 const defaultPrivacy: OrbitPrivacy = {
@@ -155,6 +170,7 @@ const defaultState: OrbitState = {
   privacy: defaultPrivacy,
   liked: {},
   connected: {},
+  requests: seededRequests,
 };
 
 const KEY = ORBIT_KEY;
@@ -219,6 +235,9 @@ type Ctx = OrbitState & {
   toggleBlocked: (id: string) => void;
   toggleLike: (id: string) => void;
   toggleConnect: (id: string) => void;
+  sendChatRequest: (id: string, intro: string) => void;
+  acceptRequest: (id: string) => void;
+  declineRequest: (id: string) => void;
 };
 
 const OrbitContext = createContext<Ctx | null>(null);
@@ -236,6 +255,7 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
           ...defaultState,
           ...parsed,
           privacy: { ...defaultPrivacy, ...(parsed.privacy ?? {}) },
+          requests: parsed.requests ?? seededRequests,
         });
       }
     } catch {
@@ -300,6 +320,29 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
         setState((s) => ({
           ...s,
           privacy: { ...s.privacy, blocked: toggleIn(s.privacy.blocked, id) },
+        })),
+      sendChatRequest: (id, intro) =>
+        setState((s) =>
+          s.requests[id]
+            ? s
+            : { ...s, requests: { ...s.requests, [id]: { direction: "outgoing", status: "pending", intro } } },
+        ),
+      acceptRequest: (id) =>
+        setState((s) => ({
+          ...s,
+          connected: { ...s.connected, [id]: true },
+          requests: {
+            ...s.requests,
+            [id]: { ...(s.requests[id] ?? { direction: "incoming" as const }), status: "accepted" },
+          },
+        })),
+      declineRequest: (id) =>
+        setState((s) => ({
+          ...s,
+          requests: {
+            ...s.requests,
+            [id]: { ...(s.requests[id] ?? { direction: "incoming" as const }), status: "declined" },
+          },
         })),
       toggleLike: (id) => setState((s) => ({ ...s, liked: { ...s.liked, [id]: !s.liked[id] } })),
       toggleConnect: (id) =>
