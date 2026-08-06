@@ -346,14 +346,7 @@ function OrbitBrowse() {
                   <p className="pb-2 text-[11px] font-medium text-muted-foreground">
                     Connected — chat, meetups and live location unlocked
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Link
-                      to="/chat"
-                      className="flex flex-col items-center gap-1 rounded-2xl bg-background/50 py-2.5 text-[10px] font-medium text-muted-foreground transition-transform active:scale-95"
-                    >
-                      <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.7} />
-                      Chat
-                    </Link>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setMeetupFor(p)}
