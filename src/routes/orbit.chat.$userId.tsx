@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ImagePlus, Send } from "lucide-react";
+import { ChevronLeft, EyeOff, ImagePlus, Camera, Send } from "lucide-react";
 import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
 import {
@@ -10,6 +10,8 @@ import {
   useOrbit,
 } from "@/lib/orbit-store";
 import { OrbitChatGate } from "@/components/yw/OrbitChatGate";
+import { QuickCaptureSheet } from "@/components/yw/QuickCaptureSheet";
+import { CaptureFxBar, useCaptureFx } from "@/lib/capture-fx";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -43,6 +45,9 @@ function OrbitChatPage() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const seq = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const fx = useCaptureFx();
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
@@ -95,16 +100,19 @@ function OrbitChatPage() {
     setText("");
   };
 
-  const sendPhoto = (file: File) => {
-    const url = URL.createObjectURL(file);
+  const pushPhoto = (url: string, seconds = 0) => {
     if (accepted) {
       seq.current += 1;
-      setMsgs((m) => [...m, { id: `m${seq.current}`, me: true, url }]);
+      const id = `m${seq.current}`;
+      if (seconds > 0) setViewOnce((v) => ({ ...v, [id]: seconds }));
+      setMsgs((m) => [...m, { id, me: true, url }]);
       return;
     }
     const ok = orbit.sendRequestMessage(userId, { kind: "photo", url });
     if (!ok) toast.error(`You can send ${ORBIT_REQUEST_PHOTO_MAX} photos until ${p.name} accepts`);
   };
+
+  const sendPhoto = (file: File) => pushPhoto(URL.createObjectURL(file));
 
   const inputDisabled = incomingPending || declined || (!accepted && textsLeft <= 0);
   const photoDisabled = incomingPending || declined || (!accepted && photosLeft <= 0);
@@ -171,7 +179,11 @@ function OrbitChatPage() {
               }`}
             >
               {m.url ? (
-                <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                viewOnce[m.id] ? (
+                  <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
+                ) : (
+                  <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                )
               ) : (
                 m.text
               )}
@@ -185,8 +197,10 @@ function OrbitChatPage() {
           e.preventDefault();
           send();
         }}
-        className="sticky bottom-0 flex items-center gap-2 border-t border-border glass px-3 py-3"
+        className="sticky bottom-0 border-t border-border glass px-3 py-3"
       >
+        <CaptureFxBar fx={fx} className="pb-2" />
+        <div className="flex items-center gap-2">
         <input
           ref={fileRef}
           type="file"
@@ -206,6 +220,15 @@ function OrbitChatPage() {
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
         >
           <ImagePlus className="h-4 w-4" strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setCameraOpen(true)}
+          disabled={photoDisabled}
+          aria-label="Open camera"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
+        >
+          <Camera className="h-4 w-4" strokeWidth={1.8} />
         </button>
         <input
           value={text}
@@ -231,7 +254,39 @@ function OrbitChatPage() {
         >
           <Send className="h-4 w-4" strokeWidth={1.8} />
         </button>
+        </div>
       </form>
+
+      <QuickCaptureSheet
+        open={cameraOpen}
+        onOpenChange={setCameraOpen}
+        fx={fx}
+        onCapture={({ url, viewOnce: secs }) => {
+          pushPhoto(url, secs);
+          toast.success(secs > 0 ? `Sent as view once · ${secs}s` : "Photo sent");
+        }}
+      />
     </main>
   );
+}
+
+function OrbitViewOnce({ src, seconds }: { src: string; seconds: number }) {
+  const [state, setState] = useState<"sealed" | "open" | "gone">("sealed");
+  if (state === "gone")
+    return <p className="px-3.5 py-2 text-xs italic opacity-80">Photo expired</p>;
+  if (state === "sealed")
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setState("open");
+          window.setTimeout(() => setState("gone"), seconds * 1000);
+        }}
+        className="flex h-40 w-full flex-col items-center justify-center gap-2 bg-foreground/10 text-xs font-semibold"
+      >
+        <EyeOff className="h-5 w-5" strokeWidth={1.7} />
+        Tap to view once · {seconds}s
+      </button>
+    );
+  return <img src={src} alt="View once photo" className="h-40 w-full object-cover" />;
 }
