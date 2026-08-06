@@ -59,11 +59,18 @@ export function useCaptureFx(getStream?: () => MediaStream | null) {
   const [dual, setDual] = useState(false);
   const [flashing, setFlashing] = useState(false);
   const busy = useRef(false);
+  const boundStream = useRef<(() => MediaStream | null) | null>(null);
+
+  /** Let a camera surface expose its live stream to the LED toggle. */
+  const bindStream = useCallback((fn: (() => MediaStream | null) | null) => {
+    boundStream.current = fn;
+  }, []);
 
   const toggleLed = useCallback(async () => {
     const next = !led;
     setLed(next);
-    const track = getStream?.()?.getVideoTracks()[0] as TorchTrack | undefined;
+    const stream = getStream?.() ?? boundStream.current?.() ?? null;
+    const track = stream?.getVideoTracks()[0] as TorchTrack | undefined;
     if (!track) return next;
     try {
       await track.applyConstraints({
@@ -99,6 +106,7 @@ export function useCaptureFx(getStream?: () => MediaStream | null) {
     setDual,
     flashing,
     fireScreenFlash,
+    bindStream,
   };
 }
 
