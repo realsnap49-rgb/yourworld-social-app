@@ -222,6 +222,19 @@ function ThreadPage() {
       )}
 
       <VideoCallSheet open={videoCall} onClose={() => setVideoCall(false)} peer={lead} title={thread.title} />
+      <QuickCaptureSheet
+        open={cameraOpen}
+        onOpenChange={setCameraOpen}
+        onCapture={({ url, viewOnce: secs }) => {
+          const id = `img-${Date.now()}`;
+          if (secs > 0) setViewOnce((v) => ({ ...v, [id]: secs }));
+          setMessages((p) => [
+            ...p,
+            { id, from: "me", kind: "image", body: "", image: url, time: "now", read: false },
+          ]);
+          toast(secs > 0 ? `Sent as view once · ${secs}s` : "Photo sent");
+        }}
+      />
       <MeetupSheet
         open={meetupOpen}
         onOpenChange={setMeetupOpen}
@@ -286,14 +299,16 @@ function ThreadPage() {
                 {m.kind === "text" && (
                   <p className="whitespace-pre-line break-words">{m.body}</p>
                 )}
-                {m.kind === "image" && (
+                {m.kind === "image" && (viewOnce[m.id] ? (
+                  <ViewOnceImage src={m.image ?? ""} seconds={viewOnce[m.id]} />
+                ) : (
                   <img
                     src={m.image}
                     alt="Shared media"
                     loading="lazy"
                     className="h-44 w-44 rounded-xl object-cover"
                   />
-                )}
+                ))}
                 {m.kind === "voice" && (
                   <span className="flex items-center gap-2 py-1">
                     <Play className="h-4 w-4 shrink-0" />
@@ -325,7 +340,9 @@ function ThreadPage() {
         })}
       </ul>
 
-      <div className="safe-bottom sticky bottom-[4.75rem] grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-t border-border glass px-3 pt-2">
+      <div className="safe-bottom sticky bottom-[4.75rem] border-t border-border glass px-3 pt-2">
+        <CaptureFxBar fx={fx} className="pb-2" />
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
         <button aria-label="Send media" onClick={() => toast("Pick a photo or video")} className="p-1.5 text-muted-foreground">
           <ImageIcon className="h-5 w-5" />
         </button>
@@ -337,7 +354,14 @@ function ThreadPage() {
             placeholder={recording ? "Recording…" : "Message"}
             className="h-11 rounded-full border-0 bg-secondary pr-10 text-sm"
           />
-          <Camera className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <button
+            type="button"
+            aria-label="Open camera"
+            onClick={() => setCameraOpen(true)}
+            className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-transform active:scale-90"
+          >
+            <Camera className="h-4 w-4" />
+          </button>
         </div>
         {draft.trim() ? (
           <button
@@ -359,7 +383,31 @@ function ThreadPage() {
             <Mic className="h-4 w-4" />
           </button>
         )}
+        </div>
       </div>
     </div>
   );
+}
+
+/** Photo that self-destructs after the sender's view-once timer. */
+function ViewOnceImage({ src, seconds }: { src: string; seconds: number }) {
+  const [state, setState] = useState<"sealed" | "open" | "gone">("sealed");
+  const open = () => {
+    setState("open");
+    window.setTimeout(() => setState("gone"), seconds * 1000);
+  };
+  if (state === "gone")
+    return <p className="px-1 py-2 text-xs italic opacity-80">Photo expired</p>;
+  if (state === "sealed")
+    return (
+      <button
+        type="button"
+        onClick={open}
+        className="flex h-44 w-44 flex-col items-center justify-center gap-2 rounded-xl bg-foreground/10 text-xs font-semibold"
+      >
+        <EyeOff className="h-5 w-5" strokeWidth={1.7} />
+        Tap to view once · {seconds}s
+      </button>
+    );
+  return <img src={src} alt="View once photo" className="h-44 w-44 rounded-xl object-cover" />;
 }
