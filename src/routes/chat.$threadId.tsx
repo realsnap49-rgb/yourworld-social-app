@@ -227,6 +227,7 @@ function ThreadPage() {
       <QuickCaptureSheet
         open={cameraOpen}
         onOpenChange={setCameraOpen}
+        fx={fx}
         onCapture={({ url, viewOnce: secs }) => {
           const id = `img-${Date.now()}`;
           if (secs > 0) setViewOnce((v) => ({ ...v, [id]: secs }));
