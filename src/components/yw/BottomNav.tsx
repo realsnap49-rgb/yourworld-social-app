@@ -1,45 +1,41 @@
-import React from 'react';
-import { Home, Video, MessageSquare, User } from 'lucide-react';
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Home, Clapperboard, Plus, MessageCircle, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface BottomNavProps {
-  currentTab: string;
-  onTabChange: (tab: string) => void;
-}
+const items = [
+  { to: "/", label: "Home", icon: Home },
+  { to: "/reels", label: "Reels", icon: Clapperboard },
+  { to: "/create", label: "Create", icon: Plus },
+  { to: "/chat", label: "Chat", icon: MessageCircle },
+  { to: "/profile", label: "Profile", icon: User },
+] as const;
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange }) => {
+export function BottomNav() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  if (pathname.startsWith("/create")) return null;
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 flex justify-around py-3 z-50">
-      <button 
-        onClick={() => onTabChange('feed')} 
-        className={`flex flex-col items-center ${currentTab === 'feed' ? 'text-blue-500' : 'text-gray-400'}`}
-      >
-        <Home size={22} />
-        <span className="text-xs mt-1">Feed</span>
-      </button>
-
-      <button 
-        onClick={() => onTabChange('reels')} 
-        className={`flex flex-col items-center ${currentTab === 'reels' ? 'text-blue-500' : 'text-gray-400'}`}
-      >
-        <Video size={22} />
-        <span className="text-xs mt-1">Reels & Stories</span>
-      </button>
-
-      <button 
-        onClick={() => onTabChange('chat')} 
-        className={`flex flex-col items-center ${currentTab === 'chat' ? 'text-blue-500' : 'text-gray-400'}`}
-      >
-        <MessageSquare size={22} />
-        <span className="text-xs mt-1">Orbit Chat</span>
-      </button>
-
-      <button 
-        onClick={() => onTabChange('profile')} 
-        className={`flex flex-col items-center ${currentTab === 'profile' ? 'text-blue-500' : 'text-gray-400'}`}
-      >
-        <User size={22} />
-        <span className="text-xs mt-1">Profile</span>
-      </button>
-    </div>
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-lg">
+      <div className="mx-auto flex h-16 max-w-md items-center justify-around px-4">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.to;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn(
+                "flex flex-col items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground",
+                isActive && "text-foreground font-medium"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
-};
+}
