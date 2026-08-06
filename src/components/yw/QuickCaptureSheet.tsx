@@ -7,6 +7,7 @@ import {
   ScreenFlashOverlay,
   maskClass,
   useCaptureFx,
+  type CaptureFx,
 } from "@/lib/capture-fx";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +21,12 @@ export function QuickCaptureSheet({
   open,
   onOpenChange,
   onCapture,
+  fx: externalFx,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCapture: (result: CaptureResult) => void;
+  fx?: CaptureFx;
 }) {
   const mainRef = useRef<HTMLVideoElement | null>(null);
   const pipRef = useRef<HTMLVideoElement | null>(null);
@@ -31,7 +34,13 @@ export function QuickCaptureSheet({
   const pipStream = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [error, setError] = useState<string | null>(null);
-  const fx = useCaptureFx(() => mainStream.current);
+  const localFx = useCaptureFx(() => mainStream.current);
+  const fx = externalFx ?? localFx;
+
+  useEffect(() => {
+    fx.bindStream(() => mainStream.current);
+    return () => fx.bindStream(null);
+  }, [fx]);
 
   const stopAll = useCallback(() => {
     mainStream.current?.getTracks().forEach((t) => t.stop());
