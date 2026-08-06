@@ -1,416 +1,381 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
   Camera,
   Image as ImageIcon,
   Mic,
-  SendHorizonal,
+  SendHorizontal,
   Check,
   CheckCheck,
   Play,
   Phone,
   Video,
   MoreVertical,
-  Pencil,
+  MapPin,
   Lock,
-  EyeOff,
-  Timer,
+  Eye,
   BellOff,
   UserX,
   Flag,
-  MapPin,
-  Navigation,
+  Calendar,
+  Edit2,
+  Trash2,
+  Loader2,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { YwAvatar } from "@/components/yw/Avatar";
-import { VideoCallSheet } from "@/components/yw/VideoCallSheet";
-import { QuickCaptureSheet } from "@/components/yw/QuickCaptureSheet";
-import { CaptureFxBar, useCaptureFx } from "@/lib/capture-fx";
-import { MeetupSheet } from "@/components/yw/MeetupSheet";
-import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
-import { useLiveLocation, remainingLabel } from "@/lib/live-location";
-import { useOrbitOptional } from "@/lib/orbit-store";
-import { byId, messagesByThread, threads, type Message } from "@/lib/yw-data";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/chat/$threadId")({
-  loader: ({ params }) => {
-    const thread = threads.find((t) => t.id === params.threadId);
-    if (!thread) throw notFound();
-    return { thread };
-  },
-  head: ({ loaderData }) => {
-    if (!loaderData) {
-      return {
-        meta: [{ title: "Conversation — YourWorld" }, { name: "robots", content: "noindex" }],
-      };
-    }
-    const title = `${loaderData.thread.title} — YourWorld Chat`;
-    return {
-      meta: [
-        { title },
-        { name: "description", content: `Conversation with ${loaderData.thread.title} on YourWorld.` },
-        { name: "robots", content: "noindex" },
-        { property: "og:title", content: title },
-        { property: "og:description", content: "Private conversation on YourWorld." },
-      ],
-    };
-  },
-  component: ThreadPage,
-  errorComponent: () => <ThreadFallback text="This conversation didn't load." />,
-  notFoundComponent: () => <ThreadFallback text="This conversation no longer exists." />,
+  component: ChatThreadPage,
 });
 
-function ThreadFallback({ text }: { text: string }) {
-  return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
-      <p className="text-sm text-muted-foreground">{text}</p>
-      <Link to="/chat" className="rounded-full brand-gradient px-4 py-2 text-sm font-semibold text-primary-foreground">
-        Back to chats
-      </Link>
-    </div>
-  );
+interface Message {
+  id: string;
+  thread_id: string;
+  sender_id: string;
+  content: string;
+  media_url?: string;
+  media_type?: "image" | "audio" | "video" | "location" | "meetup";
+  created_at: string;
+  is_read?: boolean;
 }
 
-function ThreadPage() {
-  const { thread } = Route.useLoaderData();
-  const [messages, setMessages] = useState<Message[]>(messagesByThread[thread.id] ?? []);
-  const [draft, setDraft] = useState("");
-  const [recording, setRecording] = useState(false);
-  const [videoCall, setVideoCall] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [meetupOpen, setMeetupOpen] = useState(false);
-  const [liveOpen, setLiveOpen] = useState(false);
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
-  const fx = useCaptureFx();
-  const { session: live, start: startLive, stop: stopLive } = useLiveLocation();
-  const lead = byId(thread.userIds[0]);
-  const connected = useOrbitOptional()?.connected ?? {};
-  // Unlocked once you're connected in Orbit, or the conversation has started.
-  const meetupUnlocked =
-    thread.kind !== "group" &&
-    (messages.length > 0 || thread.userIds.some((id: string) => connected[id]));
-  const locationUnlocked = meetupUnlocked;
+function ChatThreadPage() {
+  const { threadId } = Route.useParams();
+  const navigate = useNavigate();
 
-  const pushMessage = (body: string) =>
-    setMessages((p) => [
-      ...p,
-      { id: `mu-${Date.now()}`, from: "me", kind: "text", body, time: "now", read: false },
-    ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState("");
+  const [showOptions, setShowOptions] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [pin, setPin] = useState("");
+  const [userPinInput, setUserPinInput] = useState("");
+  const [isViewOnce, setIsViewOnce] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const send = () => {
-    if (!draft.trim()) return;
-    setMessages((p) => [
-      ...p,
-      {
-        id: `m-${Date.now()}`,
-        from: "me",
-        kind: "text",
-        body: draft.trim(),
-        time: "now",
-        read: false,
-      },
-    ]);
-    setDraft("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch current user & setup realtime subscription
+  useEffect(() => {
+    async function initChat() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+
+      // Fetch existing messages
+      const { data, error } = await supabase
+        .from("direct_messages")
+        .select("*")
+        .eq("thread_id", threadId)
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        setMessages(data);
+      }
+    }
+
+    initChat();
+
+    // Supabase Realtime Channel
+    const channel = supabase
+      .channel(`chat_${threadId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "direct_messages",
+          filter: `thread_id=eq.${threadId}`,
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as Message]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [threadId]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Send Text Message
+  const handleSendMessage = async () => {
+    if (!inputText.trim()) return;
+
+    const newMsg = {
+      thread_id: threadId,
+      sender_id: currentUser?.id || "anon",
+      content: inputText,
+      media_type: "text",
+    };
+
+    setInputText("");
+
+    const { error } = await supabase.from("direct_messages").insert([newMsg]);
+    if (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
-  const sendVoice = () => {
-    setRecording(true);
-    window.setTimeout(() => {
-      setRecording(false);
-      setMessages((p) => [
-        ...p,
+  // Image Upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const filePath = `chat_media/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("chat_files")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("chat_files").getPublicUrl(filePath);
+
+      await supabase.from("direct_messages").insert([
         {
-          id: `v-${Date.now()}`,
-          from: "me",
-          kind: "voice",
-          body: "",
-          duration: "0:03",
-          time: "now",
-          read: false,
+          thread_id: threadId,
+          sender_id: currentUser?.id || "anon",
+          content: isViewOnce ? "📷 View once photo" : "📷 Photo",
+          media_url: data.publicUrl,
+          media_type: "image",
         },
       ]);
-    }, 900);
+    } catch (err: any) {
+      alert("Image upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
-  return (
-    <div className="relative flex min-h-[calc(100dvh-4.75rem)] flex-col">
-      <header className="sticky top-0 z-40 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-border glass px-3 py-2.5">
-        <Link to="/chat" aria-label="Back" className="p-1">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex min-w-0 items-center gap-2.5">
-          <YwAvatar user={lead} size={36} />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{thread.title}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {thread.kind === "group" ? `${thread.userIds.length + 1} members` : thread.online ? "Active now" : "Offline"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button aria-label="Voice call" onClick={() => toast("Calls are coming soon")} className="p-1">
-            <Phone className="h-5 w-5" strokeWidth={1.7} />
-          </button>
-          <button aria-label="Video call" onClick={() => setVideoCall(true)} className="p-1">
-            <Video className="h-5 w-5" strokeWidth={1.7} />
-          </button>
-          <button aria-label="More options" onClick={() => setMenuOpen((v) => !v)} className="p-1">
-            <MoreVertical className="h-5 w-5" strokeWidth={1.7} />
-          </button>
-        </div>
-      </header>
+  // Voice Note Recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
 
-      {menuOpen && (
-        <>
-          <button
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-            className="fixed inset-0 z-40 cursor-default bg-background/30 backdrop-blur-[2px]"
-          />
-          <div
-            role="menu"
-            className="absolute right-3 top-14 z-50 w-60 overflow-hidden rounded-2xl border border-border/60 bg-background/85 shadow-2xl backdrop-blur-xl animate-rise"
-          >
-            {[
-              ...(meetupUnlocked
-                ? [{ icon: MapPin, label: "Plan Meetup", action: "meetup" as const }]
-                : []),
-              ...(locationUnlocked
-                ? [
-                    {
-                      icon: Navigation,
-                      label: live.active ? "Stop Live Location" : "Share Live Location",
-                      action: "live" as const,
-                    },
-                  ]
-                : []),
-              { icon: Pencil, label: "Change Display Name" },
-              { icon: Lock, label: "Secret Lock Chat" },
-              { icon: EyeOff, label: "View Once Mode" },
-              { icon: Timer, label: "Auto Delete Messages" },
-              { icon: BellOff, label: "Mute Notifications" },
-              { icon: UserX, label: "Block User" },
-              { icon: Flag, label: "Report User" },
-            ].map(({ icon: Icon, label, ...rest }) => (
-              <button
-                key={label}
-                role="menuitem"
-                onClick={() => {
-                  setMenuOpen(false);
-                  if ("action" in rest && rest.action === "meetup") setMeetupOpen(true);
-                  else if ("action" in rest && rest.action === "live") {
-                    if (live.active) {
-                      stopLive();
-                      pushMessage("📍 Live location sharing stopped.");
-                      toast("Live location stopped");
-                    } else {
-                      setLiveOpen(true);
-                    }
-                  }
-                  else toast(label);
-                }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] font-medium transition-colors hover:bg-foreground/10"
-              >
-                <Icon strokeWidth={1.6} className="h-[17px] w-[17px] text-muted-foreground" />
-                {label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
 
-      <VideoCallSheet open={videoCall} onClose={() => setVideoCall(false)} peer={lead} title={thread.title} />
-      <QuickCaptureSheet
-        open={cameraOpen}
-        onOpenChange={setCameraOpen}
-        fx={fx}
-        onCapture={({ url, viewOnce: secs }) => {
-          const id = `img-${Date.now()}`;
-          if (secs > 0) setViewOnce((v) => ({ ...v, [id]: secs }));
-          setMessages((p) => [
-            ...p,
-            { id, from: "me", kind: "image", body: "", image: url, time: "now", read: false },
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const filePath = `voice_notes/${Date.now()}.webm`;
+
+        setUploading(true);
+        const { error } = await supabase.storage
+          .from("chat_files")
+          .upload(filePath, audioBlob);
+
+        if (!error) {
+          const { data } = supabase.storage.from("chat_files").getPublicUrl(filePath);
+          await supabase.from("direct_messages").insert([
+            {
+              thread_id: threadId,
+              sender_id: currentUser?.id || "anon",
+              content: "🎙️ Voice message",
+              media_url: data.publicUrl,
+              media_type: "audio",
+            },
           ]);
-          toast(secs > 0 ? `Sent as view once · ${secs}s` : "Photo sent");
-        }}
-      />
-      <MeetupSheet
-        open={meetupOpen}
-        onOpenChange={setMeetupOpen}
-        onSend={(body) => {
-          pushMessage(body);
-          toast("Meetup suggestion sent");
-        }}
-      />
-      <LiveLocationSheet
-        open={liveOpen}
-        onOpenChange={setLiveOpen}
-        peerName={thread.title}
-        onConfirm={async (duration) => {
-          const ok = await startLive(duration);
-          if (ok) {
-            pushMessage(`📍 Sharing my live location ${remainingLabel(duration.ms === null ? null : Date.now() + duration.ms)}.`);
-            toast("Live location is on — stop anytime");
-          } else {
-            toast("Location wasn't shared");
-          }
-          return ok;
-        }}
-      />
+        }
+        setUploading(false);
+      };
 
-      {live.active && (
-        <div className="sticky top-[3.6rem] z-30 mx-3 mt-2 flex items-center gap-2.5 rounded-2xl border border-border/60 bg-background/80 px-3.5 py-2.5 shadow-lg backdrop-blur-xl animate-rise">
-          <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full brand-gradient">
-            <Navigation className="h-4 w-4 text-primary-foreground" strokeWidth={1.9} />
-            <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold">Live location on</p>
-            <p className="truncate text-[11px] text-muted-foreground">
-              Sharing {remainingLabel(live.endsAt)}
-              {live.accuracyM !== null && ` · ±${live.accuracyM} m`}
-            </p>
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      alert("Microphone access denied!");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Share Live Location
+  const shareLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const { latitude, longitude } = position.coords;
+      const locUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+      await supabase.from("direct_messages").insert([
+        {
+          thread_id: threadId,
+          sender_id: currentUser?.id || "anon",
+          content: `📍 Live Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+          media_url: locUrl,
+          media_type: "location",
+        },
+      ]);
+      setShowOptions(false);
+    });
+  };
+
+  // Lock Chat
+  const handleLockChat = () => {
+    const userPin = prompt("Enter a 4-digit PIN to lock this chat:");
+    if (userPin) {
+      setPin(userPin);
+      setIsLocked(true);
+      setShowOptions(false);
+      alert("Chat locked successfully!");
+    }
+  };
+
+  if (isLocked) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-black text-white p-6">
+        <Lock className="h-16 w-16 text-primary mb-4" />
+        <h2 className="text-xl font-bold mb-2">Secret Locked Chat</h2>
+        <p className="text-sm text-gray-400 mb-6">Enter PIN to view messages</p>
+        <input
+          type="password"
+          maxLength={4}
+          value={userPinInput}
+          onChange={(e) => setUserPinInput(e.target.value)}
+          placeholder="ENTER PIN"
+          className="bg-zinc-900 border border-zinc-700 text-center text-2xl tracking-widest px-4 py-2 rounded-lg w-40 mb-4"
+        />
+        <button
+          onClick={() => {
+            if (userPinInput === pin) setIsLocked(false);
+            else alert("Incorrect PIN!");
+          }}
+          className="bg-primary px-6 py-2 rounded-lg font-semibold"
+        >
+          Unlock Chat
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen flex-col bg-black text-white">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-zinc-800 p-4">
+        <div className="flex items-center gap-3">
+          <Link to="/chat">
+            <ArrowLeft className="h-6 w-6" />
+          </Link>
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center font-bold">
+              U
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Active User</h3>
+              <span className="text-xs text-emerald-400">Online</span>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              stopLive();
-              pushMessage("📍 Live location sharing stopped.");
-              toast("Live location stopped");
-            }}
-            className="shrink-0 rounded-full bg-destructive/15 px-3.5 py-1.5 text-xs font-semibold text-destructive transition-transform active:scale-95"
-          >
-            Stop
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button onClick={() => alert("Starting Audio Call...")}>
+            <Phone className="h-5 w-5 text-gray-300 hover:text-white" />
+          </button>
+          <button onClick={() => alert("Starting Video Call...")}>
+            <Video className="h-5 w-5 text-gray-300 hover:text-white" />
+          </button>
+          <button onClick={() => setShowOptions(!showOptions)}>
+            <MoreVertical className="h-5 w-5 text-gray-300 hover:text-white" />
+          </button>
+        </div>
+      </div>
+
+      {/* Options Dropdown Menu */}
+      {showOptions && (
+        <div className="absolute top-16 right-4 z-50 w-60 rounded-xl bg-zinc-900 p-2 shadow-2xl border border-zinc-800 text-sm flex flex-col gap-1">
+          <button onClick={shareLocation} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
+            <MapPin className="h-4 w-4 text-emerald-400" /> Share Live Location
+          </button>
+          <button onClick={handleLockChat} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
+            <Lock className="h-4 w-4 text-amber-400" /> Secret Lock Chat
+          </button>
+          <button onClick={() => { setIsViewOnce(!isViewOnce); setShowOptions(false); }} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
+            <Eye className="h-4 w-4 text-blue-400" /> View Once Mode ({isViewOnce ? "ON" : "OFF"})
+          </button>
+          <button onClick={() => { alert("Notifications Muted"); setShowOptions(false); }} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
+            <BellOff className="h-4 w-4 text-gray-400" /> Mute Notifications
+          </button>
+          <button onClick={() => { alert("User Blocked"); setShowOptions(false); }} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg text-rose-500">
+            <UserX className="h-4 w-4" /> Block User
           </button>
         </div>
       )}
 
-      <ul className="flex-1 space-y-2 px-3 py-4">
-        {messages.map((m) => {
-          const mine = m.from === "me";
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((msg) => {
+          const isMe = msg.sender_id === (currentUser?.id || "anon");
           return (
-            <li key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-              <div
-                className={cn(
-                  "max-w-[78%] rounded-2xl px-3 py-2 text-sm",
-                  mine ? "brand-gradient text-primary-foreground" : "bg-secondary",
+            <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${isMe ? "bg-gradient-to-r from-purple-600 to-pink-600" : "bg-zinc-800"}`}>
+                {msg.media_type === "image" && msg.media_url && (
+                  <img src={msg.media_url} alt="media" className="rounded-lg mb-2 max-h-60 object-cover" />
                 )}
-              >
-                {m.kind === "text" && (
-                  <p className="whitespace-pre-line break-words">{m.body}</p>
+                {msg.media_type === "audio" && msg.media_url && (
+                  <audio controls src={msg.media_url} className="w-full my-1" />
                 )}
-                {m.kind === "image" && (viewOnce[m.id] ? (
-                  <ViewOnceImage src={m.image ?? ""} seconds={viewOnce[m.id]} />
-                ) : (
-                  <img
-                    src={m.image}
-                    alt="Shared media"
-                    loading="lazy"
-                    className="h-44 w-44 rounded-xl object-cover"
-                  />
-                ))}
-                {m.kind === "voice" && (
-                  <span className="flex items-center gap-2 py-1">
-                    <Play className="h-4 w-4 shrink-0" />
-                    <span className="flex h-6 items-end gap-0.5">
-                      {[6, 12, 18, 10, 22, 14, 8, 16, 11, 20, 7, 13].map((h, i) => (
-                        <span
-                          key={i}
-                          className="w-0.5 rounded-full bg-current opacity-70"
-                          style={{ height: h }}
-                        />
-                      ))}
-                    </span>
-                    <span className="text-xs">{m.duration}</span>
-                  </span>
+                {msg.media_type === "location" && (
+                  <a href={msg.media_url} target="_blank" rel="noreferrer" className="underline text-blue-300 font-medium">
+                    {msg.content}
+                  </a>
                 )}
-                <span
-                  className={cn(
-                    "mt-1 flex items-center justify-end gap-1 text-[10px]",
-                    mine ? "opacity-80" : "text-muted-foreground",
-                  )}
-                >
-                  {m.time}
-                  {mine &&
-                    (m.read ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />)}
+                {msg.media_type !== "location" && <p>{msg.content}</p>}
+                <span className="text-[10px] text-gray-300 block text-right mt-1 opacity-70">
+                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
-            </li>
+            </div>
           );
         })}
-      </ul>
+        <div ref={chatEndRef} />
+      </div>
 
-      <div className="safe-bottom sticky bottom-[4.75rem] border-t border-border glass px-3 pt-2">
-        <CaptureFxBar fx={fx} className="pb-2" />
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-        <button aria-label="Send media" onClick={() => toast("Pick a photo or video")} className="p-1.5 text-muted-foreground">
+      {/* Input Bar */}
+      <div className="p-3 border-t border-zinc-800 flex items-center gap-2">
+        <label className="cursor-pointer p-2 text-gray-400 hover:text-white">
           <ImageIcon className="h-5 w-5" />
+          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+        </label>
+
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`p-2 rounded-full ${isRecording ? "bg-red-600 animate-pulse text-white" : "text-gray-400 hover:text-white"}`}
+        >
+          <Mic className="h-5 w-5" />
         </button>
-        <div className="relative min-w-0">
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={recording ? "Recording…" : "Message"}
-            className="h-11 rounded-full border-0 bg-secondary pr-10 text-sm"
-          />
-          <button
-            type="button"
-            aria-label="Open camera"
-            onClick={() => setCameraOpen(true)}
-            className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-transform active:scale-90"
-          >
-            <Camera className="h-4 w-4" />
-          </button>
-        </div>
-        {draft.trim() ? (
-          <button
-            onClick={send}
-            aria-label="Send"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full brand-gradient transition-transform active:scale-90"
-          >
-            <SendHorizonal className="h-4 w-4 text-primary-foreground" />
-          </button>
-        ) : (
-          <button
-            onClick={sendVoice}
-            aria-label="Record voice message"
-            className={cn(
-              "grid h-10 w-10 shrink-0 place-items-center rounded-full transition-transform active:scale-90",
-              recording ? "brand-gradient animate-pulse" : "bg-secondary",
-            )}
-          >
-            <Mic className="h-4 w-4" />
-          </button>
-        )}
-        </div>
+
+        <input
+          type="text"
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+          placeholder={isRecording ? "Recording audio..." : "Message..."}
+          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-zinc-700"
+        />
+
+        <button onClick={handleSendMessage} className="p-2 text-primary hover:text-primary/80">
+          <SendHorizontal className="h-5 w-5" />
+        </button>
       </div>
     </div>
   );
-}
-
-/** Photo that self-destructs after the sender's view-once timer. */
-function ViewOnceImage({ src, seconds }: { src: string; seconds: number }) {
-  const [state, setState] = useState<"sealed" | "open" | "gone">("sealed");
-  const open = () => {
-    setState("open");
-    window.setTimeout(() => setState("gone"), seconds * 1000);
-  };
-  if (state === "gone")
-    return <p className="px-1 py-2 text-xs italic opacity-80">Photo expired</p>;
-  if (state === "sealed")
-    return (
-      <button
-        type="button"
-        onClick={open}
-        className="flex h-44 w-44 flex-col items-center justify-center gap-2 rounded-xl bg-foreground/10 text-xs font-semibold"
-      >
-        <EyeOff className="h-5 w-5" strokeWidth={1.7} />
-        Tap to view once · {seconds}s
-      </button>
-    );
-  return <img src={src} alt="View once photo" className="h-44 w-44 rounded-xl object-cover" />;
 }
