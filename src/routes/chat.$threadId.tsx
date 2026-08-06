@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { VideoCallSheet } from "@/components/yw/VideoCallSheet";
 import { QuickCaptureSheet } from "@/components/yw/QuickCaptureSheet";
+import { CaptureFxBar, useCaptureFx } from "@/lib/capture-fx";
 import { MeetupSheet } from "@/components/yw/MeetupSheet";
 import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
@@ -84,6 +85,7 @@ function ThreadPage() {
   const [liveOpen, setLiveOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
+  const fx = useCaptureFx();
   const { session: live, start: startLive, stop: stopLive } = useLiveLocation();
   const lead = byId(thread.userIds[0]);
   const connected = useOrbitOptional()?.connected ?? {};
