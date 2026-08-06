@@ -129,12 +129,49 @@ export type OrbitChatRequest = {
   status: "pending" | "accepted" | "declined";
   /** Initial message allowed before acceptance (text only, max 1). */
   intro?: string;
+  /** Messages exchanged before acceptance. Capped by the gate limits below. */
+  messages?: OrbitRequestMessage[];
 };
+
+export type OrbitRequestMessage = {
+  id: string;
+  kind: "text" | "photo";
+  /** Text body, or the photo caption/label. */
+  text?: string;
+  /** Object URL / data URL for photo messages. */
+  url?: string;
+  me: boolean;
+};
+
+/** Pre-acceptance limits for the requesting side. */
+export const ORBIT_REQUEST_TEXT_MAX = 3;
+export const ORBIT_REQUEST_PHOTO_MAX = 2;
+
+export function countRequestMessages(req?: OrbitChatRequest) {
+  const list = req?.messages ?? [];
+  const mine = list.filter((m) => m.me);
+  return {
+    texts: mine.filter((m) => m.kind === "text").length,
+    photos: mine.filter((m) => m.kind === "photo").length,
+  };
+}
 
 /** Demo inbound requests so the recipient flow is reachable. */
 const seededRequests: Record<string, OrbitChatRequest> = {
-  o2: { direction: "incoming", status: "pending", intro: "Hey! Saw you shoot film too — coffee sometime?" },
-  o5: { direction: "incoming", status: "pending", intro: "Your playlist taste is unreal. Hi 👋" },
+  o2: {
+    direction: "incoming",
+    status: "pending",
+    intro: "Hey! Saw you shoot film too — coffee sometime?",
+    messages: [
+      { id: "o2-1", kind: "text", text: "Hey! Saw you shoot film too — coffee sometime?", me: false },
+    ],
+  },
+  o5: {
+    direction: "incoming",
+    status: "pending",
+    intro: "Your playlist taste is unreal. Hi 👋",
+    messages: [{ id: "o5-1", kind: "text", text: "Your playlist taste is unreal. Hi 👋", me: false }],
+  },
 };
 
 const defaultPrivacy: OrbitPrivacy = {
@@ -236,6 +273,7 @@ type Ctx = OrbitState & {
   toggleLike: (id: string) => void;
   toggleConnect: (id: string) => void;
   sendChatRequest: (id: string, intro: string) => void;
+  sendRequestMessage: (id: string, msg: Omit<OrbitRequestMessage, "id" | "me">) => boolean;
   acceptRequest: (id: string) => void;
   declineRequest: (id: string) => void;
 };
