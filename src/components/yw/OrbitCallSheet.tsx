@@ -163,7 +163,7 @@ export function OrbitCallSheet({
               autoPlay
               playsInline
               muted
-              className="absolute right-4 top-16 z-10 h-32 w-22 w-[5.5rem] rounded-2xl border border-border/60 object-cover shadow-2xl"
+              className="absolute right-4 top-16 z-10 h-32 w-[5.5rem] rounded-2xl border border-border/60 object-cover shadow-2xl"
             />
           )}
 
