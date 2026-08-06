@@ -1,38 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Moment {
-  id: string;
-  user_id: string;
-  media_url: string;
-  caption: string | null;
-  type: string;
-  created_at: string;
-}
+import { useMoments } from "@/lib/moment-store";
 
 export function Stories() {
-  const [open, setOpen] = useState<Moment | null>(null);
-  const [moments, setMoments] = useState<Moment[]>([]);
-
-  useEffect(() => {
-    async function fetchMoments() {
-      const { data, error } = await supabase
-        .from("moments_and_reels")
-        .select("*")
-        .eq("type", "moment")
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
-        setMoments(data as Moment[]);
-      }
-    }
-    fetchMoments();
-  }, []);
+  const [open, setOpen] = useState<any>(null);
+  const { moments } = useMoments();
 
   return (
     <>
@@ -54,10 +30,10 @@ export function Stories() {
           >
             <div className="rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[2px]">
               <div className="rounded-full bg-background p-[2px]">
-                <YwAvatar name="User" className="h-14 w-14" />
+                <YwAvatar name={item.user.name} className="h-14 w-14" />
               </div>
             </div>
-            <span className="max-w-[68px] truncate text-[11px] font-medium">Moment</span>
+            <span className="max-w-[68px] truncate text-[11px] font-medium">{item.user.name}</span>
           </button>
         ))}
       </div>
@@ -67,12 +43,7 @@ export function Stories() {
           <DialogTitle className="sr-only">Moment View</DialogTitle>
           {open && (
             <div className="relative aspect-[9/16] w-full flex items-center justify-center">
-              <img src={open.media_url} alt={open.caption || "Moment"} className="h-full w-full object-cover" />
-              {open.caption && (
-                <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-lg text-sm text-white">
-                  {open.caption}
-                </div>
-              )}
+              <img src={open.mediaUrl} alt={open.user.name} className="h-full w-full object-cover" />
             </div>
           )}
         </DialogContent>
