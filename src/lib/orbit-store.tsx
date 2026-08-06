@@ -363,8 +363,41 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
         setState((s) =>
           s.requests[id]
             ? s
-            : { ...s, requests: { ...s.requests, [id]: { direction: "outgoing", status: "pending", intro } } },
+            : {
+                ...s,
+                requests: {
+                  ...s.requests,
+                  [id]: {
+                    direction: "outgoing",
+                    status: "pending",
+                    intro,
+                    messages: [{ id: `${id}-1`, kind: "text", text: intro, me: true }],
+                  },
+                },
+              },
         ),
+      sendRequestMessage: (id, msg) => {
+        const existing = state.requests[id];
+        if (existing?.status === "declined") return false;
+        const { texts, photos } = countRequestMessages(existing);
+        if (msg.kind === "text" && texts >= ORBIT_REQUEST_TEXT_MAX) return false;
+        if (msg.kind === "photo" && photos >= ORBIT_REQUEST_PHOTO_MAX) return false;
+        setState((s) => {
+          const req: OrbitChatRequest = s.requests[id] ?? { direction: "outgoing", status: "pending" };
+          const messages = [
+            ...(req.messages ?? []),
+            { ...msg, id: `${id}-${(req.messages?.length ?? 0) + 1}`, me: true },
+          ];
+          return {
+            ...s,
+            requests: {
+              ...s.requests,
+              [id]: { ...req, intro: req.intro ?? (msg.kind === "text" ? msg.text : undefined), messages },
+            },
+          };
+        });
+        return true;
+      },
       acceptRequest: (id) =>
         setState((s) => ({
           ...s,
