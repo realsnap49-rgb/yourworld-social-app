@@ -66,7 +66,9 @@ export function useCaptureFx(getStream?: () => MediaStream | null) {
     const track = getStream?.()?.getVideoTracks()[0] as TorchTrack | undefined;
     if (!track) return next;
     try {
-      await track.applyConstraints({ advanced: [{ torch: next }] } as MediaTrackConstraints);
+      await track.applyConstraints({
+        advanced: [{ torch: next }],
+      } as unknown as MediaTrackConstraints);
     } catch {
       /* device has no LED — the toggle stays a visual preference */
     }
