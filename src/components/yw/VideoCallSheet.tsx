@@ -3,6 +3,13 @@ import { Mic, MicOff, PhoneOff, Video, VideoOff, SwitchCamera, Signal } from "lu
 import { YwAvatar } from "@/components/yw/Avatar";
 import type { User } from "@/lib/yw-data";
 import { cn } from "@/lib/utils";
+import {
+  ArMaskOverlay,
+  CaptureFxBar,
+  ScreenFlashOverlay,
+  maskClass,
+  useCaptureFx,
+} from "@/lib/capture-fx";
 
 type Tier = { label: string; width: number; height: number; fps: number; bitrate: number };
 
@@ -44,6 +51,8 @@ function ceilingIndex(): number {
 export function VideoCallSheet({ open, onClose, peer, title }: { open: boolean; onClose: () => void; peer: User; title: string }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const pipRef = useRef<HTMLVideoElement | null>(null);
+  const pipStreamRef = useRef<MediaStream | null>(null);
   const tierRef = useRef<number>(3);
   const [tier, setTier] = useState<Tier>(TIERS[3]);
   const [actual, setActual] = useState<{ w: number; h: number; fps: number } | null>(null);
@@ -52,6 +61,33 @@ export function VideoCallSheet({ open, onClose, peer, title }: { open: boolean; 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [status, setStatus] = useState("Connecting…");
   const [seconds, setSeconds] = useState(0);
+  const fx = useCaptureFx(() => streamRef.current);
+
+  // Dual-camera: second stream shown as a picture-in-picture tile.
+  useEffect(() => {
+    if (!open || !fx.dual) {
+      pipStreamRef.current?.getTracks().forEach((t) => t.stop());
+      pipStreamRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facing === "user" ? "environment" : "user" },
+          audio: false,
+        });
+        if (cancelled) return s.getTracks().forEach((t) => t.stop());
+        pipStreamRef.current = s;
+        if (pipRef.current) pipRef.current.srcObject = s;
+      } catch {
+        /* single-camera device */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, fx.dual, facing]);
 
   // Start / stop the camera with the auto-negotiated tier.
   useEffect(() => {
@@ -159,6 +195,7 @@ export function VideoCallSheet({ open, onClose, peer, title }: { open: boolean; 
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-background/95 backdrop-blur-xl">
+      <ScreenFlashOverlay active={fx.flashing} />
       <div className="relative flex-1 overflow-hidden">
         {/* Remote placeholder */}
         <div className="absolute inset-0 grid place-items-center gap-4">
@@ -179,19 +216,40 @@ export function VideoCallSheet({ open, onClose, peer, title }: { open: boolean; 
         </div>
 
         {/* Self preview */}
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
+        <div
           className={cn(
-            "absolute bottom-4 right-4 h-44 w-28 rounded-2xl border border-border object-cover shadow-2xl transition-opacity",
+            "absolute bottom-4 right-4 h-44 w-28 overflow-hidden rounded-2xl border border-border shadow-2xl transition-opacity",
             camOff && "opacity-0",
           )}
-        />
+        >
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={cn("h-full w-full object-cover", maskClass(fx.mask))}
+          />
+          <ArMaskOverlay mask={fx.mask} />
+        </div>
+        {fx.dual && (
+          <video
+            ref={pipRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute bottom-52 right-4 h-28 w-20 rounded-2xl border border-border object-cover shadow-2xl"
+          />
+        )}
+        {fx.viewOnce > 0 && (
+          <span className="absolute bottom-4 left-4 rounded-full border border-border bg-background/60 px-3 py-1.5 text-[11px] backdrop-blur-md">
+            View once · {fx.viewOnce}s
+          </span>
+        )}
       </div>
 
-      <div className="safe-bottom flex items-center justify-center gap-4 border-t border-border px-6 py-6">
+      <div className="safe-bottom border-t border-border px-6 py-5">
+        <CaptureFxBar fx={fx} className="justify-center pb-4" />
+        <div className="flex items-center justify-center gap-4">
         <button
           aria-label={muted ? "Unmute" : "Mute"}
           onClick={() => setMuted((m) => !m)}
@@ -220,6 +278,7 @@ export function VideoCallSheet({ open, onClose, peer, title }: { open: boolean; 
         >
           <PhoneOff className="h-5 w-5 text-destructive-foreground" strokeWidth={1.8} />
         </button>
+        </div>
       </div>
     </div>
   );
