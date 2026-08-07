@@ -24,6 +24,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { RtcCallSheet, type RtcMode } from "@/components/yw/RtcCallSheet";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/chat/$threadId")({
   component: ChatThreadPage,
@@ -94,10 +96,14 @@ function ChatThreadPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [call, setCall] = useState<RtcMode | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const upsertMessage = (m: Message) =>
+    setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
 
   // Fetch current user & setup realtime subscription
   useEffect(() => {
@@ -119,7 +125,7 @@ function ChatThreadPage() {
 
     initChat();
 
-    // Supabase Realtime Channel
+    // Supabase Realtime Channel — live inserts/updates for this thread
     const channel = supabase
       .channel(`chat_${threadId}`)
       .on(
@@ -131,7 +137,33 @@ function ChatThreadPage() {
           filter: `thread_id=eq.${threadId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          upsertMessage(payload.new as Message);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "direct_messages",
+          filter: `thread_id=eq.${threadId}`,
+        },
+        (payload) => {
+          const next = payload.new as Message;
+          setMessages((prev) => prev.map((m) => (m.id === next.id ? next : m)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "direct_messages",
+          filter: `thread_id=eq.${threadId}`,
+        },
+        (payload) => {
+          const gone = payload.old as { id?: string };
+          setMessages((prev) => prev.filter((m) => m.id !== gone.id));
         }
       )
       .subscribe();
@@ -149,7 +181,7 @@ function ChatThreadPage() {
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
     if (!currentUser?.id) {
-      alert("Please sign in to send messages.");
+      toast.error("Please sign in to send messages.");
       return;
     }
 
@@ -162,10 +194,18 @@ function ChatThreadPage() {
 
     setInputText("");
 
-    const { error } = await supabase.from("direct_messages").insert([newMsg]);
+    const { data, error } = await supabase
+      .from("direct_messages")
+      .insert([newMsg])
+      .select()
+      .single();
     if (error) {
       console.error("Error sending message:", error);
+      toast.error("Message not sent: " + error.message);
+      setInputText(newMsg.content);
+      return;
     }
+    if (data) upsertMessage(data as Message);
   };
 
   // Image Upload
@@ -186,7 +226,7 @@ function ChatThreadPage() {
 
       if (uploadError) throw uploadError;
 
-      const { error: insertError } = await supabase.from("direct_messages").insert([
+      const { data: inserted, error: insertError } = await supabase.from("direct_messages").insert([
         {
           thread_id: threadId,
           sender_id: currentUser.id,
@@ -194,10 +234,11 @@ function ChatThreadPage() {
           media_url: filePath,
           media_type: "image",
         },
-      ]);
+      ]).select().single();
       if (insertError) throw insertError;
+      if (inserted) upsertMessage(inserted as Message);
     } catch (err: any) {
-      alert("Image upload failed: " + err.message);
+      toast.error("Image upload failed: " + err.message);
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -226,7 +267,7 @@ function ChatThreadPage() {
           .upload(filePath, audioBlob, { contentType: "audio/webm" });
 
         if (!error) {
-          await supabase.from("direct_messages").insert([
+          const { data: inserted } = await supabase.from("direct_messages").insert([
             {
               thread_id: threadId,
               sender_id: currentUser.id,
@@ -234,9 +275,10 @@ function ChatThreadPage() {
               media_url: filePath,
               media_type: "audio",
             },
-          ]);
+          ]).select().single();
+          if (inserted) upsertMessage(inserted as Message);
         } else {
-          alert("Voice note upload failed: " + error.message);
+          toast.error("Voice note upload failed: " + error.message);
         }
         setUploading(false);
       };
@@ -267,7 +309,7 @@ function ChatThreadPage() {
       const { latitude, longitude } = position.coords;
       const locUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-      await supabase.from("direct_messages").insert([
+      const { data: inserted } = await supabase.from("direct_messages").insert([
         {
           thread_id: threadId,
           sender_id: currentUser.id,
@@ -275,7 +317,8 @@ function ChatThreadPage() {
           media_url: locUrl,
           media_type: "location",
         },
-      ]);
+      ]).select().single();
+      if (inserted) upsertMessage(inserted as Message);
       setShowOptions(false);
     });
   };
@@ -338,10 +381,20 @@ function ChatThreadPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => alert("Starting Audio Call...")}>
+          <button
+            aria-label="Start voice call"
+            onClick={() =>
+              currentUser?.id ? setCall("voice") : toast.error("Sign in to start a call.")
+            }
+          >
             <Phone className="h-5 w-5 text-gray-300 hover:text-white" />
           </button>
-          <button onClick={() => alert("Starting Video Call...")}>
+          <button
+            aria-label="Start video call"
+            onClick={() =>
+              currentUser?.id ? setCall("video") : toast.error("Sign in to start a call.")
+            }
+          >
             <Video className="h-5 w-5 text-gray-300 hover:text-white" />
           </button>
           <button onClick={() => setShowOptions(!showOptions)}>
@@ -427,6 +480,14 @@ function ChatThreadPage() {
           <SendHorizontal className="h-5 w-5" />
         </button>
       </div>
+
+      <RtcCallSheet
+        mode={call}
+        roomId={threadId}
+        selfId={currentUser?.id ?? "anon"}
+        peerName="Active User"
+        onClose={() => setCall(null)}
+      />
     </div>
   );
 }
