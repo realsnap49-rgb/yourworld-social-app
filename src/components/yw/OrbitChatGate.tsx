@@ -1,4 +1,5 @@
-import { Check, Image as ImageIcon, X } from "lucide-react";
+import React, { useState } from "react";
+import { Check, Image as ImageIcon, X, Phone, Video } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
   ORBIT_REQUEST_PHOTO_MAX,
@@ -6,79 +7,89 @@ import {
   countRequestMessages,
   type OrbitChatRequest,
 } from "@/lib/orbit-store";
+import { RtcCallSheet, type RtcMode } from "./RtcCallSheet";
 
 type Props = {
   profileId: string;
   name: string;
-  request?: OrbitChatRequest;
+  requests: OrbitChatRequest[];
   onAccept: () => void;
   onDecline: () => void;
 };
 
-/**
- * Pre-acceptance gate: shows Accept/Decline + View Profile to the recipient,
- * and the remaining text/photo allowance to the sender.
- */
-export function OrbitChatGate({ profileId, name, request, onAccept, onDecline }: Props) {
-  if (!request || request.status === "accepted") return null;
+export const OrbitChatGate: React.FC<Props> = ({
+  profileId,
+  name,
+  requests,
+  onAccept,
+  onDecline,
+}) => {
+  const [callOpen, setCallOpen] = useState(false);
+  const [callMode, setCallMode] = useState<RtcMode>("video");
 
-  const { texts, photos } = countRequestMessages(request);
-  const incoming = request.direction === "incoming" && request.status === "pending";
-  const declined = request.status === "declined";
+  const startCall = (mode: RtcMode) => {
+    setCallMode(mode);
+    setCallOpen(true);
+  };
 
-  if (declined) {
-    return (
-      <p className="mb-2 rounded-2xl border border-border px-4 py-3 text-center text-[11px] text-muted-foreground">
-        This request was declined.
-      </p>
-    );
-  }
-
-  if (incoming) {
-    return (
-      <div className="mb-3 rounded-2xl border border-border p-4 text-center">
-        <p className="text-sm font-semibold">{name} wants to chat</p>
-        <p className="pt-1 text-xs text-muted-foreground">
-          Until you accept, they can only send {ORBIT_REQUEST_TEXT_MAX} texts and {ORBIT_REQUEST_PHOTO_MAX} photos.
-        </p>
-        <div className="flex items-center justify-center gap-2 pt-3">
-          <button
-            type="button"
-            onClick={onAccept}
-            className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-transform active:scale-95"
-          >
-            <Check className="h-4 w-4" strokeWidth={2} />
-            Accept
-          </button>
-          <button
-            type="button"
-            onClick={onDecline}
-            className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-semibold transition-transform active:scale-95"
-          >
-            <X className="h-4 w-4" strokeWidth={2} />
-            Decline
-          </button>
-        </div>
-        <Link
-          to="/orbit/$profileId"
-          params={{ profileId }}
-          className="mt-3 inline-block rounded-full border border-border px-4 py-2 text-[11px] font-semibold"
-        >
-          View Profile
-        </Link>
-      </div>
-    );
-  }
+  const { textCount, photoCount } = countRequestMessages(requests);
 
   return (
-    <div className="mb-2 flex items-center justify-center gap-3 rounded-2xl border border-border px-4 py-3 text-[11px] text-muted-foreground">
-      <span>
-        Request pending · {ORBIT_REQUEST_TEXT_MAX - texts} of {ORBIT_REQUEST_TEXT_MAX} texts left
-      </span>
-      <span className="flex items-center gap-1">
-        <ImageIcon className="h-3.5 w-3.5" strokeWidth={1.8} />
-        {ORBIT_REQUEST_PHOTO_MAX - photos} left
-      </span>
+    <div className="flex flex-col h-full bg-black text-white p-4">
+      <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+        <div>
+          <h2 className="text-lg font-bold">{name}</h2>
+          <p className="text-xs text-zinc-400">Orbit Chat Request</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => startCall("voice")}
+            className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 text-white"
+          >
+            <Phone size={18} />
+          </button>
+          <button
+            onClick={() => startCall("video")}
+            className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 text-white"
+          >
+            <Video size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-4 space-y-3">
+        {requests.map((req) => (
+          <div
+            key={req.id}
+            className="p-3 bg-zinc-900 rounded-xl text-sm border border-zinc-800"
+          >
+            {req.type === "text" ? req.text : "[Photo Message]"}
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-4 border-t border-zinc-800 flex items-center justify-between gap-4">
+        <button
+          onClick={onDecline}
+          className="flex-1 py-3 bg-zinc-800 text-red-500 rounded-xl flex items-center justify-center gap-2 text-sm font-medium"
+        >
+          <X size={18} /> Decline
+        </button>
+        <button
+          onClick={onAccept}
+          className="flex-1 py-3 bg-white text-black rounded-xl flex items-center justify-center gap-2 text-sm font-medium"
+        >
+          <Check size={18} /> Accept
+        </button>
+      </div>
+
+      <RtcCallSheet
+        open={callOpen}
+        onOpenChange={setCallOpen}
+        conversationId={profileId}
+        mode={callMode}
+        recipientName={name}
+      />
     </div>
   );
-}
+};
