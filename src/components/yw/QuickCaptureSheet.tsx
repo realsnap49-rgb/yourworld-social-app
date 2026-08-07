@@ -8,6 +8,8 @@ interface QuickCaptureSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCapture?: (result: CaptureResult) => void;
+  /** optional capture-effects controller (flash, masks, view-once) */
+  fx?: unknown;
 }
 
 export function QuickCaptureSheet({

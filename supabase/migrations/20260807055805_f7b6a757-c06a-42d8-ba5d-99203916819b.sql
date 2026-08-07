@@ -1,0 +1,4 @@
+CREATE POLICY "Authenticated can upload chat files" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'chat-files' AND owner = auth.uid());
+CREATE POLICY "Authenticated can read chat files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'chat-files');
+CREATE POLICY "Owners can update chat files" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'chat-files' AND owner = auth.uid()) WITH CHECK (bucket_id = 'chat-files' AND owner = auth.uid());
+CREATE POLICY "Owners can delete chat files" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'chat-files' AND owner = auth.uid());

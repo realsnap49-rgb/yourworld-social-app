@@ -34,10 +34,50 @@ interface Message {
   thread_id: string;
   sender_id: string;
   content: string;
-  media_url?: string;
-  media_type?: "image" | "audio" | "video" | "location" | "meetup";
+  media_url?: string | null;
+  media_type?: string | null;
   created_at: string;
-  is_read?: boolean;
+  is_read?: boolean | null;
+}
+
+const CHAT_BUCKET = "chat-files";
+
+/** Private bucket → resolve a temporary signed URL for rendering. */
+function useSignedUrl(path?: string | null) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!path) {
+      setUrl(null);
+      return;
+    }
+    if (/^https?:\/\//.test(path)) {
+      setUrl(path);
+      return;
+    }
+    supabase.storage
+      .from(CHAT_BUCKET)
+      .createSignedUrl(path, 60 * 60)
+      .then(({ data }) => {
+        if (alive) setUrl(data?.signedUrl ?? null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+  return url;
+}
+
+function ChatImage({ path }: { path?: string | null }) {
+  const url = useSignedUrl(path);
+  if (!url) return <div className="mb-2 h-40 w-40 animate-pulse rounded-lg bg-zinc-700" />;
+  return <img src={url} alt="Shared media" className="rounded-lg mb-2 max-h-60 object-cover" />;
+}
+
+function ChatAudio({ path }: { path?: string | null }) {
+  const url = useSignedUrl(path);
+  if (!url) return null;
+  return <audio controls src={url} className="w-full my-1" />;
 }
 
 function ChatThreadPage() {
@@ -108,10 +148,14 @@ function ChatThreadPage() {
   // Send Text Message
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
+    if (!currentUser?.id) {
+      alert("Please sign in to send messages.");
+      return;
+    }
 
     const newMsg = {
       thread_id: threadId,
-      sender_id: currentUser?.id || "anon",
+      sender_id: currentUser.id,
       content: inputText,
       media_type: "text",
     };
@@ -128,31 +172,35 @@ function ChatThreadPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!currentUser?.id) {
+      alert("Please sign in to share photos.");
+      return;
+    }
 
     try {
       setUploading(true);
-      const filePath = `chat_media/${Date.now()}_${file.name}`;
+      const filePath = `${currentUser.id}/${threadId}/${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
       const { error: uploadError } = await supabase.storage
-        .from("chat_files")
-        .upload(filePath, file);
+        .from(CHAT_BUCKET)
+        .upload(filePath, file, { contentType: file.type, upsert: false });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from("chat_files").getPublicUrl(filePath);
-
-      await supabase.from("direct_messages").insert([
+      const { error: insertError } = await supabase.from("direct_messages").insert([
         {
           thread_id: threadId,
-          sender_id: currentUser?.id || "anon",
+          sender_id: currentUser.id,
           content: isViewOnce ? "📷 View once photo" : "📷 Photo",
-          media_url: data.publicUrl,
+          media_url: filePath,
           media_type: "image",
         },
       ]);
+      if (insertError) throw insertError;
     } catch (err: any) {
       alert("Image upload failed: " + err.message);
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -169,24 +217,26 @@ function ChatThreadPage() {
 
       mediaRecorderRef.current.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const filePath = `voice_notes/${Date.now()}.webm`;
+        if (!currentUser?.id) return;
+        const filePath = `${currentUser.id}/${threadId}/voice-${Date.now()}.webm`;
 
         setUploading(true);
         const { error } = await supabase.storage
-          .from("chat_files")
-          .upload(filePath, audioBlob);
+          .from(CHAT_BUCKET)
+          .upload(filePath, audioBlob, { contentType: "audio/webm" });
 
         if (!error) {
-          const { data } = supabase.storage.from("chat_files").getPublicUrl(filePath);
           await supabase.from("direct_messages").insert([
             {
               thread_id: threadId,
-              sender_id: currentUser?.id || "anon",
+              sender_id: currentUser.id,
               content: "🎙️ Voice message",
-              media_url: data.publicUrl,
+              media_url: filePath,
               media_type: "audio",
             },
           ]);
+        } else {
+          alert("Voice note upload failed: " + error.message);
         }
         setUploading(false);
       };
@@ -213,13 +263,14 @@ function ChatThreadPage() {
     }
 
     navigator.geolocation.getCurrentPosition(async (position) => {
+      if (!currentUser?.id) return;
       const { latitude, longitude } = position.coords;
       const locUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
       await supabase.from("direct_messages").insert([
         {
           thread_id: threadId,
-          sender_id: currentUser?.id || "anon",
+          sender_id: currentUser.id,
           content: `📍 Live Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
           media_url: locUrl,
           media_type: "location",
@@ -328,13 +379,13 @@ function ChatThreadPage() {
             <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${isMe ? "bg-gradient-to-r from-purple-600 to-pink-600" : "bg-zinc-800"}`}>
                 {msg.media_type === "image" && msg.media_url && (
-                  <img src={msg.media_url} alt="media" className="rounded-lg mb-2 max-h-60 object-cover" />
+                  <ChatImage path={msg.media_url} />
                 )}
                 {msg.media_type === "audio" && msg.media_url && (
-                  <audio controls src={msg.media_url} className="w-full my-1" />
+                  <ChatAudio path={msg.media_url} />
                 )}
                 {msg.media_type === "location" && (
-                  <a href={msg.media_url} target="_blank" rel="noreferrer" className="underline text-blue-300 font-medium">
+                  <a href={msg.media_url ?? "#"} target="_blank" rel="noreferrer" className="underline text-blue-300 font-medium">
                     {msg.content}
                   </a>
                 )}
