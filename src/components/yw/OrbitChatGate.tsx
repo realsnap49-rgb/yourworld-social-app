@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Check, Image as ImageIcon, X, Phone, Video } from "lucide-react";
+import React from "react";
+import { Check, Image as ImageIcon, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
   ORBIT_REQUEST_PHOTO_MAX,
@@ -7,7 +7,6 @@ import {
   countRequestMessages,
   type OrbitChatRequest,
 } from "@/lib/orbit-store";
-import { RtcCallSheet, type RtcMode } from "./RtcCallSheet";
 
 type Props = {
   profileId: string;
@@ -24,14 +23,6 @@ export const OrbitChatGate: React.FC<Props> = ({
   onAccept,
   onDecline,
 }) => {
-  const [callOpen, setCallOpen] = useState(false);
-  const [callMode, setCallMode] = useState<RtcMode>("video");
-
-  const startCall = (mode: RtcMode) => {
-    setCallMode(mode);
-    setCallOpen(true);
-  };
-
   const { textCount, photoCount } = countRequestMessages(requests);
 
   return (
@@ -40,20 +31,6 @@ export const OrbitChatGate: React.FC<Props> = ({
         <div>
           <h2 className="text-lg font-bold">{name}</h2>
           <p className="text-xs text-zinc-400">Orbit Chat Request</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => startCall("voice")}
-            className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 text-white"
-          >
-            <Phone size={18} />
-          </button>
-          <button
-            onClick={() => startCall("video")}
-            className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 text-white"
-          >
-            <Video size={18} />
-          </button>
         </div>
       </div>
 
@@ -82,14 +59,6 @@ export const OrbitChatGate: React.FC<Props> = ({
           <Check size={18} /> Accept
         </button>
       </div>
-
-      <RtcCallSheet
-        open={callOpen}
-        onOpenChange={setCallOpen}
-        conversationId={profileId}
-        mode={callMode}
-        recipientName={name}
-      />
     </div>
   );
 };
