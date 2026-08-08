@@ -1,120 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { User, Megaphone, Orbit, Lock, Bell, Palette, HelpCircle, Info, LogOut, ChevronRight, ArrowLeft } from "lucide-react";
+import { Settings, Grid, Bookmark, Play, MapPin, Link as LinkIcon, CheckCircle2, X } from "lucide-react";
 
-export const Route = createFileRoute("/settings")({
-  component: SettingsPage,
+export const Route = createFileRoute("/profile")({
+  component: ProfilePage,
 });
 
-export function SettingsPage() {
+export function ProfilePage() {
   const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-[#09090b] text-white p-4 font-sans select-none">
-      
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6 mt-2">
-        <button onClick={() => navigate({ to: "/profile" })} className="p-1 text-zinc-300 hover:text-white">
-          <ArrowLeft size={22} />
-        </button>
-        <h1 className="text-xl font-bold">Settings</h1>
+    <div className="min-h-screen bg-[#09090b] text-white font-sans pb-28">
+      <div className="sticky top-0 z-40 bg-[#09090b]/90 border-b border-zinc-900/50 backdrop-blur-md px-4 py-3 flex items-center justify-between">
+        <span className="font-bold text-lg">@you</span>
+        <button onClick={() => navigate({ to: "/settings" })} className="p-2"><Settings size={22} /></button>
       </div>
-
-      <div className="bg-[#141418] rounded-2xl p-2 border border-zinc-800 space-y-1">
-        
-        {/* Account */}
-        <div className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <User className="text-zinc-400" size={20} />
-            <span className="font-semibold text-sm">Account</span>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* Create Channel */}
-        <div onClick={() => navigate({ to: "/channel/posts" })} className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <Megaphone className="text-zinc-400" size={20} />
-            <div>
-              <div className="font-semibold text-sm">Create Channel</div>
-              <div className="text-[11px] text-zinc-500">Videos, reels, posts & analytics</div>
-            </div>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* Orbit (Direct Navigation to Orbit Index) */}
-        <div onClick={() => navigate({ to: "/orbit" })} className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <Orbit className="text-zinc-400" size={20} />
-            <div>
-              <div className="font-semibold text-sm">Orbit</div>
-              <div className="text-[11px] text-zinc-500">Private social discovery</div>
-            </div>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* Privacy */}
-        <div className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <Lock className="text-zinc-400" size={20} />
-            <div>
-              <div className="font-semibold text-sm">Privacy & Downloads</div>
-              <div className="text-[11px] text-zinc-500">Blocked accounts</div>
-            </div>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* Notifications */}
-        <div className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <Bell className="text-zinc-400" size={20} />
-            <div>
-              <div className="font-semibold text-sm">Notifications</div>
-              <div className="text-[11px] text-zinc-500">Likes, Orbit, channel & system alerts</div>
-            </div>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* Appearance */}
-        <div className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <Palette className="text-zinc-400" size={20} />
-            <span className="font-semibold text-sm">Appearance</span>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* Help & Support */}
-        <div className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <HelpCircle className="text-zinc-400" size={20} />
-            <span className="font-semibold text-sm">Help & Support</span>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* About */}
-        <div className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
-          <div className="flex items-center gap-4">
-            <Info className="text-zinc-400" size={20} />
-            <span className="font-semibold text-sm">About</span>
-          </div>
-          <ChevronRight className="text-zinc-600" size={18} />
-        </div>
-
-        {/* Logout */}
-        <div className="border-t border-zinc-800/80 pt-2 p-3.5 flex items-center gap-4 text-red-500 cursor-pointer hover:bg-red-950/20 rounded-xl">
-          <LogOut size={20} />
-          <span className="font-semibold text-sm">Log Out</span>
-        </div>
-
+      <div className="p-6 text-center">
+         <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-bold text-4xl mb-4">Y</div>
+         <h1 className="text-xl font-bold">Your World</h1>
+         <p className="text-sm text-zinc-400 mt-2">Night photographer • Reel maker</p>
+         <div className="flex gap-4 justify-center mt-6">
+           <button onClick={() => navigate({ to: "/channel/posts" })} className="bg-zinc-800 px-6 py-2 rounded-lg text-sm">Channel</button>
+           <button onClick={() => navigate({ to: "/orbit" })} className="bg-zinc-800 px-6 py-2 rounded-lg text-sm">Orbit</button>
+         </div>
       </div>
     </div>
   );
 }
-
-export default SettingsPage;
