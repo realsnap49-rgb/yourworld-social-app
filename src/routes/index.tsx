@@ -60,7 +60,7 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
       
-      {/* 1. TOP APP BAR (DIL KA ICON + BADGE) */}
+      {/* 1. TOP APP BAR */}
       <div className="sticky top-0 z-40 bg-[#0d0d0f]/90 border-b border-zinc-900/50 backdrop-blur-md px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-black text-xs text-white">
@@ -74,7 +74,6 @@ export function HomePage() {
             <Search size={22} />
           </button>
           
-          {/* Heart Icon with 68 Notification Badge */}
           <button className="relative p-1 text-zinc-300 hover:text-white">
             <Heart size={24} />
             <span className="absolute -top-1 -right-2 bg-pink-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full border border-[#0d0d0f]">
@@ -84,7 +83,7 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* 2. STORY TRAY (SAFED LINE BILKUL HATAYI GAYI H) */}
+      {/* 2. STORY TRAY */}
       <div className="px-4 py-4 overflow-x-auto flex items-center gap-4 border-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         
         {/* Your Moment */}
@@ -177,14 +176,15 @@ export function HomePage() {
         ))}
       </div>
 
-      {/* 4. FLOATING GLASS BOTTOM NAV */}
+      {/* 4. FLOATING BOTTOM NAV (PROFILE WORKING FIX) */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md bg-[#1f1a2e]/90 border border-white/10 backdrop-blur-xl rounded-full p-2 px-4 shadow-2xl flex items-center justify-between">
+        
         <button onClick={() => navigate({ to: "/" })} className="flex flex-col items-center justify-center py-1 px-3 bg-zinc-800/80 rounded-2xl text-white">
           <Home size={20} />
           <span className="text-[10px] font-bold mt-0.5">Home</span>
         </button>
 
-        <button className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
+        <button onClick={() => navigate({ to: "/reels" })} className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
           <Film size={20} />
           <span className="text-[10px] font-semibold mt-0.5">Reels</span>
         </button>
@@ -198,10 +198,11 @@ export function HomePage() {
           <span className="text-[10px] font-semibold mt-0.5">Chat</span>
         </button>
 
-        <button className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
+        <button onClick={() => navigate({ to: "/profile" })} className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white active:scale-90 transition-transform cursor-pointer">
           <User size={20} />
           <span className="text-[10px] font-semibold mt-0.5">Profile</span>
         </button>
+
       </div>
 
     </div>
