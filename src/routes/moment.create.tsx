@@ -30,6 +30,8 @@ import {
   Undo2,
   ChevronRight,
   Palette,
+  Crop,
+  ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +44,12 @@ import { toast } from "sonner";
 import { users } from "@/lib/yw-data";
 import { DraggableLayer } from "@/components/yw/moment/DraggableLayer";
 import { DrawCanvas } from "@/components/yw/moment/DrawCanvas";
+import {
+  ZoomPanSurface,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  type CropTransform,
+} from "@/components/yw/moment/ZoomPanSurface";
 import {
   MOMENT_EMOJI,
   MOMENT_GIFS,
@@ -108,8 +116,26 @@ const PRIVACY: { id: MomentPrivacy; label: string; hint: string }[] = [
 
 const INK = ["#ffffff", "#ff4d8d", "#7cf2d8", "#ffd166", "#8b7cff", "#0a0a0a"];
 
+const CROP_RATIOS = [
+  { id: "original", label: "Original", value: 0 },
+  { id: "9:16", label: "9:16", value: 9 / 16 },
+  { id: "4:5", label: "4:5", value: 4 / 5 },
+  { id: "1:1", label: "1:1", value: 1 },
+] as const;
+type CropRatio = (typeof CROP_RATIOS)[number]["id"];
+
 type Stage = "capture" | "edit";
-type Panel = null | "music" | "stickers" | "location" | "mentions" | "effects" | "draw" | "trim" | "post";
+type Panel =
+  | null
+  | "music"
+  | "stickers"
+  | "location"
+  | "mentions"
+  | "effects"
+  | "draw"
+  | "trim"
+  | "crop"
+  | "post";
 
 function MomentStudio() {
   const navigate = useNavigate();
@@ -130,6 +156,8 @@ function MomentStudio() {
   const clearDraw = useRef<() => void>(() => {});
   const [trim, setTrim] = useState<{ start: number; end: number } | null>(null);
   const [videoDur, setVideoDur] = useState(0);
+  const [crop, setCrop] = useState<CropTransform>({ zoom: 1, x: 0, y: 0 });
+  const [cropRatio, setCropRatio] = useState<CropRatio>("original");
   const [location, setLocation] = useState<string | undefined>();
   const [mentions, setMentions] = useState<string[]>([]);
   const [ai, setAi] = useState<Partial<Record<AiTool, boolean>>>({});
@@ -326,6 +354,10 @@ function MomentStudio() {
       stickers,
       drawing,
       trim: trim ?? undefined,
+      crop:
+        crop.zoom > 1.001 || cropRatio !== "original"
+          ? { ...crop, ratio: cropRatio, frameW: stageSize.w, frameH: stageSize.h }
+          : undefined,
       location,
       mentions,
       privacy,
@@ -347,6 +379,50 @@ function MomentStudio() {
   const isVideo = !!media?.type.startsWith("video");
   const drawMode = panel === "draw";
 
+  /* ---------------- crop / zoom frame ---------------- */
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStageSize({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    setStageSize({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, [stage]);
+
+  const cropBox = useMemo(() => {
+    const r = CROP_RATIOS.find((c) => c.id === cropRatio)?.value ?? 0;
+    const { w, h } = stageSize;
+    if (!r || !w || !h) return { width: "100%", height: "100%" };
+    const width = Math.min(w, h * r);
+    return { width: `${Math.round(width)}px`, height: `${Math.round(width / r)}px` };
+  }, [cropRatio, stageSize]);
+
+  const resetCrop = () => setCrop({ zoom: 1, x: 0, y: 0 });
+
+  /** zoom about the centre of the crop frame, from the slider */
+  const setZoomFromSlider = (z: number) =>
+    setCrop((c) => {
+      const w = parseFloat(String(cropBox.width)) || stageSize.w;
+      const h = parseFloat(String(cropBox.height)) || stageSize.h;
+      const px = (String(cropBox.width).endsWith("%") ? stageSize.w : w) / 2;
+      const py = (String(cropBox.height).endsWith("%") ? stageSize.h : h) / 2;
+      const k = z / c.zoom;
+      const next = { zoom: z, x: px - (px - c.x) * k, y: py - (py - c.y) * k };
+      const fw = String(cropBox.width).endsWith("%") ? stageSize.w : w;
+      const fh = String(cropBox.height).endsWith("%") ? stageSize.h : h;
+      return {
+        zoom: z,
+        x: Math.min(0, Math.max(fw - fw * z, next.x)),
+        y: Math.min(0, Math.max(fh - fh * z, next.y)),
+      };
+    });
+
+  useEffect(() => {
+    resetCrop();
+  }, [media?.url]);
+
   /* =============================================================== */
   return (
     <main className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-black text-white">
@@ -355,6 +431,7 @@ function MomentStudio() {
       {/* ---------- stage / viewport ---------- */}
       <div
         className="relative flex-1 overflow-hidden"
+        ref={stageRef}
         onPointerDown={stage === "capture" ? onSwipeStart : undefined}
         onPointerUp={stage === "capture" ? onSwipeEnd : undefined}
       >
@@ -404,33 +481,53 @@ function MomentStudio() {
             )}
           </>
         ) : (
-          <div className="relative h-full w-full">
-            {isVideo ? (
-              <video
-                ref={previewVideo}
-                src={media!.url}
-                autoPlay
-                loop
-                muted
-                playsInline
-                style={{ filter }}
-                onLoadedMetadata={(e) => {
-                  const d = e.currentTarget.duration;
-                  if (Number.isFinite(d)) {
-                    setVideoDur(d);
-                    setTrim((t) => t ?? { start: 0, end: d });
-                  }
-                  e.currentTarget.playbackRate = effect === "slowmo" ? 0.5 : 1;
-                }}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <img
-                src={media!.url}
-                alt="Moment preview"
-                style={{ filter }}
-                className={cn("h-full w-full object-cover", effect === "boomerang" && "animate-pulse")}
-              />
+          <div className="relative grid h-full w-full place-items-center">
+            <ZoomPanSurface
+              value={crop}
+              onChange={setCrop}
+              disabled={drawMode}
+              className="relative bg-black"
+              style={cropBox}
+            >
+              {isVideo ? (
+                <video
+                  ref={previewVideo}
+                  src={media!.url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{ filter }}
+                  onLoadedMetadata={(e) => {
+                    const d = e.currentTarget.duration;
+                    if (Number.isFinite(d)) {
+                      setVideoDur(d);
+                      setTrim((t) => t ?? { start: 0, end: d });
+                    }
+                    e.currentTarget.playbackRate = effect === "slowmo" ? 0.5 : 1;
+                  }}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <img
+                  src={media!.url}
+                  alt="Moment preview"
+                  style={{ filter }}
+                  className={cn("h-full w-full object-cover", effect === "boomerang" && "animate-pulse")}
+                />
+              )}
+            </ZoomPanSurface>
+
+            {panel === "crop" && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute grid grid-cols-3 grid-rows-3 border border-white/70"
+                style={{ ...cropBox, boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)" }}
+              >
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <span key={i} className="border border-white/20" />
+                ))}
+              </div>
             )}
 
             {/* drawing */}
@@ -670,6 +767,12 @@ function MomentStudio() {
               <Tool icon={<Type />} label="Text" onClick={() => addSticker("Tap to edit", "text", inkColor)} />
               <Tool icon={<Smile />} label="Stickers" active={stickers.some((s) => s.type !== "text")} onClick={() => setPanel("stickers")} />
               <Tool icon={<Pencil />} label="Draw" active={!!drawing} onClick={() => setPanel("draw")} />
+              <Tool
+                icon={<Crop />}
+                label="Crop"
+                active={cropRatio !== "original" || crop.zoom > 1.001}
+                onClick={() => setPanel("crop")}
+              />
               <Tool icon={<Music2 />} label="Music" active={!!music} onClick={() => setPanel("music")} />
               <Tool icon={<Sparkles />} label="Effects" active={effect !== "none"} onClick={() => setPanel("effects")} />
               {isVideo && <Tool icon={<Scissors />} label="Trim" active={!!trim} onClick={() => setPanel("trim")} />}
@@ -749,6 +852,69 @@ function MomentStudio() {
             </div>
           )}
 
+          {panel === "crop" && (
+            <div className="space-y-4 pt-4">
+              <div>
+                <SectionTitle>Frame</SectionTitle>
+                <div className="grid grid-cols-4 gap-2">
+                  {CROP_RATIOS.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => setCropRatio(r.id)}
+                      className={cn(
+                        "rounded-2xl border py-3 text-[11.5px] font-semibold transition-all active:scale-95",
+                        cropRatio === r.id
+                          ? "border-primary/60 bg-primary/15"
+                          : "border-white/12 bg-white/6 text-white/70",
+                      )}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <SectionTitle>Zoom</SectionTitle>
+                <div className="flex items-center gap-3">
+                  <ZoomIn className="h-4 w-4 text-white/60" />
+                  <input
+                    type="range"
+                    min={MIN_ZOOM}
+                    max={MAX_ZOOM}
+                    step={0.01}
+                    value={crop.zoom}
+                    aria-label="Zoom"
+                    onChange={(e) => setZoomFromSlider(Number(e.target.value))}
+                    className="h-1 flex-1 accent-white"
+                  />
+                  <span className="w-10 text-right text-[11px] tabular-nums text-white/60">
+                    {crop.zoom.toFixed(1)}x
+                  </span>
+                </div>
+                <p className="pt-2 text-[11px] text-white/45">
+                  Pinch, scroll or drag on the preview to reframe.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    resetCrop();
+                    setCropRatio("original");
+                  }}
+                  className="h-11 flex-1 rounded-full"
+                >
+                  Reset
+                </Button>
+                <Button
+                  onClick={() => setPanel(null)}
+                  className="h-11 flex-1 rounded-full brand-gradient text-primary-foreground"
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
           {panel === "trim" && trim && (
             <div className="space-y-4 pt-4">
               <div className="flex items-center justify-between text-xs text-white/60">

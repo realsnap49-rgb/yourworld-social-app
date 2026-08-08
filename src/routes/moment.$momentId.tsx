@@ -23,6 +23,21 @@ import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+/** re-applies the editor's zoom/pan framing, scaled to this viewport width */
+function cropStyle(crop?: {
+  zoom: number;
+  x: number;
+  y: number;
+  frameW: number;
+  frameH: number;
+}): React.CSSProperties | undefined {
+  if (!crop || (crop.zoom <= 1.001 && !crop.x && !crop.y)) return undefined;
+  return {
+    transformOrigin: "0 0",
+    transform: `translate(${(crop.x / (crop.frameW || 1)) * 100}%, ${(crop.y / (crop.frameH || 1)) * 100}%) scale(${crop.zoom})`,
+  };
+}
+
 export const Route = createFileRoute("/moment/$momentId")({
   head: () => ({
     meta: [
@@ -131,17 +146,21 @@ function MomentViewer() {
           style={moment.kind === "text" ? { background: moment.textBg } : undefined}
         >
           {moment.kind === "video" && moment.media ? (
-            <video
-              src={moment.media}
-              autoPlay
-              loop
-              muted
-              playsInline
-              style={{ filter }}
-              className="h-full w-full object-cover"
-            />
+            <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>
+              <video
+                src={moment.media}
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{ filter }}
+                className="h-full w-full object-cover"
+              />
+            </div>
           ) : moment.kind === "photo" && moment.media ? (
-            <img src={moment.media} alt="Your moment" style={{ filter }} className="h-full w-full object-cover" />
+            <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>
+              <img src={moment.media} alt="Your moment" style={{ filter }} className="h-full w-full object-cover" />
+            </div>
           ) : (
             <div className="grid h-full w-full place-items-center p-8">
               <p className="text-center font-display text-2xl font-bold text-white">{moment.text}</p>

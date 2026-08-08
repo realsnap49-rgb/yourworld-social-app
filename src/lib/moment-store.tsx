@@ -51,6 +51,15 @@ export type MyMoment = {
   drawing?: string;
   /** seconds, video moments only */
   trim?: { start: number; end: number };
+  /** preview crop / zoom framing captured in the editor */
+  crop?: {
+    zoom: number;
+    x: number;
+    y: number;
+    ratio: string;
+    frameW: number;
+    frameH: number;
+  };
   location?: string;
   mentions: string[];
   privacy: MomentPrivacy;
