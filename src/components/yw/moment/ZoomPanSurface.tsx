@@ -16,12 +16,14 @@ export function ZoomPanSurface({
   onChange,
   disabled,
   className,
+  style,
   children,
 }: {
   value: CropTransform;
   onChange: (t: CropTransform) => void;
   disabled?: boolean;
   className?: string;
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -108,7 +110,7 @@ export function ZoomPanSurface({
     <div
       ref={ref}
       className={className}
-      style={{ touchAction: "none", overflow: "hidden" }}
+      style={{ touchAction: "none", overflow: "hidden", ...style }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}
