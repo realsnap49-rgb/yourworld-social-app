@@ -1,83 +1,38 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Heart, Search } from "lucide-react";
-import { Stories } from "@/components/yw/Stories";
-import { PostCard } from "@/components/yw/PostCard";
-import { posts } from "@/lib/yw-data";
-import { useNotifications } from "@/lib/notifications-store";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "YourWorld — Your feed of moments" },
-      {
-        name: "description",
-        content:
-          "Watch moments from friends, scroll a hand-picked feed, and like, comment, share or save what you love on YourWorld.",
-      },
-      { property: "og:title", content: "YourWorld — Your feed of moments" },
-      {
-        property: "og:description",
-        content: "Moments, feed and reactions in one dark, fast social app.",
-      },
-    ],
-  }),
-  component: HomePage,
-});
-
-function HomePage() {
-  const { unreadHome: unread } = useNotifications();
-  return (
-    <main className="grain relative pb-28">
-      <div aria-hidden className="ambient-canvas" />
-      <header className="header-lux sticky top-0 z-40 flex h-14 items-center justify-between gap-3 px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="logo-mark grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[8px]">
-            <span className="font-ui text-[11px] font-semibold leading-none tracking-[-0.02em]">
-              YW
-            </span>
-          </span>
-          <h1 className="truncate font-ui text-[18px] font-semibold leading-none tracking-[-0.03em] text-foreground">
-            YourWorld
-          </h1>
+{/* STORY TRAY (EXACT MATCH) */}
+      <div className="px-4 py-3 overflow-x-auto flex items-center gap-4 scrollbar-none border-b border-zinc-900/60">
+        
+        {/* Your Moment (Y + Pink Plus Badge) */}
+        <div 
+          onClick={() => navigate({ to: "/moment/create" })} 
+          className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 transition-transform"
+        >
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full bg-pink-500/80 border-2 border-pink-400 flex items-center justify-center font-bold text-2xl text-white shadow-lg">
+              Y
+            </div>
+            <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 border-2 border-black flex items-center justify-center text-white">
+              <Plus size={12} strokeWidth={3} />
+            </div>
+          </div>
+          <span className="text-[11px] font-semibold text-zinc-300">Your moment</span>
         </div>
-        <div className="-mr-1 flex shrink-0 items-center gap-1">
-          <Link
-            to="/search"
-            aria-label="Search"
-            className="icon-pill grid h-10 w-10 place-items-center transition-all duration-200 active:scale-90"
-          >
-            <Search className="h-[22px] w-[22px]" strokeWidth={1.6} />
-          </Link>
-          <Link
-            to="/notifications"
-            aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
-            className="icon-pill relative grid h-10 w-10 place-items-center transition-all duration-200 active:scale-90"
-          >
-            <Heart className="h-6 w-6" strokeWidth={1.6} />
-            {unread > 0 && (
-              <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 font-ui text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
-                {unread > 99 ? "99+" : unread}
-              </span>
-            )}
-          </Link>
-        </div>
-      </header>
 
-      <section aria-label="Moments" className="hairline border-b">
-        <Stories />
-      </section>
-
-      <section aria-label="Feed" className="mx-auto max-w-lg space-y-4 px-4 pt-4">
-        {posts.map((p, i) => (
-          <div
-            key={p.id}
-            className="animate-rise"
-            style={{ animationDelay: `${Math.min(i, 6) * 70}ms` }}
-          >
-            <PostCard post={p} />
+        {/* Friends Stories (R, M, A, N, K with exact colors) */}
+        {[
+          { id: 1, name: "riko.night", letter: "R", bg: "bg-purple-600", ring: "border-pink-500" },
+          { id: 2, name: "sea.salt", letter: "M", bg: "bg-teal-500", ring: "border-teal-400" },
+          { id: 3, name: "spinsolo", letter: "A", bg: "bg-orange-500", ring: "border-orange-400" },
+          { id: 4, name: "slowbrunch", letter: "N", bg: "bg-red-600", ring: "border-red-500" },
+          { id: 5, name: "wavelen", letter: "K", bg: "bg-sky-500", ring: "border-blue-400" },
+        ].map((s) => (
+          <div key={s.id} className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 transition-transform">
+            <div className={`p-[2px] rounded-full border-2 ${s.ring}`}>
+              <div className={`w-15 h-15 rounded-full ${s.bg} flex items-center justify-center font-bold text-2xl text-white border border-black shadow-md`}>
+                {s.letter}
+              </div>
+            </div>
+            <span className="text-[11px] font-semibold text-zinc-300 w-16 truncate text-center">{s.name}</span>
           </div>
         ))}
-      </section>
-    </main>
-  );
-}
+
+      </div>
