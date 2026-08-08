@@ -49,12 +49,12 @@ export const Route = createFileRoute("/create")({
   component: CameraPage,
 });
 
-const MODES = ["POST", "MOMENT", "REEL", "LIVE"] as const;
+const MODES = ["POST", "REEL", "LIVE"] as const;
 type Mode = (typeof MODES)[number];
 
 function CameraPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("MOMENT");
+  const [mode, setMode] = useState<Mode>("POST");
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flash, setFlash] = useState(false);
   const [camReady, setCamReady] = useState(false);
@@ -157,10 +157,6 @@ function CameraPage() {
   };
 
   const onShutter = () => {
-    if (mode === "MOMENT") {
-      navigate({ to: "/moment/create" });
-      return;
-    }
     if (mode === "LIVE") {
       toast.success("You're live — say hi to your world");
       return;
@@ -177,10 +173,6 @@ function CameraPage() {
 
   const onPick = (file?: File) => {
     if (!file) return;
-    if (mode === "MOMENT") {
-      navigate({ to: "/moment/create" });
-      return;
-    }
     setShot({ url: URL.createObjectURL(file), type: file.type, name: file.name });
     setEditing(true);
   };
