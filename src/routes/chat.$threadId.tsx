@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
-  Mic, Send, Smile, Play, Pause, X, MicOff, BellOff, Trash2, ShieldAlert, UserX
+  Mic, Send, Smile, Play, Pause, X, MicOff,
+  Pencil, Lock, EyeOff, Clock, Camera, VideoOff, BellOff, UserX, Flag
 } from "lucide-react";
 
 export const Route = createFileRoute("/chat/$threadId")({
@@ -32,7 +33,6 @@ export function ChatThreadPage() {
     { id: 3, text: "Awesome! Let me know when it's live.", sender: "them", time: "8:25 PM" },
   ]);
 
-  // States
   const [showEmojis, setShowEmojis] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -43,12 +43,10 @@ export function ChatThreadPage() {
 
   const EMOJIS = ["👍", "❤️", "😂", "🔥", "🎉", "😍", "👏", "🙌", "🚀", "💯"];
 
-  // Auto Scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isRecording]);
 
-  // Timer for Voice Notes
   useEffect(() => {
     let timer: any;
     if (isRecording) {
@@ -59,7 +57,6 @@ export function ChatThreadPage() {
     return () => clearInterval(timer);
   }, [isRecording]);
 
-  // Local Camera for Video Calling
   useEffect(() => {
     let stream: MediaStream | null = null;
     if (activeCall === "video") {
@@ -73,15 +70,9 @@ export function ChatThreadPage() {
     return () => stream?.getTracks().forEach((t) => t.stop());
   }, [activeCall]);
 
-  // Auto Reply Simulation
   const triggerAutoReply = () => {
     setTimeout(() => {
-      const replies = [
-        "Sahi hai bhai!",
-        "Mast chal raha hai 🔥",
-        "Got it, bro!",
-        "Bilkul perfect lag raha hai 👌"
-      ];
+      const replies = ["Sahi hai bhai!", "Mast chal raha hai 🔥", "Got it, bro!", "Bilkul perfect lag raha hai 👌"];
       const randomReply = replies[Math.floor(Math.random() * replies.length)];
       setMessages((prev) => [
         ...prev,
@@ -134,7 +125,6 @@ export function ChatThreadPage() {
     }
   };
 
-  // Real Audio Recording (Inline Graceful Permission)
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -162,7 +152,7 @@ export function ChatThreadPage() {
       recorder.start();
       setIsRecording(true);
     } catch (err) {
-      console.error("Microphone access denied", err);
+      console.error("Microphone error", err);
     }
   };
 
@@ -201,27 +191,55 @@ export function ChatThreadPage() {
         <div className="flex items-center gap-4 text-zinc-300">
           <button onClick={() => setActiveCall("audio")} className="hover:text-white"><Phone size={20} /></button>
           <button onClick={() => setActiveCall("video")} className="hover:text-white"><Video size={20} /></button>
-          
-          {/* 3-DOTS OPTIONS BUTTON */}
-          <button onClick={() => setShowOptionsMenu(!showOptionsMenu)} className="hover:text-white">
-            <MoreVertical size={20} />
-          </button>
+          <button onClick={() => setShowOptionsMenu(!showOptionsMenu)} className="hover:text-white"><MoreVertical size={20} /></button>
         </div>
 
-        {/* TOP 3-DOTS MENU DROPDOWN */}
+        {/* 3-DOTS OPTIONS DROPDOWN WITH ALL 9 EXACT OPTIONS */}
         {showOptionsMenu && (
-          <div className="absolute right-4 top-14 w-48 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-            <button onClick={() => { setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 rounded-xl flex items-center gap-2.5">
-              <BellOff size={15} /> Mute Notifications
+          <div className="absolute right-4 top-14 w-60 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+            <button onClick={() => { const name = prompt("Enter new display name:"); if(name) alert(`Display name changed to ${name}`); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <Pencil size={16} className="text-zinc-400" />
+              <span>Change Display Name</span>
             </button>
-            <button onClick={() => { setMessages([]); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 rounded-xl flex items-center gap-2.5">
-              <Trash2 size={15} /> Clear Chat
+
+            <button onClick={() => { alert("Secret Lock Activated!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <Lock size={16} className="text-zinc-400" />
+              <span>Secret Lock Chat</span>
             </button>
-            <button onClick={() => { setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-2.5">
-              <UserX size={15} /> Block User
+
+            <button onClick={() => { alert("View Once Mode Toggled!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <EyeOff size={16} className="text-zinc-400" />
+              <span>View Once Mode</span>
             </button>
-            <button onClick={() => { setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-2.5">
-              <ShieldAlert size={15} /> Report
+
+            <button onClick={() => { alert("Auto Delete Messages Set!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <Clock size={16} className="text-zinc-400" />
+              <span>Auto Delete Messages</span>
+            </button>
+
+            <button onClick={() => { alert("Screenshot Alert Toggled!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <Camera size={16} className="text-zinc-400" />
+              <span>Screenshot Alert</span>
+            </button>
+
+            <button onClick={() => { alert("Screen Recording Alert Toggled!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <VideoOff size={16} className="text-zinc-400" />
+              <span>Screen Recording Alert</span>
+            </button>
+
+            <button onClick={() => { alert("Notifications Muted!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <BellOff size={16} className="text-zinc-400" />
+              <span>Mute Notifications</span>
+            </button>
+
+            <button onClick={() => { alert("User Blocked!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-3">
+              <UserX size={16} className="text-red-400" />
+              <span>Block User</span>
+            </button>
+
+            <button onClick={() => { alert("User Reported!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-3">
+              <Flag size={16} className="text-red-400" />
+              <span>Report User</span>
             </button>
           </div>
         )}
@@ -333,11 +351,9 @@ export function ChatThreadPage() {
         )}
       </div>
 
-      {/* REAL VIDEO/AUDIO CALL MODAL SCREEN */}
+      {/* CALL MODAL */}
       {activeCall && (
         <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col justify-between p-6 text-white animate-in fade-in duration-200">
-          
-          {/* Video Feed Background if Video Call */}
           {activeCall === "video" && (
             <video ref={callVideoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover z-0" />
           )}
@@ -356,14 +372,10 @@ export function ChatThreadPage() {
             <button onClick={() => setIsMuted(!isMuted)} className={`p-4 rounded-full backdrop-blur-md ${isMuted ? 'bg-red-500 text-white' : 'bg-zinc-800/80 text-white'}`}>
               <MicOff size={22} />
             </button>
-            <button
-              onClick={() => setActiveCall(null)}
-              className="p-5 bg-red-600 text-white rounded-full shadow-2xl active:scale-90"
-            >
+            <button onClick={() => setActiveCall(null)} className="p-5 bg-red-600 text-white rounded-full shadow-2xl active:scale-90">
               <X size={26} />
             </button>
           </div>
-
         </div>
       )}
 
