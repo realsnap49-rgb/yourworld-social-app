@@ -58,31 +58,34 @@ export function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white font-sans pb-28 select-none">
+    <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
       
-      {/* 1. TOP APP BAR */}
-      <div className="sticky top-0 z-40 bg-[#09090b]/90 border-b border-zinc-900/80 backdrop-blur-md px-4 py-3 flex items-center justify-between">
+      {/* 1. TOP APP BAR (DIL KA ICON + BADGE) */}
+      <div className="sticky top-0 z-40 bg-[#0d0d0f]/90 border-b border-zinc-900/50 backdrop-blur-md px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-black text-xs text-white">
+          <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-black text-xs text-white">
             YW
           </div>
-          <h1 className="text-lg font-bold text-white tracking-wide">YourWorld</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight">YourWorld</h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="p-1.5 text-zinc-300 hover:text-white">
+        <div className="flex items-center gap-4">
+          <button className="p-1 text-zinc-300 hover:text-white">
             <Search size={22} />
           </button>
-          <div className="relative">
-            <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-500/50 flex items-center justify-center text-pink-400 font-bold text-xs">
+          
+          {/* Heart Icon with 68 Notification Badge */}
+          <button className="relative p-1 text-zinc-300 hover:text-white">
+            <Heart size={24} />
+            <span className="absolute -top-1 -right-2 bg-pink-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full border border-[#0d0d0f]">
               68
-            </div>
-          </div>
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* 2. STORY TRAY (EXACT PHOTO MATCH) */}
-      <div className="px-4 py-4 overflow-x-auto flex items-center gap-4 scrollbar-none border-b border-zinc-900/60">
+      {/* 2. STORY TRAY (SAFED LINE BILKUL HATAYI GAYI H) */}
+      <div className="px-4 py-4 overflow-x-auto flex items-center gap-4 border-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         
         {/* Your Moment */}
         <div 
@@ -93,7 +96,7 @@ export function HomePage() {
             <div className="w-16 h-16 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
               Y
             </div>
-            <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#ec4899] border-2 border-[#09090b] flex items-center justify-center text-white">
+            <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#ec4899] border-2 border-[#0d0d0f] flex items-center justify-center text-white">
               <Plus size={12} strokeWidth={3} />
             </div>
           </div>
@@ -110,7 +113,7 @@ export function HomePage() {
         ].map((s) => (
           <div key={s.id} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform">
             <div className={`p-[2px] rounded-full border-2 ${s.ring}`}>
-              <div className={`w-15 h-15 rounded-full ${s.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#09090b]`}>
+              <div className={`w-15 h-15 rounded-full ${s.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#0d0d0f]`}>
                 {s.letter}
               </div>
             </div>
@@ -123,7 +126,7 @@ export function HomePage() {
       {/* 3. POST CARD FEED */}
       <div className="max-w-md mx-auto p-3 space-y-4">
         {posts.map((post) => (
-          <div key={post.id} className="bg-[#121215] border border-zinc-800/80 rounded-3xl overflow-hidden shadow-2xl p-1.5 space-y-3">
+          <div key={post.id} className="bg-[#141418] border border-zinc-800/80 rounded-3xl overflow-hidden shadow-2xl p-1.5 space-y-3">
             
             <div className="p-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -172,6 +175,33 @@ export function HomePage() {
 
           </div>
         ))}
+      </div>
+
+      {/* 4. FLOATING GLASS BOTTOM NAV */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md bg-[#1f1a2e]/90 border border-white/10 backdrop-blur-xl rounded-full p-2 px-4 shadow-2xl flex items-center justify-between">
+        <button onClick={() => navigate({ to: "/" })} className="flex flex-col items-center justify-center py-1 px-3 bg-zinc-800/80 rounded-2xl text-white">
+          <Home size={20} />
+          <span className="text-[10px] font-bold mt-0.5">Home</span>
+        </button>
+
+        <button className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
+          <Film size={20} />
+          <span className="text-[10px] font-semibold mt-0.5">Reels</span>
+        </button>
+
+        <button onClick={() => navigate({ to: "/moment/create" })} className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform">
+          <Plus size={26} />
+        </button>
+
+        <button onClick={() => navigate({ to: "/chat/$threadId", params: { threadId: "t1" } })} className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
+          <MessageSquare size={20} />
+          <span className="text-[10px] font-semibold mt-0.5">Chat</span>
+        </button>
+
+        <button className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
+          <User size={20} />
+          <span className="text-[10px] font-semibold mt-0.5">Profile</span>
+        </button>
       </div>
 
     </div>
