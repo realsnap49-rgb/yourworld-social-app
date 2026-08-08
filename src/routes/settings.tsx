@@ -1,128 +1,29 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import {
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Megaphone,
-  Globe2,
-  Lock,
-  Bell,
-  Palette,
-  HelpCircle,
-  Info,
-  LogOut,
-  type LucideIcon,
-} from "lucide-react";
-import { useOrbitAppPrefs } from "@/lib/orbit-prefs";
-import { useAuth } from "@/lib/auth-store";
+{/* Create Channel Option */}
+<div 
+  onClick={() => navigate({ to: "/channel/posts" })} 
+  className="flex items-center justify-between p-4 hover:bg-zinc-800/50 rounded-xl cursor-pointer"
+>
+  <div className="flex items-center gap-4">
+    <Megaphone className="text-zinc-400" size={20} />
+    <div>
+      <div className="font-semibold text-white">Create Channel</div>
+      <div className="text-xs text-zinc-500">Videos, reels, posts & analytics</div>
+    </div>
+  </div>
+  <ChevronRight className="text-zinc-600" size={20} />
+</div>
 
-export const Route = createFileRoute("/settings")({
-  head: () => ({
-    meta: [
-      { title: "Settings — YourWorld" },
-      {
-        name: "description",
-        content:
-          "Manage your YourWorld account, privacy, notifications and appearance preferences.",
-      },
-      { property: "og:title", content: "Settings — YourWorld" },
-      {
-        property: "og:description",
-        content: "Account, privacy, notifications and appearance settings on YourWorld.",
-      },
-    ],
-  }),
-  component: SettingsPage,
-});
-
-type Item = { label: string; hint?: string; icon: LucideIcon; danger?: boolean; to?: string };
-
-const items: Item[] = [
-  { label: "Account", icon: User, to: "/account" },
-  { label: "Create Channel", hint: "Videos, reels, posts & analytics", icon: Megaphone, to: "/channel" },
-  { label: "Orbit", hint: "Private social discovery", icon: Globe2, to: "/orbit" },
-  { label: "Privacy & Downloads", hint: "Blocked accounts", icon: Lock },
-  { label: "Notifications", hint: "Likes, Orbit, channel & system alerts", icon: Bell, to: "/notifications" },
-  { label: "Appearance", icon: Palette },
-  { label: "Help & Support", icon: HelpCircle },
-  { label: "About", icon: Info },
-  { label: "Log Out", icon: LogOut, danger: true },
-];
-
-function SettingsPage() {
-  const { hideOrbitEntry } = useOrbitAppPrefs();
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const visibleItems = items.filter((i) => !(hideOrbitEntry && i.to === "/orbit"));
-
-  const handleLogout = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await signOut();
-    navigate({ to: "/auth", replace: true });
-  };
-
-  return (
-    <main className="min-h-screen pb-10">
-      <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border glass px-3 py-3">
-        <Link
-          to="/profile"
-          aria-label="Back to profile"
-          className="grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90"
-        >
-          <ChevronLeft className="h-5 w-5" strokeWidth={1.8} />
-        </Link>
-        <h1 className="font-display text-lg font-bold">Settings</h1>
-      </header>
-
-      <div className="px-4 pt-5">
-        <ul className="surface-card overflow-hidden rounded-3xl">
-          {visibleItems.map((item, i) => {
-            const inner = (
-              <>
-                <span
-                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
-                    item.danger ? "bg-destructive/15 text-destructive" : "chip"
-                  }`}
-                >
-                  <item.icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`block truncate text-sm font-medium ${item.danger ? "text-destructive" : ""}`}
-                  >
-                    {item.label}
-                  </span>
-                  {item.hint ? (
-                    <span className="block truncate text-xs text-muted-foreground">{item.hint}</span>
-                  ) : null}
-                </span>
-                {!item.danger && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-              </>
-            );
-            const cls =
-              "flex w-full items-center gap-3.5 border-b border-border px-4 py-3.5 text-left transition-colors last:border-0 hover:bg-[color-mix(in_oklab,var(--foreground)_6%,transparent)] active:bg-[color-mix(in_oklab,var(--foreground)_9%,transparent)]";
-            return (
-              <li key={item.label} className="animate-rise" style={{ animationDelay: `${i * 28}ms` }}>
-                {item.to ? (
-                  <Link to={item.to} className={cls}>
-                    {inner}
-                  </Link>
-                ) : (
-                  <button
-                    className={cls}
-                    onClick={item.label === "Log Out" ? handleLogout : undefined}
-                  >
-                    {inner}
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </main>
-  );
-}
+{/* Orbit Option */}
+<div 
+  onClick={() => navigate({ to: "/orbit" })} 
+  className="flex items-center justify-between p-4 hover:bg-zinc-800/50 rounded-xl cursor-pointer"
+>
+  <div className="flex items-center gap-4">
+    <Orbit className="text-zinc-400" size={20} />
+    <div>
+      <div className="font-semibold text-white">Orbit</div>
+      <div className="text-xs text-zinc-500">Private social discovery</div>
+    </div>
+  </div>
+  <ChevronRight className="text-zinc-600" size={20} />
+</div>
