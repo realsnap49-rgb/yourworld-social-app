@@ -830,9 +830,6 @@ function MomentStudio() {
             </div>
           )}
 
-          {panel === "trim" && trim && (
-            <></>
-          )}
           {panel === "crop" && (
             <div className="space-y-4 pt-4">
               <div>
