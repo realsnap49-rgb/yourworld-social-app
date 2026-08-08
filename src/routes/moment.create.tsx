@@ -157,6 +157,8 @@ function MomentStudio() {
   const clearDraw = useRef<() => void>(() => {});
   const [trim, setTrim] = useState<{ start: number; end: number } | null>(null);
   const [videoDur, setVideoDur] = useState(0);
+  const [crop, setCrop] = useState<CropTransform>({ zoom: 1, x: 0, y: 0 });
+  const [cropRatio, setCropRatio] = useState<CropRatio>("original");
   const [location, setLocation] = useState<string | undefined>();
   const [mentions, setMentions] = useState<string[]>([]);
   const [ai, setAi] = useState<Partial<Record<AiTool, boolean>>>({});
