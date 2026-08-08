@@ -745,6 +745,12 @@ function MomentStudio() {
               <Tool icon={<Type />} label="Text" onClick={() => addSticker("Tap to edit", "text", inkColor)} />
               <Tool icon={<Smile />} label="Stickers" active={stickers.some((s) => s.type !== "text")} onClick={() => setPanel("stickers")} />
               <Tool icon={<Pencil />} label="Draw" active={!!drawing} onClick={() => setPanel("draw")} />
+              <Tool
+                icon={<Crop />}
+                label="Crop"
+                active={cropRatio !== "original" || crop.zoom > 1.001}
+                onClick={() => setPanel("crop")}
+              />
               <Tool icon={<Music2 />} label="Music" active={!!music} onClick={() => setPanel("music")} />
               <Tool icon={<Sparkles />} label="Effects" active={effect !== "none"} onClick={() => setPanel("effects")} />
               {isVideo && <Tool icon={<Scissors />} label="Trim" active={!!trim} onClick={() => setPanel("trim")} />}
