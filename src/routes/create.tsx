@@ -76,7 +76,13 @@ function CameraPage() {
     async function start() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1080 }, height: { ideal: 1920 } },
+          video: {
+            facingMode: facing,
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
+            // no digital zoom / crop — request the full sensor frame
+            advanced: [{ zoom: 1 } as MediaTrackConstraintSet],
+          },
           audio: true,
         });
         if (cancelled) {
@@ -84,6 +90,16 @@ function CameraPage() {
           return;
         }
         streamRef.current = stream;
+        // reset any residual digital zoom / pan / tilt the device applied
+        const track = stream.getVideoTracks()[0];
+        if (track) {
+          const caps = track.getCapabilities?.() as Record<string, unknown> | undefined;
+          if (caps && "zoom" in caps) {
+            await track
+              .applyConstraints({ advanced: [{ zoom: 1 } as MediaTrackConstraintSet] })
+              .catch(() => {});
+          }
+        }
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
