@@ -61,7 +61,7 @@ function SettingsPage() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await signOut();
-    navigate({ to: "/auth", replace: true, search: {} });
+    navigate({ to: "/auth", replace: true });
   };
 
   return (

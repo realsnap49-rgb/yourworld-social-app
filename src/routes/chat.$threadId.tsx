@@ -481,13 +481,15 @@ function ChatThreadPage() {
         </button>
       </div>
 
-      <RtcCallSheet
-        mode={call}
-        roomId={threadId}
-        selfId={currentUser?.id ?? "anon"}
-        peerName="Active User"
-        onClose={() => setCall(null)}
-      />
+      {call && (
+        <RtcCallSheet
+          open={call !== null}
+          onOpenChange={(o) => !o && setCall(null)}
+          conversationId={threadId}
+          mode={call}
+          recipientName="Active User"
+        />
+      )}
     </div>
   );
 }
