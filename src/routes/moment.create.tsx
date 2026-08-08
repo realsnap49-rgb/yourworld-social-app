@@ -30,6 +30,8 @@ import {
   Undo2,
   ChevronRight,
   Palette,
+  Crop,
+  ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +44,13 @@ import { toast } from "sonner";
 import { users } from "@/lib/yw-data";
 import { DraggableLayer } from "@/components/yw/moment/DraggableLayer";
 import { DrawCanvas } from "@/components/yw/moment/DrawCanvas";
+import {
+  ZoomPanSurface,
+  clampPan,
+  MIN_ZOOM,
+  MAX_ZOOM,
+  type CropTransform,
+} from "@/components/yw/moment/ZoomPanSurface";
 import {
   MOMENT_EMOJI,
   MOMENT_GIFS,
@@ -108,8 +117,26 @@ const PRIVACY: { id: MomentPrivacy; label: string; hint: string }[] = [
 
 const INK = ["#ffffff", "#ff4d8d", "#7cf2d8", "#ffd166", "#8b7cff", "#0a0a0a"];
 
+const CROP_RATIOS = [
+  { id: "original", label: "Original", value: 0 },
+  { id: "9:16", label: "9:16", value: 9 / 16 },
+  { id: "4:5", label: "4:5", value: 4 / 5 },
+  { id: "1:1", label: "1:1", value: 1 },
+] as const;
+type CropRatio = (typeof CROP_RATIOS)[number]["id"];
+
 type Stage = "capture" | "edit";
-type Panel = null | "music" | "stickers" | "location" | "mentions" | "effects" | "draw" | "trim" | "post";
+type Panel =
+  | null
+  | "music"
+  | "stickers"
+  | "location"
+  | "mentions"
+  | "effects"
+  | "draw"
+  | "trim"
+  | "crop"
+  | "post";
 
 function MomentStudio() {
   const navigate = useNavigate();
