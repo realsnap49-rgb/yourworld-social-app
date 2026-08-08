@@ -43,7 +43,7 @@ export function SettingsPage() {
           <ChevronRight className="text-zinc-600" size={18} />
         </div>
 
-        {/* Orbit */}
+        {/* Orbit (Direct Navigation to Orbit Index) */}
         <div onClick={() => navigate({ to: "/orbit" })} className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer">
           <div className="flex items-center gap-4">
             <Orbit className="text-zinc-400" size={20} />
