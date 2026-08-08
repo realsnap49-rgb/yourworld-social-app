@@ -214,7 +214,7 @@ function CameraPage() {
         playsInline
         muted
         className={cn(
-          "absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
+          "absolute inset-0 h-full w-full object-contain transition-opacity duration-500",
           camReady ? "opacity-100" : "opacity-0",
           facing === "user" && "-scale-x-100",
         )}
