@@ -1,38 +1,181 @@
-{/* STORY TRAY (EXACT MATCH) */}
-      <div className="px-4 py-3 overflow-x-auto flex items-center gap-4 scrollbar-none border-b border-zinc-900/60">
+import React, { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
+  Plus, Home, Film, MessageSquare, User
+} from "lucide-react";
+
+export const Route = createFileRoute("/")({
+  component: HomePage,
+});
+
+type Post = {
+  id: number;
+  user: { name: string; handle: string; location: string; avatarColor: string; letter: string };
+  image: string;
+  caption: string;
+  likes: number;
+  commentsCount: number;
+  timeAgo: string;
+  isLiked: boolean;
+  isSaved: boolean;
+};
+
+export function HomePage() {
+  const navigate = useNavigate();
+
+  const [posts, setPosts] = useState<Post[]>([
+    {
+      id: 101,
+      user: {
+        name: "Riko Tan",
+        handle: "@riko.night",
+        location: "Tokyo, Japan",
+        avatarColor: "bg-[#8b2fc9]",
+        letter: "R"
+      },
+      image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800",
+      caption: "Shinjuku after the rain. The signs do all the talking. 🌃✨",
+      likes: 12800,
+      commentsCount: 89,
+      timeAgo: "2h ago",
+      isLiked: false,
+      isSaved: false
+    }
+  ]);
+
+  const toggleLike = (postId: number) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        return { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 };
+      }
+      return p;
+    }));
+  };
+
+  const toggleSave = (postId: number) => {
+    setPosts(prev => prev.map(p => (p.id === postId ? { ...p, isSaved: !p.isSaved } : p)));
+  };
+
+  return (
+    <div className="min-h-screen bg-[#09090b] text-white font-sans pb-28 select-none">
+      
+      {/* 1. TOP APP BAR */}
+      <div className="sticky top-0 z-40 bg-[#09090b]/90 border-b border-zinc-900/80 backdrop-blur-md px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-black text-xs text-white">
+            YW
+          </div>
+          <h1 className="text-lg font-bold text-white tracking-wide">YourWorld</h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button className="p-1.5 text-zinc-300 hover:text-white">
+            <Search size={22} />
+          </button>
+          <div className="relative">
+            <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-500/50 flex items-center justify-center text-pink-400 font-bold text-xs">
+              68
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. STORY TRAY (EXACT PHOTO MATCH) */}
+      <div className="px-4 py-4 overflow-x-auto flex items-center gap-4 scrollbar-none border-b border-zinc-900/60">
         
-        {/* Your Moment (Y + Pink Plus Badge) */}
+        {/* Your Moment */}
         <div 
           onClick={() => navigate({ to: "/moment/create" })} 
-          className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 transition-transform"
+          className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform"
         >
           <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-pink-500/80 border-2 border-pink-400 flex items-center justify-center font-bold text-2xl text-white shadow-lg">
+            <div className="w-16 h-16 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
               Y
             </div>
-            <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 border-2 border-black flex items-center justify-center text-white">
+            <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#ec4899] border-2 border-[#09090b] flex items-center justify-center text-white">
               <Plus size={12} strokeWidth={3} />
             </div>
           </div>
-          <span className="text-[11px] font-semibold text-zinc-300">Your moment</span>
+          <span className="text-[11px] font-medium text-zinc-300">Your moment</span>
         </div>
 
-        {/* Friends Stories (R, M, A, N, K with exact colors) */}
+        {/* Friends Stories */}
         {[
-          { id: 1, name: "riko.night", letter: "R", bg: "bg-purple-600", ring: "border-pink-500" },
-          { id: 2, name: "sea.salt", letter: "M", bg: "bg-teal-500", ring: "border-teal-400" },
-          { id: 3, name: "spinsolo", letter: "A", bg: "bg-orange-500", ring: "border-orange-400" },
-          { id: 4, name: "slowbrunch", letter: "N", bg: "bg-red-600", ring: "border-red-500" },
-          { id: 5, name: "wavelen", letter: "K", bg: "bg-sky-500", ring: "border-blue-400" },
+          { id: 1, name: "riko.night", letter: "R", bg: "bg-[#7e22ce]", ring: "border-[#ec4899]" },
+          { id: 2, name: "sea.salt", letter: "M", bg: "bg-[#0d9488]", ring: "border-[#14b8a6]" },
+          { id: 3, name: "spinsolo", letter: "A", bg: "bg-[#ea580c]", ring: "border-[#f97316]" },
+          { id: 4, name: "slowbrunch", letter: "N", bg: "bg-[#dc2626]", ring: "border-[#ef4444]" },
+          { id: 5, name: "wavelen", letter: "K", bg: "bg-[#0284c7]", ring: "border-[#38bdf8]" },
         ].map((s) => (
-          <div key={s.id} className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 transition-transform">
+          <div key={s.id} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform">
             <div className={`p-[2px] rounded-full border-2 ${s.ring}`}>
-              <div className={`w-15 h-15 rounded-full ${s.bg} flex items-center justify-center font-bold text-2xl text-white border border-black shadow-md`}>
+              <div className={`w-15 h-15 rounded-full ${s.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#09090b]`}>
                 {s.letter}
               </div>
             </div>
-            <span className="text-[11px] font-semibold text-zinc-300 w-16 truncate text-center">{s.name}</span>
+            <span className="text-[11px] font-medium text-zinc-300 w-16 truncate text-center">{s.name}</span>
           </div>
         ))}
 
       </div>
+
+      {/* 3. POST CARD FEED */}
+      <div className="max-w-md mx-auto p-3 space-y-4">
+        {posts.map((post) => (
+          <div key={post.id} className="bg-[#121215] border border-zinc-800/80 rounded-3xl overflow-hidden shadow-2xl p-1.5 space-y-3">
+            
+            <div className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-full ${post.user.avatarColor} border border-pink-500/80 flex items-center justify-center font-bold text-base text-white`}>
+                  {post.user.letter}
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-sm text-white leading-tight">{post.user.handle}</span>
+                  <span className="text-[10px] text-zinc-400">{post.user.location}</span>
+                </div>
+              </div>
+              <button className="text-zinc-400 hover:text-white p-1">
+                <MoreHorizontal size={18} />
+              </button>
+            </div>
+
+            <div className="relative w-full aspect-square bg-zinc-900 rounded-2xl overflow-hidden">
+              <img src={post.image} alt="Post" className="w-full h-full object-cover" />
+            </div>
+
+            <div className="px-3 pb-3 space-y-2">
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center gap-4">
+                  <button onClick={() => toggleLike(post.id)} className="active:scale-75 transition-transform">
+                    <Heart size={22} className={post.isLiked ? "fill-pink-500 text-pink-500" : "text-zinc-300"} />
+                  </button>
+                  <button className="text-zinc-300 active:scale-75 transition-transform">
+                    <MessageCircle size={22} />
+                  </button>
+                  <button className="text-zinc-300 active:scale-75 transition-transform">
+                    <Send size={20} />
+                  </button>
+                </div>
+
+                <button onClick={() => toggleSave(post.id)} className="text-zinc-300 active:scale-75 transition-transform">
+                  <Bookmark size={22} className={post.isSaved ? "fill-white text-white" : "text-zinc-300"} />
+                </button>
+              </div>
+
+              <div className="text-xs font-bold text-white">12.8K likes</div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                <span className="font-bold mr-1.5 text-white">{post.user.handle}</span>
+                {post.caption}
+              </p>
+            </div>
+
+          </div>
+        ))}
+      </div>
+
+    </div>
+  );
+}
+
+export default HomePage;
