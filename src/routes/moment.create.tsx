@@ -46,7 +46,6 @@ import { DraggableLayer } from "@/components/yw/moment/DraggableLayer";
 import { DrawCanvas } from "@/components/yw/moment/DrawCanvas";
 import {
   ZoomPanSurface,
-  clampPan,
   MIN_ZOOM,
   MAX_ZOOM,
   type CropTransform,
@@ -355,6 +354,10 @@ function MomentStudio() {
       stickers,
       drawing,
       trim: trim ?? undefined,
+      crop:
+        crop.zoom > 1.001 || cropRatio !== "original"
+          ? { ...crop, ratio: cropRatio, frameW: stageSize.w, frameH: stageSize.h }
+          : undefined,
       location,
       mentions,
       privacy,
