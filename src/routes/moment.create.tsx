@@ -831,6 +831,72 @@ function MomentStudio() {
           )}
 
           {panel === "trim" && trim && (
+            <></>
+          )}
+          {panel === "crop" && (
+            <div className="space-y-4 pt-4">
+              <div>
+                <SectionTitle>Frame</SectionTitle>
+                <div className="grid grid-cols-4 gap-2">
+                  {CROP_RATIOS.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => setCropRatio(r.id)}
+                      className={cn(
+                        "rounded-2xl border py-3 text-[11.5px] font-semibold transition-all active:scale-95",
+                        cropRatio === r.id
+                          ? "border-primary/60 bg-primary/15"
+                          : "border-white/12 bg-white/6 text-white/70",
+                      )}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <SectionTitle>Zoom</SectionTitle>
+                <div className="flex items-center gap-3">
+                  <ZoomIn className="h-4 w-4 text-white/60" />
+                  <input
+                    type="range"
+                    min={MIN_ZOOM}
+                    max={MAX_ZOOM}
+                    step={0.01}
+                    value={crop.zoom}
+                    aria-label="Zoom"
+                    onChange={(e) => setZoomFromSlider(Number(e.target.value))}
+                    className="h-1 flex-1 accent-white"
+                  />
+                  <span className="w-10 text-right text-[11px] tabular-nums text-white/60">
+                    {crop.zoom.toFixed(1)}x
+                  </span>
+                </div>
+                <p className="pt-2 text-[11px] text-white/45">
+                  Pinch, scroll or drag on the preview to reframe.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    resetCrop();
+                    setCropRatio("original");
+                  }}
+                  className="h-11 flex-1 rounded-full"
+                >
+                  Reset
+                </Button>
+                <Button
+                  onClick={() => setPanel(null)}
+                  className="h-11 flex-1 rounded-full brand-gradient text-primary-foreground"
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
+          {panel === "trim" && trim && (
             <div className="space-y-4 pt-4">
               <div className="flex items-center justify-between text-xs text-white/60">
                 <span>{trim.start.toFixed(1)}s</span>
