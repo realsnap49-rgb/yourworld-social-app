@@ -1,495 +1,125 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
-import {
-  ArrowLeft,
-  Camera,
-  Image as ImageIcon,
-  Mic,
-  SendHorizontal,
-  Check,
-  CheckCheck,
-  Play,
-  Phone,
-  Video,
-  MoreVertical,
-  MapPin,
-  Lock,
-  Eye,
-  BellOff,
-  UserX,
-  Flag,
-  Calendar,
-  Edit2,
-  Trash2,
-  Loader2,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { RtcCallSheet, type RtcMode } from "@/components/yw/RtcCallSheet";
-import { toast } from "sonner";
+import React, { useState, useRef, useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon, Mic, Send, Smile } from "lucide-react";
 
 export const Route = createFileRoute("/chat/$threadId")({
   component: ChatThreadPage,
 });
 
-interface Message {
-  id: string;
-  thread_id: string;
-  sender_id: string;
-  content: string;
-  media_url?: string | null;
-  media_type?: string | null;
-  created_at: string;
-  is_read?: boolean | null;
-}
-
-const CHAT_BUCKET = "chat-files";
-
-/** Private bucket → resolve a temporary signed URL for rendering. */
-function useSignedUrl(path?: string | null) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    if (!path) {
-      setUrl(null);
-      return;
-    }
-    if (/^https?:\/\//.test(path)) {
-      setUrl(path);
-      return;
-    }
-    supabase.storage
-      .from(CHAT_BUCKET)
-      .createSignedUrl(path, 60 * 60)
-      .then(({ data }) => {
-        if (alive) setUrl(data?.signedUrl ?? null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [path]);
-  return url;
-}
-
-function ChatImage({ path }: { path?: string | null }) {
-  const url = useSignedUrl(path);
-  if (!url) return <div className="mb-2 h-40 w-40 animate-pulse rounded-lg bg-zinc-700" />;
-  return <img src={url} alt="Shared media" className="rounded-lg mb-2 max-h-60 object-cover" />;
-}
-
-function ChatAudio({ path }: { path?: string | null }) {
-  const url = useSignedUrl(path);
-  if (!url) return null;
-  return <audio controls src={url} className="w-full my-1" />;
-}
-
-function ChatThreadPage() {
-  const { threadId } = Route.useParams();
+export function ChatThreadPage() {
   const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [showOptions, setShowOptions] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-  const [pin, setPin] = useState("");
-  const [userPinInput, setUserPinInput] = useState("");
-  const [isViewOnce, setIsViewOnce] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [call, setCall] = useState<RtcMode | null>(null);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([
+    { id: 1, text: "Hey! How's it going?", sender: "them", time: "8:20 PM" },
+    { id: 2, text: "All good bro! Working on the app layout.", sender: "me", time: "8:22 PM" },
+    { id: 3, text: "Awesome! Let me know when it's live.", sender: "them", time: "8:25 PM" },
+  ]);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  const upsertMessage = (m: Message) =>
-    setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-
-  // Fetch current user & setup realtime subscription
+  // Auto Scroll to Bottom on New Message
   useEffect(() => {
-    async function initChat() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-
-      // Fetch existing messages
-      const { data, error } = await supabase
-        .from("direct_messages")
-        .select("*")
-        .eq("thread_id", threadId)
-        .order("created_at", { ascending: true });
-
-      if (!error && data) {
-        setMessages(data);
-      }
-    }
-
-    initChat();
-
-    // Supabase Realtime Channel — live inserts/updates for this thread
-    const channel = supabase
-      .channel(`chat_${threadId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "direct_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
-        (payload) => {
-          upsertMessage(payload.new as Message);
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "direct_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
-        (payload) => {
-          const next = payload.new as Message;
-          setMessages((prev) => prev.map((m) => (m.id === next.id ? next : m)));
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "direct_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
-        (payload) => {
-          const gone = payload.old as { id?: string };
-          setMessages((prev) => prev.filter((m) => m.id !== gone.id));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [threadId]);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send Text Message
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
-    if (!currentUser?.id) {
-      toast.error("Please sign in to send messages.");
-      return;
-    }
-
-    const newMsg = {
-      thread_id: threadId,
-      sender_id: currentUser.id,
-      content: inputText,
-      media_type: "text",
-    };
-
-    setInputText("");
-
-    const { data, error } = await supabase
-      .from("direct_messages")
-      .insert([newMsg])
-      .select()
-      .single();
-    if (error) {
-      console.error("Error sending message:", error);
-      toast.error("Message not sent: " + error.message);
-      setInputText(newMsg.content);
-      return;
-    }
-    if (data) upsertMessage(data as Message);
+  const handleSend = () => {
+    if (!message.trim()) return;
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), text: message, sender: "me", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+    ]);
+    setMessage("");
   };
-
-  // Image Upload
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!currentUser?.id) {
-      alert("Please sign in to share photos.");
-      return;
-    }
-
-    try {
-      setUploading(true);
-      const filePath = `${currentUser.id}/${threadId}/${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
-      const { error: uploadError } = await supabase.storage
-        .from(CHAT_BUCKET)
-        .upload(filePath, file, { contentType: file.type, upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data: inserted, error: insertError } = await supabase.from("direct_messages").insert([
-        {
-          thread_id: threadId,
-          sender_id: currentUser.id,
-          content: isViewOnce ? "📷 View once photo" : "📷 Photo",
-          media_url: filePath,
-          media_type: "image",
-        },
-      ]).select().single();
-      if (insertError) throw insertError;
-      if (inserted) upsertMessage(inserted as Message);
-    } catch (err: any) {
-      toast.error("Image upload failed: " + err.message);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
-
-  // Voice Note Recording
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        if (!currentUser?.id) return;
-        const filePath = `${currentUser.id}/${threadId}/voice-${Date.now()}.webm`;
-
-        setUploading(true);
-        const { error } = await supabase.storage
-          .from(CHAT_BUCKET)
-          .upload(filePath, audioBlob, { contentType: "audio/webm" });
-
-        if (!error) {
-          const { data: inserted } = await supabase.from("direct_messages").insert([
-            {
-              thread_id: threadId,
-              sender_id: currentUser.id,
-              content: "🎙️ Voice message",
-              media_url: filePath,
-              media_type: "audio",
-            },
-          ]).select().single();
-          if (inserted) upsertMessage(inserted as Message);
-        } else {
-          toast.error("Voice note upload failed: " + error.message);
-        }
-        setUploading(false);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (err) {
-      alert("Microphone access denied!");
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  // Share Live Location
-  const shareLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      if (!currentUser?.id) return;
-      const { latitude, longitude } = position.coords;
-      const locUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-
-      const { data: inserted } = await supabase.from("direct_messages").insert([
-        {
-          thread_id: threadId,
-          sender_id: currentUser.id,
-          content: `📍 Live Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-          media_url: locUrl,
-          media_type: "location",
-        },
-      ]).select().single();
-      if (inserted) upsertMessage(inserted as Message);
-      setShowOptions(false);
-    });
-  };
-
-  // Lock Chat
-  const handleLockChat = () => {
-    const userPin = prompt("Enter a 4-digit PIN to lock this chat:");
-    if (userPin) {
-      setPin(userPin);
-      setIsLocked(true);
-      setShowOptions(false);
-      alert("Chat locked successfully!");
-    }
-  };
-
-  if (isLocked) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center bg-black text-white p-6">
-        <Lock className="h-16 w-16 text-primary mb-4" />
-        <h2 className="text-xl font-bold mb-2">Secret Locked Chat</h2>
-        <p className="text-sm text-gray-400 mb-6">Enter PIN to view messages</p>
-        <input
-          type="password"
-          maxLength={4}
-          value={userPinInput}
-          onChange={(e) => setUserPinInput(e.target.value)}
-          placeholder="ENTER PIN"
-          className="bg-zinc-900 border border-zinc-700 text-center text-2xl tracking-widest px-4 py-2 rounded-lg w-40 mb-4"
-        />
-        <button
-          onClick={() => {
-            if (userPinInput === pin) setIsLocked(false);
-            else alert("Incorrect PIN!");
-          }}
-          className="bg-primary px-6 py-2 rounded-lg font-semibold"
-        >
-          Unlock Chat
-        </button>
-      </div>
-    );
-  }
 
   return (
-    <div className="flex h-screen flex-col bg-black text-white">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800 p-4">
+    <div className="fixed inset-0 z-50 bg-black text-white font-sans flex flex-col justify-between overflow-hidden">
+      
+      {/* 1. TOP HEADER (Fixed at top, Premium Glassmorphism) */}
+      <div className="flex items-center justify-between px-4 py-3 bg-zinc-950/90 border-b border-zinc-800/80 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
-          <Link to="/chat">
-            <ArrowLeft className="h-6 w-6" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center font-bold">
+          <button onClick={() => navigate({ to: ".." })} className="p-1 text-zinc-300 hover:text-white active:scale-90 transition-transform">
+            <ArrowLeft size={22} />
+          </button>
+          
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md">
               U
             </div>
-            <div>
-              <h3 className="font-semibold text-sm">Active User</h3>
-              <span className="text-xs text-emerald-400">Online</span>
-            </div>
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full" />
+          </div>
+
+          <div className="flex flex-col">
+            <span className="font-bold text-sm leading-tight text-white">Active User</span>
+            <span className="text-[11px] text-emerald-400 font-medium">Online</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button
-            aria-label="Start voice call"
-            onClick={() =>
-              currentUser?.id ? setCall("voice") : toast.error("Sign in to start a call.")
-            }
-          >
-            <Phone className="h-5 w-5 text-gray-300 hover:text-white" />
-          </button>
-          <button
-            aria-label="Start video call"
-            onClick={() =>
-              currentUser?.id ? setCall("video") : toast.error("Sign in to start a call.")
-            }
-          >
-            <Video className="h-5 w-5 text-gray-300 hover:text-white" />
-          </button>
-          <button onClick={() => setShowOptions(!showOptions)}>
-            <MoreVertical className="h-5 w-5 text-gray-300 hover:text-white" />
-          </button>
+        <div className="flex items-center gap-4 text-zinc-300">
+          <button className="hover:text-white active:scale-90 transition-transform"><Phone size={20} /></button>
+          <button className="hover:text-white active:scale-90 transition-transform"><Video size={20} /></button>
+          <button className="hover:text-white active:scale-90 transition-transform"><MoreVertical size={20} /></button>
         </div>
       </div>
 
-      {/* Options Dropdown Menu */}
-      {showOptions && (
-        <div className="absolute top-16 right-4 z-50 w-60 rounded-xl bg-zinc-900 p-2 shadow-2xl border border-zinc-800 text-sm flex flex-col gap-1">
-          <button onClick={shareLocation} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
-            <MapPin className="h-4 w-4 text-emerald-400" /> Share Live Location
-          </button>
-          <button onClick={handleLockChat} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
-            <Lock className="h-4 w-4 text-amber-400" /> Secret Lock Chat
-          </button>
-          <button onClick={() => { setIsViewOnce(!isViewOnce); setShowOptions(false); }} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
-            <Eye className="h-4 w-4 text-blue-400" /> View Once Mode ({isViewOnce ? "ON" : "OFF"})
-          </button>
-          <button onClick={() => { alert("Notifications Muted"); setShowOptions(false); }} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg">
-            <BellOff className="h-4 w-4 text-gray-400" /> Mute Notifications
-          </button>
-          <button onClick={() => { alert("User Blocked"); setShowOptions(false); }} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg text-rose-500">
-            <UserX className="h-4 w-4" /> Block User
-          </button>
-        </div>
-      )}
-
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => {
-          const isMe = msg.sender_id === (currentUser?.id || "anon");
-          return (
-            <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${isMe ? "bg-gradient-to-r from-purple-600 to-pink-600" : "bg-zinc-800"}`}>
-                {msg.media_type === "image" && msg.media_url && (
-                  <ChatImage path={msg.media_url} />
-                )}
-                {msg.media_type === "audio" && msg.media_url && (
-                  <ChatAudio path={msg.media_url} />
-                )}
-                {msg.media_type === "location" && (
-                  <a href={msg.media_url ?? "#"} target="_blank" rel="noreferrer" className="underline text-blue-300 font-medium">
-                    {msg.content}
-                  </a>
-                )}
-                {msg.media_type !== "location" && <p>{msg.content}</p>}
-                <span className="text-[10px] text-gray-300 block text-right mt-1 opacity-70">
-                  {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
+      {/* 2. CHAT MESSAGES AREA (Fills exact middle space, Smooth Scroll) */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-zinc-950/50">
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className={`flex flex-col ${m.sender === "me" ? "items-end" : "items-start"}`}
+          >
+            <div
+              className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                m.sender === "me"
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-br-xs"
+                  : "bg-zinc-800/90 text-zinc-100 rounded-bl-xs border border-zinc-700/50"
+              }`}
+            >
+              {m.text}
             </div>
-          );
-        })}
-        <div ref={chatEndRef} />
+            <span className="text-[10px] text-zinc-500 mt-1 px-1">{m.time}</span>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Bar */}
-      <div className="p-3 border-t border-zinc-800 flex items-center gap-2">
-        <label className="cursor-pointer p-2 text-gray-400 hover:text-white">
-          <ImageIcon className="h-5 w-5" />
-          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-        </label>
+      {/* 3. INPUT BAR (Fixed at bottom, No Overflow, Premium Fit) */}
+      <div className="p-3 bg-zinc-950/95 border-t border-zinc-800/80 backdrop-blur-md flex items-center gap-2 shrink-0">
+        <button className="p-2 text-zinc-400 hover:text-white active:scale-90 transition-transform">
+          <ImageIcon size={22} />
+        </button>
+        <button className="p-2 text-zinc-400 hover:text-white active:scale-90 transition-transform">
+          <Mic size={22} />
+        </button>
+
+        <div className="flex-1 relative flex items-center">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            placeholder="Message..."
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-2.5 pl-4 pr-10 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
+          />
+          <button className="absolute right-3 text-zinc-400 hover:text-white">
+            <Smile size={18} />
+          </button>
+        </div>
 
         <button
-          onClick={isRecording ? stopRecording : startRecording}
-          className={`p-2 rounded-full ${isRecording ? "bg-red-600 animate-pulse text-white" : "text-gray-400 hover:text-white"}`}
+          onClick={handleSend}
+          className={`p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            message.trim()
+              ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg"
+              : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+          }`}
         >
-          <Mic className="h-5 w-5" />
-        </button>
-
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          placeholder={isRecording ? "Recording audio..." : "Message..."}
-          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-zinc-700"
-        />
-
-        <button onClick={handleSendMessage} className="p-2 text-primary hover:text-primary/80">
-          <SendHorizontal className="h-5 w-5" />
+          <Send size={18} className="translate-x-0.5" />
         </button>
       </div>
 
-      {call && (
-        <RtcCallSheet
-          open={call !== null}
-          onOpenChange={(o) => !o && setCall(null)}
-          conversationId={threadId}
-          mode={call}
-          recipientName="Active User"
-        />
-      )}
     </div>
   );
 }
+
+export default ChatThreadPage;
