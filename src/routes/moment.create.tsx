@@ -409,6 +409,7 @@ function MomentStudio() {
       {/* ---------- stage / viewport ---------- */}
       <div
         className="relative flex-1 overflow-hidden"
+        ref={stageRef}
         onPointerDown={stage === "capture" ? onSwipeStart : undefined}
         onPointerUp={stage === "capture" ? onSwipeEnd : undefined}
       >
@@ -458,33 +459,53 @@ function MomentStudio() {
             )}
           </>
         ) : (
-          <div className="relative h-full w-full">
-            {isVideo ? (
-              <video
-                ref={previewVideo}
-                src={media!.url}
-                autoPlay
-                loop
-                muted
-                playsInline
-                style={{ filter }}
-                onLoadedMetadata={(e) => {
-                  const d = e.currentTarget.duration;
-                  if (Number.isFinite(d)) {
-                    setVideoDur(d);
-                    setTrim((t) => t ?? { start: 0, end: d });
-                  }
-                  e.currentTarget.playbackRate = effect === "slowmo" ? 0.5 : 1;
-                }}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <img
-                src={media!.url}
-                alt="Moment preview"
-                style={{ filter }}
-                className={cn("h-full w-full object-cover", effect === "boomerang" && "animate-pulse")}
-              />
+          <div className="relative grid h-full w-full place-items-center">
+            <ZoomPanSurface
+              value={crop}
+              onChange={setCrop}
+              disabled={drawMode}
+              className="relative bg-black"
+              style={cropBox}
+            >
+              {isVideo ? (
+                <video
+                  ref={previewVideo}
+                  src={media!.url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{ filter }}
+                  onLoadedMetadata={(e) => {
+                    const d = e.currentTarget.duration;
+                    if (Number.isFinite(d)) {
+                      setVideoDur(d);
+                      setTrim((t) => t ?? { start: 0, end: d });
+                    }
+                    e.currentTarget.playbackRate = effect === "slowmo" ? 0.5 : 1;
+                  }}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <img
+                  src={media!.url}
+                  alt="Moment preview"
+                  style={{ filter }}
+                  className={cn("h-full w-full object-cover", effect === "boomerang" && "animate-pulse")}
+                />
+              )}
+            </ZoomPanSurface>
+
+            {panel === "crop" && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute grid grid-cols-3 grid-rows-3 border border-white/70"
+                style={{ ...cropBox, boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)" }}
+              >
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <span key={i} className="border border-white/20" />
+                ))}
+              </div>
             )}
 
             {/* drawing */}
