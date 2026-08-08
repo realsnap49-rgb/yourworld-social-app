@@ -33,7 +33,7 @@ export function SettingsPage() {
 
         {/* Create Channel - ROUTE FIXED TO MAIN CHANNEL SCREEN */}
         <div 
-          onClick={() => navigate({ to: "/channel/create" })} 
+          onClick={() => { window.location.href = "/channel/create"; }}
           className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer"
         >
           <div className="flex items-center gap-4">
