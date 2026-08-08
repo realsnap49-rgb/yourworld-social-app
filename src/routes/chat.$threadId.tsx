@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
-  Mic, Send, Smile, Play, Pause, X, MicOff
+  Mic, Send, Smile, Play, Pause, X, MicOff, BellOff, Trash2, ShieldAlert, UserX
 } from "lucide-react";
 
 export const Route = createFileRoute("/chat/$threadId")({
@@ -23,6 +23,7 @@ export function ChatThreadPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const callVideoRef = useRef<HTMLVideoElement>(null);
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([
@@ -33,9 +34,11 @@ export function ChatThreadPage() {
 
   // States
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [activeCall, setActiveCall] = useState<"audio" | "video" | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
 
   const EMOJIS = ["👍", "❤️", "😂", "🔥", "🎉", "😍", "👏", "🙌", "🚀", "💯"];
@@ -45,7 +48,7 @@ export function ChatThreadPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isRecording]);
 
-  // Voice Note Timer
+  // Timer for Voice Notes
   useEffect(() => {
     let timer: any;
     if (isRecording) {
@@ -56,18 +59,30 @@ export function ChatThreadPage() {
     return () => clearInterval(timer);
   }, [isRecording]);
 
-  // Real-time Auto Reply simulation
-  const triggerAutoReply = (userText: string) => {
+  // Local Camera for Video Calling
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    if (activeCall === "video") {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then((s) => {
+          stream = s;
+          if (callVideoRef.current) callVideoRef.current.srcObject = s;
+        })
+        .catch(console.error);
+    }
+    return () => stream?.getTracks().forEach((t) => t.stop());
+  }, [activeCall]);
+
+  // Auto Reply Simulation
+  const triggerAutoReply = () => {
     setTimeout(() => {
       const replies = [
         "Sahi hai bhai!",
         "Mast chal raha hai 🔥",
-        "Dekhte hain aage kya hota hai!",
         "Got it, bro!",
         "Bilkul perfect lag raha hai 👌"
       ];
       const randomReply = replies[Math.floor(Math.random() * replies.length)];
-      
       setMessages((prev) => [
         ...prev,
         {
@@ -80,7 +95,6 @@ export function ChatThreadPage() {
     }, 1500);
   };
 
-  // Send Text Message
   const handleSend = () => {
     if (!message.trim()) return;
     const currentMsg = message;
@@ -95,10 +109,9 @@ export function ChatThreadPage() {
     ]);
     setMessage("");
     setShowEmojis(false);
-    triggerAutoReply(currentMsg);
+    triggerAutoReply();
   };
 
-  // Image Upload Handler
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -114,14 +127,14 @@ export function ChatThreadPage() {
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }
           ]);
-          triggerAutoReply("image");
+          triggerAutoReply();
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Start Real Audio Recording
+  // Real Audio Recording (Inline Graceful Permission)
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -143,13 +156,13 @@ export function ChatThreadPage() {
           }
         ]);
         stream.getTracks().forEach((t) => t.stop());
-        triggerAutoReply("voice_note");
+        triggerAutoReply();
       };
 
       recorder.start();
       setIsRecording(true);
     } catch (err) {
-      alert("Microphone permission required for voice notes.");
+      console.error("Microphone access denied", err);
     }
   };
 
@@ -163,19 +176,12 @@ export function ChatThreadPage() {
   return (
     <div className="fixed inset-0 z-50 bg-black text-white font-sans flex flex-col justify-between overflow-hidden">
       
-      {/* Hidden File Input for Gallery */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept="image/*"
-        className="hidden"
-        onChange={handleImageSelect}
-      />
+      <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
 
       {/* TOP HEADER */}
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-950/90 border-b border-zinc-800/80 backdrop-blur-md shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 bg-zinc-950/90 border-b border-zinc-800/80 backdrop-blur-md shrink-0 relative">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate({ to: ".." })} className="p-1 text-zinc-300 hover:text-white active:scale-90 transition-transform">
+          <button onClick={() => navigate({ to: ".." })} className="p-1 text-zinc-300 hover:text-white">
             <ArrowLeft size={22} />
           </button>
           
@@ -193,48 +199,56 @@ export function ChatThreadPage() {
         </div>
 
         <div className="flex items-center gap-4 text-zinc-300">
-          <button onClick={() => setActiveCall("audio")} className="hover:text-white active:scale-90 transition-transform"><Phone size={20} /></button>
-          <button onClick={() => setActiveCall("video")} className="hover:text-white active:scale-90 transition-transform"><Video size={20} /></button>
-          <button className="hover:text-white active:scale-90 transition-transform"><MoreVertical size={20} /></button>
+          <button onClick={() => setActiveCall("audio")} className="hover:text-white"><Phone size={20} /></button>
+          <button onClick={() => setActiveCall("video")} className="hover:text-white"><Video size={20} /></button>
+          
+          {/* 3-DOTS OPTIONS BUTTON */}
+          <button onClick={() => setShowOptionsMenu(!showOptionsMenu)} className="hover:text-white">
+            <MoreVertical size={20} />
+          </button>
         </div>
+
+        {/* TOP 3-DOTS MENU DROPDOWN */}
+        {showOptionsMenu && (
+          <div className="absolute right-4 top-14 w-48 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <button onClick={() => { setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 rounded-xl flex items-center gap-2.5">
+              <BellOff size={15} /> Mute Notifications
+            </button>
+            <button onClick={() => { setMessages([]); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 rounded-xl flex items-center gap-2.5">
+              <Trash2 size={15} /> Clear Chat
+            </button>
+            <button onClick={() => { setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-2.5">
+              <UserX size={15} /> Block User
+            </button>
+            <button onClick={() => { setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-2.5">
+              <ShieldAlert size={15} /> Report
+            </button>
+          </div>
+        )}
       </div>
 
       {/* MESSAGES AREA */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-zinc-950/50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
         {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`flex flex-col ${m.sender === "me" ? "items-end" : "items-start"}`}
-          >
-            {/* Text Message */}
+          <div key={m.id} className={`flex flex-col ${m.sender === "me" ? "items-end" : "items-start"}`}>
             {m.text && (
-              <div
-                className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                  m.sender === "me"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-br-xs"
-                    : "bg-zinc-800/90 text-zinc-100 rounded-bl-xs border border-zinc-700/50"
-                }`}
-              >
+              <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                m.sender === "me" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-br-xs" : "bg-zinc-800/90 text-zinc-100 rounded-bl-xs border border-zinc-700/50"
+              }`}>
                 {m.text}
               </div>
             )}
 
-            {/* Image Message */}
             {m.image && (
               <div className="max-w-[75%] rounded-2xl overflow-hidden border border-zinc-800 shadow-lg">
-                <img src={m.image} alt="Sent attachment" className="w-full h-auto object-cover max-h-60" />
+                <img src={m.image} alt="Attachment" className="w-full h-auto object-cover max-h-60" />
               </div>
             )}
 
-            {/* Audio Voice Note Message */}
             {m.audio && (
-              <div
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl min-w-[200px] ${
-                  m.sender === "me"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                    : "bg-zinc-800 text-white border border-zinc-700"
-                }`}
-              >
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl min-w-[200px] ${
+                m.sender === "me" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "bg-zinc-800 text-white border border-zinc-700"
+              }`}>
                 <button
                   onClick={() => {
                     const aud = new Audio(m.audio);
@@ -246,7 +260,7 @@ export function ChatThreadPage() {
                       aud.onended = () => setPlayingAudioId(null);
                     }
                   }}
-                  className="p-2 bg-white/20 rounded-full active:scale-90"
+                  className="p-2 bg-white/20 rounded-full"
                 >
                   {playingAudioId === m.id ? <Pause size={16} /> : <Play size={16} />}
                 </button>
@@ -265,51 +279,34 @@ export function ChatThreadPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* EMOJI PICKER POPUP */}
+      {/* EMOJI PICKER */}
       {showEmojis && (
         <div className="flex gap-2 p-3 bg-zinc-900 border-t border-zinc-800 overflow-x-auto">
-          {EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => setMessage((prev) => prev + emoji)}
-              className="text-2xl p-2 hover:bg-zinc-800 rounded-xl active:scale-90"
-            >
-              {emoji}
+          {EMOJIS.map((e) => (
+            <button key={e} onClick={() => setMessage((prev) => prev + e)} className="text-2xl p-2 hover:bg-zinc-800 rounded-xl">
+              {e}
             </button>
           ))}
         </div>
       )}
 
-      {/* INPUT BAR / VOICE RECORDING BAR */}
+      {/* INPUT BAR */}
       <div className="p-3 bg-zinc-950/95 border-t border-zinc-800/80 backdrop-blur-md flex items-center gap-2 shrink-0">
         {isRecording ? (
-          /* Voice Note Recording Active State */
-          <div className="flex-1 flex items-center justify-between bg-red-950/40 border border-red-500/50 rounded-full px-4 py-2 text-red-400 animate-pulse">
+          <div className="flex-1 flex items-center justify-between bg-red-950/40 border border-red-500/50 rounded-full px-4 py-2 text-red-400">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-red-500 rounded-full animate-ping" />
-              <span className="text-xs font-mono font-bold">Recording... {recordingTime}s</span>
+              <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
+              <span className="text-xs font-mono font-bold">Recording {recordingTime}s</span>
             </div>
-            <button onClick={stopRecording} className="p-1.5 bg-red-600 text-white rounded-full font-bold text-xs">
-              Done / Send
+            <button onClick={stopRecording} className="p-1.5 bg-red-600 text-white rounded-full text-xs font-bold">
+              Send
             </button>
           </div>
         ) : (
-          /* Normal Messaging Inputs */
           <>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-zinc-400 hover:text-white active:scale-90 transition-transform"
-            >
-              <ImageIcon size={22} />
-            </button>
-
-            <button
-              onClick={startRecording}
-              className="p-2 text-zinc-400 hover:text-white active:scale-90 transition-transform"
-            >
-              <Mic size={22} />
-            </button>
-
+            <button onClick={() => fileInputRef.current?.click()} className="p-2 text-zinc-400 hover:text-white"><ImageIcon size={22} /></button>
+            <button onClick={startRecording} className="p-2 text-zinc-400 hover:text-white"><Mic size={22} /></button>
+            
             <div className="flex-1 relative flex items-center">
               <input
                 type="text"
@@ -317,52 +314,56 @@ export function ChatThreadPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Message..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-2.5 pl-4 pr-10 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none"
               />
-              <button
-                onClick={() => setShowEmojis(!showEmojis)}
-                className="absolute right-3 text-zinc-400 hover:text-white"
-              >
+              <button onClick={() => setShowEmojis(!showEmojis)} className="absolute right-3 text-zinc-400 hover:text-white">
                 <Smile size={18} />
               </button>
             </div>
 
             <button
               onClick={handleSend}
-              className={`p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                message.trim()
-                  ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg"
-                  : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+              className={`p-2.5 rounded-full flex items-center justify-center ${
+                message.trim() ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
               }`}
             >
-              <Send size={18} className="translate-x-0.5" />
+              <Send size={18} />
             </button>
           </>
         )}
       </div>
 
-      {/* CALL MODAL SCREEN */}
+      {/* REAL VIDEO/AUDIO CALL MODAL SCREEN */}
       {activeCall && (
-        <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-between p-8 text-white animate-in fade-in duration-200">
-          <div className="flex flex-col items-center gap-3 mt-12">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-4xl font-bold shadow-2xl animate-pulse">
+        <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col justify-between p-6 text-white animate-in fade-in duration-200">
+          
+          {/* Video Feed Background if Video Call */}
+          {activeCall === "video" && (
+            <video ref={callVideoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover z-0" />
+          )}
+
+          <div className="relative z-10 flex flex-col items-center gap-3 mt-12 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-3xl font-bold shadow-2xl">
               U
             </div>
             <h2 className="text-xl font-bold">Active User</h2>
-            <span className="text-xs text-zinc-400">
-              {activeCall === "video" ? "Calling Video..." : "Calling Audio..."}
+            <span className="text-xs text-emerald-400 font-bold animate-pulse">
+              {activeCall === "video" ? "Video Call Connected..." : "Audio Call Connected..."}
             </span>
           </div>
 
-          <div className="flex items-center gap-6 mb-12">
-            <button className="p-4 bg-zinc-800 rounded-full"><MicOff size={24} /></button>
+          <div className="relative z-10 flex items-center justify-center gap-6 mb-10">
+            <button onClick={() => setIsMuted(!isMuted)} className={`p-4 rounded-full backdrop-blur-md ${isMuted ? 'bg-red-500 text-white' : 'bg-zinc-800/80 text-white'}`}>
+              <MicOff size={22} />
+            </button>
             <button
               onClick={() => setActiveCall(null)}
               className="p-5 bg-red-600 text-white rounded-full shadow-2xl active:scale-90"
             >
-              <X size={28} />
+              <X size={26} />
             </button>
           </div>
+
         </div>
       )}
 
