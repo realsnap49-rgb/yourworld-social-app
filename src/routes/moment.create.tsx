@@ -397,6 +397,25 @@ function MomentStudio() {
   }, [cropRatio, stageSize]);
 
   const resetCrop = () => setCrop({ zoom: 1, x: 0, y: 0 });
+
+  /** zoom about the centre of the crop frame, from the slider */
+  const setZoomFromSlider = (z: number) =>
+    setCrop((c) => {
+      const w = parseFloat(String(cropBox.width)) || stageSize.w;
+      const h = parseFloat(String(cropBox.height)) || stageSize.h;
+      const px = (String(cropBox.width).endsWith("%") ? stageSize.w : w) / 2;
+      const py = (String(cropBox.height).endsWith("%") ? stageSize.h : h) / 2;
+      const k = z / c.zoom;
+      const next = { zoom: z, x: px - (px - c.x) * k, y: py - (py - c.y) * k };
+      const fw = String(cropBox.width).endsWith("%") ? stageSize.w : w;
+      const fh = String(cropBox.height).endsWith("%") ? stageSize.h : h;
+      return {
+        zoom: z,
+        x: Math.min(0, Math.max(fw - fw * z, next.x)),
+        y: Math.min(0, Math.max(fh - fh * z, next.y)),
+      };
+    });
+
   useEffect(() => {
     resetCrop();
   }, [media?.url]);
