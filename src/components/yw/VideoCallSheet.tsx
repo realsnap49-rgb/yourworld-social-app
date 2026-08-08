@@ -1,285 +1,204 @@
-import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, PhoneOff, Video, VideoOff, SwitchCamera, Signal } from "lucide-react";
-import { YwAvatar } from "@/components/yw/Avatar";
-import type { User } from "@/lib/yw-data";
+import React, { useEffect, useRef, useState } from "react";
+import { Mic, MicOff, PhoneOff, Video, VideoOff, SwitchCamera, PhoneIncoming } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import {
-  ArMaskOverlay,
-  CaptureFxBar,
-  ScreenFlashOverlay,
-  maskClass,
-  useCaptureFx,
-} from "@/lib/capture-fx";
 
-type Tier = { label: string; width: number; height: number; fps: number; bitrate: number };
-
-// Adaptive ladder, highest first. The engine climbs/falls automatically.
-const TIERS: Tier[] = [
-  { label: "4K Ultra HD", width: 3840, height: 2160, fps: 60, bitrate: 24_000_000 },
-  { label: "1440p", width: 2560, height: 1440, fps: 60, bitrate: 12_000_000 },
-  { label: "1080p", width: 1920, height: 1080, fps: 60, bitrate: 6_000_000 },
-  { label: "720p", width: 1280, height: 720, fps: 30, bitrate: 2_500_000 },
-  { label: "540p", width: 960, height: 540, fps: 30, bitrate: 1_200_000 },
-  { label: "360p", width: 640, height: 360, fps: 24, bitrate: 600_000 },
+const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:global.stun.twilio.com:3478" },
 ];
 
-type NetInfo = { downlink?: number; effectiveType?: string; saveData?: boolean; addEventListener?: Function; removeEventListener?: Function };
-
-const netInfo = (): NetInfo | undefined =>
-  typeof navigator !== "undefined" ? (navigator as unknown as { connection?: NetInfo }).connection : undefined;
-
-/** Best tier the current network + device can sustain. */
-function ceilingIndex(): number {
-  const net = netInfo();
-  const cores = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 4;
-  const mbps = net?.downlink ?? 10;
-  const eff = net?.effectiveType ?? "4g";
-
-  if (net?.saveData) return 5;
-  if (eff === "slow-2g" || eff === "2g") return 5;
-  if (eff === "3g") return 4;
-
-  let idx = 3; // 720p baseline
-  if (mbps >= 30 && cores >= 8) idx = 0;
-  else if (mbps >= 18 && cores >= 6) idx = 1;
-  else if (mbps >= 8) idx = 2;
-  else if (mbps >= 3) idx = 3;
-  else idx = 4;
-  return idx;
+interface VideoCallSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  recipientName?: string;
+  conversationId?: string;
+  isVideoCall?: boolean;
 }
 
-export function VideoCallSheet({ open, onClose, peer, title }: { open: boolean; onClose: () => void; peer: User; title: string }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const pipRef = useRef<HTMLVideoElement | null>(null);
-  const pipStreamRef = useRef<MediaStream | null>(null);
-  const tierRef = useRef<number>(3);
-  const [tier, setTier] = useState<Tier>(TIERS[3]);
-  const [actual, setActual] = useState<{ w: number; h: number; fps: number } | null>(null);
-  const [muted, setMuted] = useState(false);
-  const [camOff, setCamOff] = useState(false);
-  const [facing, setFacing] = useState<"user" | "environment">("user");
-  const [status, setStatus] = useState("Connecting…");
-  const [seconds, setSeconds] = useState(0);
-  const fx = useCaptureFx(() => streamRef.current);
+export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({
+  open,
+  onOpenChange,
+  recipientName = "User",
+  conversationId = "default-room",
+  isVideoCall = true,
+}) => {
+  const [micOn, setMicOn] = useState(true);
+  const [videoOn, setVideoOn] = useState(isVideoCall);
+  const [callStatus, setCallStatus] = useState<string>("Connecting...");
+  const [callAccepted, setCallAccepted] = useState(true);
 
-  // Dual-camera: second stream shown as a picture-in-picture tile.
-  useEffect(() => {
-    if (!open || !fx.dual) {
-      pipStreamRef.current?.getTracks().forEach((t) => t.stop());
-      pipStreamRef.current = null;
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing === "user" ? "environment" : "user" },
-          audio: false,
-        });
-        if (cancelled) return s.getTracks().forEach((t) => t.stop());
-        pipStreamRef.current = s;
-        if (pipRef.current) pipRef.current.srcObject = s;
-      } catch {
-        /* single-camera device */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, fx.dual, facing]);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const channelRef = useRef<any>(null);
 
-  // Start / stop the camera with the auto-negotiated tier.
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
 
-    const start = async () => {
-      const startIdx = ceilingIndex();
-      tierRef.current = startIdx;
-      for (let i = startIdx; i < TIERS.length; i++) {
-        const t = TIERS[i];
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-            video: {
-              facingMode: facing,
-              width: { ideal: t.width },
-              height: { ideal: t.height },
-              frameRate: { ideal: t.fps, max: t.fps },
-            },
-          });
-          if (cancelled) {
-            stream.getTracks().forEach((tr) => tr.stop());
-            return;
-          }
-          streamRef.current = stream;
-          tierRef.current = i;
-          setTier(t);
-          if (videoRef.current) videoRef.current.srcObject = stream;
-          const s = stream.getVideoTracks()[0]?.getSettings();
-          setActual({ w: s?.width ?? t.width, h: s?.height ?? t.height, fps: Math.round(s?.frameRate ?? t.fps) });
-          setStatus("Connected");
-          return;
-        } catch {
-          // step down the ladder and retry
+    let isMounted = true;
+
+    const startCall = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: isVideoCall,
+        });
+
+        if (!isMounted) return;
+        localStreamRef.current = stream;
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
         }
+
+        const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+        pcRef.current = pc;
+
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+        pc.ontrack = (event) => {
+          if (remoteVideoRef.current && event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+            setCallStatus("Connected");
+          }
+        };
+
+        const channel = supabase.channel(`call_${conversationId}`);
+        channelRef.current = channel;
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            channel.send({
+              type: "broadcast",
+              event: "signal",
+              payload: { candidate: event.candidate },
+            });
+          }
+        };
+
+        channel
+          .on("broadcast", { event: "signal" }, async ({ payload }) => {
+            if (payload.offer) {
+              await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              channel.send({
+                type: "broadcast",
+                event: "signal",
+                payload: { answer },
+              });
+            } else if (payload.answer) {
+              await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+            } else if (payload.candidate) {
+              await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            } else if (payload.end) {
+              endCall();
+            }
+          })
+          .subscribe(async (status) => {
+            if (status === "SUBSCRIBED") {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              channel.send({
+                type: "broadcast",
+                event: "signal",
+                payload: { offer },
+              });
+            }
+          });
+      } catch (err) {
+        console.error("Media error:", err);
+        setCallStatus("Permission denied");
       }
-      if (!cancelled) setStatus("Camera unavailable");
     };
 
-    start();
+    startCall();
+
     return () => {
-      cancelled = true;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      setActual(null);
-      setStatus("Connecting…");
-      setSeconds(0);
+      isMounted = false;
+      cleanupCall();
     };
-  }, [open, facing]);
+  }, [open, conversationId]);
 
-  // Real-time adaptation: re-apply constraints as network / conditions shift.
-  useEffect(() => {
-    if (!open) return;
-    const adapt = async () => {
-      const track = streamRef.current?.getVideoTracks()[0];
-      if (!track) return;
-      const target = ceilingIndex();
-      if (target === tierRef.current) return;
-      const t = TIERS[target];
-      try {
-        await track.applyConstraints({
-          width: { ideal: t.width },
-          height: { ideal: t.height },
-          frameRate: { ideal: t.fps, max: t.fps },
-        });
-        tierRef.current = target;
-        setTier(t);
-        const s = track.getSettings();
-        setActual({ w: s.width ?? t.width, h: s.height ?? t.height, fps: Math.round(s.frameRate ?? t.fps) });
-      } catch {
-        /* keep current tier */
+  const cleanupCall = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    if (pcRef.current) {
+      pcRef.current.close();
+    }
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+  };
+
+  const endCall = () => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "signal",
+        payload: { end: true },
+      });
+    }
+    cleanupCall();
+    onOpenChange(false);
+  };
+
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setMicOn(audioTrack.enabled);
       }
-    };
+    }
+  };
 
-    const id = window.setInterval(adapt, 3000);
-    const net = netInfo();
-    net?.addEventListener?.("change", adapt);
-    return () => {
-      window.clearInterval(id);
-      net?.removeEventListener?.("change", adapt);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || status !== "Connected") return;
-    const id = window.setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => window.clearInterval(id);
-  }, [open, status]);
-
-  useEffect(() => {
-    const track = streamRef.current?.getAudioTracks()[0];
-    if (track) track.enabled = !muted;
-  }, [muted]);
-
-  useEffect(() => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track) track.enabled = !camOff;
-  }, [camOff]);
+  const toggleVideo = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setVideoOn(videoTrack.enabled);
+      }
+    }
+  };
 
   if (!open) return null;
 
-  const clock = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-  const mbps = (tier.bitrate / 1_000_000).toFixed(1);
-
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-background/95 backdrop-blur-xl">
-      <ScreenFlashOverlay active={fx.flashing} />
-      <div className="relative flex-1 overflow-hidden">
-        {/* Remote placeholder */}
-        <div className="absolute inset-0 grid place-items-center gap-4">
-          <div className="flex flex-col items-center gap-3">
-            <YwAvatar user={peer} size={96} />
-            <p className="text-lg font-semibold">{title}</p>
-            <p className="text-sm text-muted-foreground">{status === "Connected" ? clock : status}</p>
-          </div>
-        </div>
-
-        {/* Adaptive quality badge */}
-        <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1.5 text-xs backdrop-blur-md">
-          <Signal className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
-          <span className="font-medium">Auto · {tier.label}</span>
-          <span className="text-muted-foreground">
-            {actual ? `${actual.w}×${actual.h} · ${actual.fps}fps` : "negotiating"} · {mbps} Mbps
-          </span>
-        </div>
-
-        {/* Self preview */}
-        <div
-          className={cn(
-            "absolute bottom-4 right-4 h-44 w-28 overflow-hidden rounded-2xl border border-border shadow-2xl transition-opacity",
-            camOff && "opacity-0",
-          )}
-        >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={cn("h-full w-full object-cover", maskClass(fx.mask))}
-          />
-          <ArMaskOverlay mask={fx.mask} />
-        </div>
-        {fx.dual && (
-          <video
-            ref={pipRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute bottom-52 right-4 h-28 w-20 rounded-2xl border border-border object-cover shadow-2xl"
-          />
-        )}
-        {fx.viewOnce > 0 && (
-          <span className="absolute bottom-4 left-4 rounded-full border border-border bg-background/60 px-3 py-1.5 text-[11px] backdrop-blur-md">
-            View once · {fx.viewOnce}s
-          </span>
-        )}
+    <div className="fixed inset-0 z-50 bg-black/95 text-white flex flex-col justify-between p-4">
+      <div className="text-center my-4">
+        <h2 className="text-xl font-bold">{recipientName}</h2>
+        <p className="text-sm text-gray-400">{callStatus}</p>
       </div>
 
-      <div className="safe-bottom border-t border-border px-6 py-5">
-        <CaptureFxBar fx={fx} className="justify-center pb-4" />
-        <div className="flex items-center justify-center gap-4">
-        <button
-          aria-label={muted ? "Unmute" : "Mute"}
-          onClick={() => setMuted((m) => !m)}
-          className={cn("grid h-12 w-12 place-items-center rounded-full transition-transform active:scale-90", muted ? "bg-secondary" : "bg-secondary/60")}
-        >
-          {muted ? <MicOff className="h-5 w-5" strokeWidth={1.7} /> : <Mic className="h-5 w-5" strokeWidth={1.7} />}
+      <div className="relative flex-1 bg-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center">
+        <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute top-4 right-4 w-28 h-40 bg-black rounded-xl object-cover border-2 border-zinc-700"
+        />
+      </div>
+
+      <div className="flex justify-center items-center gap-6 py-6">
+        <button onClick={toggleMic} className={cn("p-4 rounded-full", micOn ? "bg-zinc-800" : "bg-red-600")}>
+          {micOn ? <Mic size={24} /> : <MicOff size={24} />}
         </button>
-        <button
-          aria-label={camOff ? "Turn camera on" : "Turn camera off"}
-          onClick={() => setCamOff((c) => !c)}
-          className="grid h-12 w-12 place-items-center rounded-full bg-secondary/60 transition-transform active:scale-90"
-        >
-          {camOff ? <VideoOff className="h-5 w-5" strokeWidth={1.7} /> : <Video className="h-5 w-5" strokeWidth={1.7} />}
+        {isVideoCall && (
+          <button onClick={toggleVideo} className={cn("p-4 rounded-full", videoOn ? "bg-zinc-800" : "bg-red-600")}>
+            {videoOn ? <Video size={24} /> : <VideoOff size={24} />}
+          </button>
+        )}
+        <button onClick={endCall} className="p-4 bg-red-600 rounded-full hover:bg-red-700">
+          <PhoneOff size={24} />
         </button>
-        <button
-          aria-label="Switch camera"
-          onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-          className="grid h-12 w-12 place-items-center rounded-full bg-secondary/60 transition-transform active:scale-90"
-        >
-          <SwitchCamera className="h-5 w-5" strokeWidth={1.7} />
-        </button>
-        <button
-          aria-label="End call"
-          onClick={onClose}
-          className="grid h-14 w-14 place-items-center rounded-full bg-destructive transition-transform active:scale-90"
-        >
-          <PhoneOff className="h-5 w-5 text-destructive-foreground" strokeWidth={1.8} />
-        </button>
-        </div>
       </div>
     </div>
   );
-}
+};
