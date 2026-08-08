@@ -376,6 +376,31 @@ function MomentStudio() {
   const isVideo = !!media?.type.startsWith("video");
   const drawMode = panel === "draw";
 
+  /* ---------------- crop / zoom frame ---------------- */
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStageSize({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    setStageSize({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, [stage]);
+
+  const cropBox = useMemo(() => {
+    const r = CROP_RATIOS.find((c) => c.id === cropRatio)?.value ?? 0;
+    const { w, h } = stageSize;
+    if (!r || !w || !h) return { width: "100%", height: "100%" };
+    const width = Math.min(w, h * r);
+    return { width: `${Math.round(width)}px`, height: `${Math.round(width / r)}px` };
+  }, [cropRatio, stageSize]);
+
+  const resetCrop = () => setCrop({ zoom: 1, x: 0, y: 0 });
+  useEffect(() => {
+    resetCrop();
+  }, [media?.url]);
+
   /* =============================================================== */
   return (
     <main className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-black text-white">
