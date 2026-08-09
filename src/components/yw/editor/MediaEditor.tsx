@@ -1,7 +1,15 @@
 import React, { useState } from "react";
 import { X, ShieldAlert, Clock, Sparkles, Eye, Check, Download, Archive } from "lucide-react";
 
-export const MediaEditor: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
+type MediaEditorProps = {
+  onClose?: () => void;
+  media?: { url: string; type: string; name?: string };
+  kind?: string;
+  onBack?: () => void;
+  onNext?: () => void;
+};
+
+export const MediaEditor: React.FC<MediaEditorProps> = ({ onClose }) => {
   const [privacy, setPrivacy] = useState<"everyone" | "followers" | "close_friends" | "only_me">("everyone");
   const [duration, setDuration] = useState<"12h" | "24h">("24h");
   const [screenshotAlert, setScreenshotAlert] = useState<boolean>(true);

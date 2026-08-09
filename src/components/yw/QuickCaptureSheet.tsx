@@ -1,7 +1,15 @@
 import React, { useState } from "react";
 import { X, ShieldAlert, Clock, Sparkles, Eye, Check, Download, Archive } from "lucide-react";
 
-export const QuickCaptureSheet: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
+type QuickCaptureSheetProps = {
+  onClose?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  fx?: unknown;
+  onCapture?: (payload: { url: string; viewOnce?: number | null }) => void;
+};
+
+export const QuickCaptureSheet: React.FC<QuickCaptureSheetProps> = ({ onClose }) => {
   const [privacy, setPrivacy] = useState<"everyone" | "followers" | "close_friends" | "only_me">("everyone");
   const [duration, setDuration] = useState<"12h" | "24h">("24h");
   const [screenshotAlert, setScreenshotAlert] = useState<boolean>(true);

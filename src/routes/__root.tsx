@@ -17,6 +17,7 @@ import { NotificationsProvider } from "@/lib/notifications-store";
 import { MomentProvider } from "@/lib/moment-store";
 import { AuthProvider, AuthGate } from "@/lib/auth-store";
 import { SearchProvider } from "@/lib/search-store";
+import { ChannelProvider } from "@/lib/channel-store";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -147,6 +148,7 @@ function RootComponent() {
           <NotificationsProvider>
             <MomentProvider>
               <SearchProvider>
+                <ChannelProvider>
                 {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                 <AuthGate>
                   <div className="mx-auto min-h-screen w-full max-w-lg pb-20">
@@ -155,6 +157,7 @@ function RootComponent() {
                   <BottomNav />
                 </AuthGate>
                 <Toaster position="top-center" />
+                </ChannelProvider>
               </SearchProvider>
             </MomentProvider>
           </NotificationsProvider>

@@ -708,7 +708,7 @@ function AccountPage() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate({ to: "/auth", search: {}, replace: true });
   };
 
   return (
