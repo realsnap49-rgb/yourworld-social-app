@@ -70,11 +70,19 @@ export function HomePage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="p-1 text-zinc-300 hover:text-white">
+          <button
+            aria-label="Search"
+            onClick={() => navigate({ to: "/search" })}
+            className="p-1 text-zinc-300 hover:text-white"
+          >
             <Search size={22} />
           </button>
           
-          <button className="relative p-1 text-zinc-300 hover:text-white">
+          <button
+            aria-label="Notifications"
+            onClick={() => navigate({ to: "/notifications" })}
+            className="relative p-1 text-zinc-300 hover:text-white"
+          >
             <Heart size={24} />
             <span className="absolute -top-1 -right-2 bg-pink-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full border border-[#0d0d0f]">
               68
