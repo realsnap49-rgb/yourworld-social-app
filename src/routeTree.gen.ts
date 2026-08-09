@@ -23,6 +23,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
+import { Route as MomentIndexRouteImport } from './routes/moment.index'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChannelIndexRouteImport } from './routes/channel.index'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
@@ -111,6 +112,11 @@ const OrbitIndexRoute = OrbitIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OrbitRoute,
+} as any)
+const MomentIndexRoute = MomentIndexRouteImport.update({
+  id: '/moment/',
+  path: '/moment/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
   id: '/chat/',
@@ -234,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/orbit/privacy': typeof OrbitPrivacyRoute
   '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/moment/': typeof MomentIndexRoute
   '/orbit/': typeof OrbitIndexRoute
   '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
 }
@@ -266,6 +273,7 @@ export interface FileRoutesByTo {
   '/orbit/privacy': typeof OrbitPrivacyRoute
   '/channel': typeof ChannelIndexRoute
   '/chat': typeof ChatIndexRoute
+  '/moment': typeof MomentIndexRoute
   '/orbit': typeof OrbitIndexRoute
   '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
 }
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/orbit/privacy': typeof OrbitPrivacyRoute
   '/channel/': typeof ChannelIndexRoute
   '/chat/': typeof ChatIndexRoute
+  '/moment/': typeof MomentIndexRoute
   '/orbit/': typeof OrbitIndexRoute
   '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
 }
@@ -337,6 +346,7 @@ export interface FileRouteTypes {
     | '/orbit/privacy'
     | '/channel/'
     | '/chat/'
+    | '/moment/'
     | '/orbit/'
     | '/orbit/chat/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/orbit/privacy'
     | '/channel'
     | '/chat'
+    | '/moment'
     | '/orbit'
     | '/orbit/chat/$userId'
   id:
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/orbit/privacy'
     | '/channel/'
     | '/chat/'
+    | '/moment/'
     | '/orbit/'
     | '/orbit/chat/$userId'
   fileRoutesById: FileRoutesById
@@ -425,6 +437,7 @@ export interface RootRouteChildren {
   MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
   ChatIndexRoute: typeof ChatIndexRoute
+  MomentIndexRoute: typeof MomentIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -526,6 +539,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/orbit/'
       preLoaderRoute: typeof OrbitIndexRouteImport
       parentRoute: typeof OrbitRoute
+    }
+    '/moment/': {
+      id: '/moment/'
+      path: '/moment'
+      fullPath: '/moment/'
+      preLoaderRoute: typeof MomentIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/chat/': {
       id: '/chat/'
@@ -721,6 +741,7 @@ const rootRouteChildren: RootRouteChildren = {
   MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
   ChatIndexRoute: ChatIndexRoute,
+  MomentIndexRoute: MomentIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
