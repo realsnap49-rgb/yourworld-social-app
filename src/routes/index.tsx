@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CreateSheet } from "@/components/yw/CreateSheet";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
@@ -22,6 +23,7 @@ type Post = {
 };
 
 export function HomePage() {
+  const [createOpen, setCreateOpen] = useState(false);
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState<Post[]>([
@@ -118,7 +120,7 @@ export function HomePage() {
           { id: 4, name: "slowbrunch", letter: "N", bg: "bg-[#dc2626]", ring: "border-[#ef4444]" },
           { id: 5, name: "wavelen", letter: "K", bg: "bg-[#0284c7]", ring: "border-[#38bdf8]" },
         ].map((s) => (
-          <div key={s.id} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform">
+          <div key={s.id} onClick={() => navigate({ to: "/moment" })} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform">
             <div className={`p-[2px] rounded-full border-2 ${s.ring}`}>
               <div className={`w-15 h-15 rounded-full ${s.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#0d0d0f]`}>
                 {s.letter}
@@ -197,7 +199,7 @@ export function HomePage() {
           <span className="text-[10px] font-semibold mt-0.5">Reels</span>
         </button>
 
-        <button onClick={() => navigate({ to: "/moment/create" })} className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform">
+        <button onClick={() => setCreateOpen(true)} aria-label="Create" className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform">
           <Plus size={26} />
         </button>
 
@@ -213,6 +215,7 @@ export function HomePage() {
 
       </div>
 
+      <CreateSheet open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }
