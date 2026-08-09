@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Clapperboard, Plus, MessageCircle, User, Image as ImageIcon, Radio } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Home, Clapperboard, Plus, MessageCircle, User } from "lucide-react";
+import { CreateSheet } from "@/components/yw/CreateSheet";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -13,15 +13,9 @@ const items = [
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   if (pathname.startsWith("/create")) return null;
-
-  const go = (mode: "POST" | "REEL" | "LIVE") => {
-    setOpen(false);
-    navigate({ to: "/create", search: { mode } });
-  };
 
   return (
     <>
@@ -62,35 +56,7 @@ export function BottomNav() {
       </div>
     </nav>
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl border-border/60">
-          <SheetHeader className="text-left">
-            <SheetTitle>Create</SheetTitle>
-          </SheetHeader>
-          <div className="grid gap-2 pb-6">
-            {[
-              { mode: "POST" as const, label: "Post", desc: "Photo or video for your feed", icon: ImageIcon },
-              { mode: "REEL" as const, label: "Reel", desc: "Short vertical video", icon: Clapperboard },
-              { mode: "LIVE" as const, label: "Live", desc: "Go live with your followers", icon: Radio },
-            ].map((o) => (
-              <button
-                key={o.mode}
-                type="button"
-                onClick={() => go(o.mode)}
-                className="flex items-center gap-3 rounded-2xl bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70"
-              >
-                <span className="grid size-10 place-items-center rounded-full bg-background">
-                  <o.icon className="size-5" />
-                </span>
-                <span>
-                  <span className="block text-sm font-medium">{o.label}</span>
-                  <span className="block text-xs text-muted-foreground">{o.desc}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
+      <CreateSheet open={open} onOpenChange={setOpen} />
     </>
   );
 }
