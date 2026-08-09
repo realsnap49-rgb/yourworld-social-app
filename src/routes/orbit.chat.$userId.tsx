@@ -262,8 +262,8 @@ function OrbitChatPage() {
         onOpenChange={setCameraOpen}
         fx={fx}
         onCapture={({ url, viewOnce: secs }) => {
-          pushPhoto(url, secs);
-          toast.success(secs > 0 ? `Sent as view once · ${secs}s` : "Photo sent");
+          pushPhoto(url, secs ?? undefined);
+          toast.success((secs ?? 0) > 0 ? `Sent as view once · ${secs}s` : "Photo sent");
         }}
       />
     </main>
