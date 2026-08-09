@@ -29,6 +29,14 @@ import { toast } from "sonner";
 import { MediaEditor } from "@/components/yw/editor/MediaEditor";
 
 export const Route = createFileRoute("/create")({
+  validateSearch: (search: Record<string, unknown>) => {
+    const m = String(search.mode ?? "").toUpperCase();
+    return { mode: (m === "REEL" || m === "LIVE" || m === "POST" ? m : undefined) as
+      | "POST"
+      | "REEL"
+      | "LIVE"
+      | undefined };
+  },
   head: () => ({
     meta: [
       { title: "Camera — YourWorld" },
@@ -54,7 +62,8 @@ type Mode = (typeof MODES)[number];
 
 function CameraPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("POST");
+  const { mode: initialMode } = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(initialMode ?? "POST");
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flash, setFlash] = useState(false);
   const [camReady, setCamReady] = useState(false);
