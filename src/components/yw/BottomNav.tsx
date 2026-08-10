@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, Clapperboard, Plus, MessageCircle, User } from "lucide-react";
 import { CreateSheet } from "@/components/yw/CreateSheet";
@@ -11,7 +11,7 @@ const items = [
   { to: "/profile", label: "Profile", icon: User },
 ] as const;
 
-export function BottomNav() {
+function BottomNavBase() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
 
@@ -60,3 +60,5 @@ export function BottomNav() {
     </>
   );
 }
+
+export const BottomNav = memo(BottomNavBase);

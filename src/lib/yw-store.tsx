@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 type Toggles = Record<string, boolean>;
 
@@ -32,21 +41,37 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
   const [following, setFollowing] = useState<Toggles>({});
   const [drafts, setDrafts] = useState<Draft[]>([]);
 
-  const flip = (set: typeof setLiked) => (id: string) => set((p) => ({ ...p, [id]: !p[id] }));
+  const toggleLike = useCallback(
+    (id: string) => setLiked((p) => ({ ...p, [id]: !p[id] })),
+    [],
+  );
+  const toggleSave = useCallback(
+    (id: string) => setSaved((p) => ({ ...p, [id]: !p[id] })),
+    [],
+  );
+  const toggleFollow = useCallback(
+    (id: string) => setFollowing((p) => ({ ...p, [id]: !p[id] })),
+    [],
+  );
+  const addDraft = useCallback((d: Draft) => setDrafts((p) => [d, ...p]), []);
+  const removeDraft = useCallback(
+    (id: string) => setDrafts((p) => p.filter((x) => x.id !== id)),
+    [],
+  );
 
   const value = useMemo<Store>(
     () => ({
       liked,
       saved,
       following,
-      toggleLike: flip(setLiked),
-      toggleSave: flip(setSaved),
-      toggleFollow: flip(setFollowing),
+      toggleLike,
+      toggleSave,
+      toggleFollow,
       drafts,
-      addDraft: (d) => setDrafts((p) => [d, ...p]),
-      removeDraft: (id) => setDrafts((p) => p.filter((x) => x.id !== id)),
+      addDraft,
+      removeDraft,
     }),
-    [liked, saved, following, drafts],
+    [liked, saved, following, drafts, toggleLike, toggleSave, toggleFollow, addDraft, removeDraft],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
@@ -61,10 +86,20 @@ export function useYw() {
 export function useDoubleTapLike(id: string) {
   const { liked, toggleLike } = useYw();
   const [burst, setBurst] = useState(false);
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
   const onDoubleTap = useCallback(() => {
     if (!liked[id]) toggleLike(id);
     setBurst(true);
-    window.setTimeout(() => setBurst(false), 700);
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => setBurst(false), 700);
   }, [id, liked, toggleLike]);
   return { burst, onDoubleTap };
 }

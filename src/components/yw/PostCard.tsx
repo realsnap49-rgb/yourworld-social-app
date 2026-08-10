@@ -1,5 +1,7 @@
+import { memo, useCallback } from "react";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download } from "lucide-react";
 import { YwAvatar } from "@/components/yw/Avatar";
+import { LazyImage } from "@/components/yw/LazyImage";
 import { ShareSheet } from "@/components/yw/ShareSheet";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
 import { byId, formatCount, type Post } from "@/lib/yw-data";
@@ -8,14 +10,14 @@ import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function PostCard({ post }: { post: Post }) {
+function PostCardBase({ post }: { post: Post }) {
   const user = byId(post.userId);
   const { liked, saved, toggleLike, toggleSave } = useYw();
   const { burst, onDoubleTap } = useDoubleTapLike(post.id);
   const isLiked = !!liked[post.id];
   const isSaved = !!saved[post.id];
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (!post.allowDownload) {
       toast("Downloads are off for this post");
       return;
@@ -26,7 +28,10 @@ export function PostCard({ post }: { post: Post }) {
     } catch {
       toast.error("Couldn't save this post");
     }
-  };
+  }, [post.allowDownload, post.image, post.id, user.username]);
+
+  const handleLike = useCallback(() => toggleLike(post.id), [toggleLike, post.id]);
+  const handleSave = useCallback(() => toggleSave(post.id), [toggleSave, post.id]);
 
   return (
     <article className="surface-card overflow-hidden rounded-[26px]">
@@ -60,10 +65,11 @@ export function PostCard({ post }: { post: Post }) {
         onDoubleClick={onDoubleTap}
         className="media-frame mx-3 rounded-[18px] select-none"
       >
-        <img
+        <LazyImage
           src={post.image}
           alt={post.caption}
           loading="lazy"
+          wrapperClassName="w-full"
           className="aspect-square w-full object-cover transition-transform duration-[900ms] ease-out"
         />
         <span
@@ -78,7 +84,7 @@ export function PostCard({ post }: { post: Post }) {
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-[3px] pt-2">
         <div className="flex min-w-0 items-center gap-0.5">
           <button
-            onClick={() => toggleLike(post.id)}
+            onClick={handleLike}
             aria-label="Like"
             className={cn(
               "action-btn grid h-10 w-10 place-items-center rounded-full",
@@ -120,7 +126,7 @@ export function PostCard({ post }: { post: Post }) {
           )}
         </div>
         <button
-          onClick={() => toggleSave(post.id)}
+          onClick={handleSave}
           aria-label="Save"
           className={cn(
             "action-btn grid h-10 w-10 place-items-center rounded-full",
@@ -166,3 +172,4 @@ export function PostCard({ post }: { post: Post }) {
     </article>
   );
 }
+export const PostCard = memo(PostCardBase);

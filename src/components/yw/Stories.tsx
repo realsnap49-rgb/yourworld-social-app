@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { YwAvatar } from "@/components/yw/Avatar";
@@ -7,9 +7,10 @@ import { Plus } from "lucide-react";
 import { useMoments } from "@/lib/moment-store";
 import { currentUser } from "@/lib/yw-data";
 
-export function Stories() {
+function StoriesBase() {
   const [open, setOpen] = useState<any>(null);
   const { moments } = useMoments();
+  const close = useCallback(() => setOpen(null), []);
 
   return (
     <>
@@ -39,12 +40,18 @@ export function Stories() {
         ))}
       </div>
 
-      <Dialog open={!!open} onOpenChange={() => setOpen(null)}>
+      <Dialog open={!!open} onOpenChange={close}>
         <DialogContent className="max-w-md p-0 overflow-hidden bg-black text-white border-none">
           <DialogTitle className="sr-only">Moment View</DialogTitle>
           {open && (
             <div className="relative aspect-[9/16] w-full flex items-center justify-center">
-              <img src={open.media} alt={open.text || "Moment"} className="h-full w-full object-cover" />
+              <img
+                src={open.media}
+                alt={open.text || "Moment"}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
             </div>
           )}
         </DialogContent>
@@ -52,3 +59,5 @@ export function Stories() {
     </>
   );
 }
+
+export const Stories = memo(StoriesBase);
