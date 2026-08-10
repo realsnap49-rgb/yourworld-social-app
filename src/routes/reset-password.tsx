@@ -35,7 +35,7 @@ function ResetPasswordPage() {
     }
     toast.success("Password updated");
     await supabase.auth.signOut();
-    navigate({ to: "/auth", search: {}, replace: true });
+    navigate({ to: "/auth", replace: true });
   };
 
   return (
