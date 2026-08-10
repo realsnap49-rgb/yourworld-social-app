@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { CreateSheet } from "@/components/yw/CreateSheet";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { LazyImage } from "@/components/yw/LazyImage";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
   Plus, Home, Film, MessageSquare, User
@@ -46,18 +47,20 @@ export function HomePage() {
     }
   ]);
 
-  const toggleLike = (postId: number) => {
+  const toggleLike = useCallback((postId: number) => {
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
         return { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 };
       }
       return p;
     }));
-  };
+  }, []);
 
-  const toggleSave = (postId: number) => {
+  const toggleSave = useCallback((postId: number) => {
     setPosts(prev => prev.map(p => (p.id === postId ? { ...p, isSaved: !p.isSaved } : p)));
-  };
+  }, []);
+
+  const openCreate = useCallback(() => setCreateOpen(true), []);
 
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
@@ -72,24 +75,26 @@ export function HomePage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button
+          <Link
+            to="/search"
             aria-label="Search"
-            onClick={() => navigate({ to: "/search" })}
+            preload="intent"
             className="p-1 text-zinc-300 hover:text-white"
           >
             <Search size={22} />
-          </button>
-          
-          <button
+          </Link>
+
+          <Link
+            to="/notifications"
             aria-label="Notifications"
-            onClick={() => navigate({ to: "/notifications" })}
+            preload="intent"
             className="relative p-1 text-zinc-300 hover:text-white"
           >
             <Heart size={24} />
             <span className="absolute -top-1 -right-2 bg-pink-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full border border-[#0d0d0f]">
               68
             </span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -113,21 +118,8 @@ export function HomePage() {
         </div>
 
         {/* Friends Stories */}
-        {[
-          { id: 1, name: "riko.night", letter: "R", bg: "bg-[#7e22ce]", ring: "border-[#ec4899]" },
-          { id: 2, name: "sea.salt", letter: "M", bg: "bg-[#0d9488]", ring: "border-[#14b8a6]" },
-          { id: 3, name: "spinsolo", letter: "A", bg: "bg-[#ea580c]", ring: "border-[#f97316]" },
-          { id: 4, name: "slowbrunch", letter: "N", bg: "bg-[#dc2626]", ring: "border-[#ef4444]" },
-          { id: 5, name: "wavelen", letter: "K", bg: "bg-[#0284c7]", ring: "border-[#38bdf8]" },
-        ].map((s) => (
-          <div key={s.id} onClick={() => navigate({ to: "/moment" })} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform">
-            <div className={`p-[2px] rounded-full border-2 ${s.ring}`}>
-              <div className={`w-15 h-15 rounded-full ${s.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#0d0d0f]`}>
-                {s.letter}
-              </div>
-            </div>
-            <span className="text-[11px] font-medium text-zinc-300 w-16 truncate text-center">{s.name}</span>
-          </div>
+        {STORY_CIRCLES.map((s) => (
+          <StoryCircle key={s.id} story={s} />
         ))}
 
       </div>
@@ -152,9 +144,12 @@ export function HomePage() {
               </button>
             </div>
 
-            <div className="relative w-full aspect-square bg-zinc-900 rounded-2xl overflow-hidden">
-              <img src={post.image} alt="Post" className="w-full h-full object-cover" />
-            </div>
+            <LazyImage
+              src={post.image}
+              alt="Post"
+              wrapperClassName="relative w-full aspect-square bg-zinc-900 rounded-2xl overflow-hidden"
+              className="w-full h-full object-cover"
+            />
 
             <div className="px-3 pb-3 space-y-2">
               <div className="flex items-center justify-between pt-1">
@@ -189,29 +184,29 @@ export function HomePage() {
       {/* 4. FLOATING BOTTOM NAV (PROFILE WORKING FIX) */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md bg-[#1f1a2e]/90 border border-white/10 backdrop-blur-xl rounded-full p-2 px-4 shadow-2xl flex items-center justify-between">
         
-        <button onClick={() => navigate({ to: "/" })} className="flex flex-col items-center justify-center py-1 px-3 bg-zinc-800/80 rounded-2xl text-white">
+        <Link to="/" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 bg-zinc-800/80 rounded-2xl text-white">
           <Home size={20} />
           <span className="text-[10px] font-bold mt-0.5">Home</span>
-        </button>
+        </Link>
 
-        <button onClick={() => navigate({ to: "/reels" })} className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
+        <Link to="/reels" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
           <Film size={20} />
           <span className="text-[10px] font-semibold mt-0.5">Reels</span>
-        </button>
+        </Link>
 
-        <button onClick={() => setCreateOpen(true)} aria-label="Create" className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform">
+        <button onClick={openCreate} aria-label="Create" className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform">
           <Plus size={26} />
         </button>
 
-        <button onClick={() => navigate({ to: "/chat/$threadId", params: { threadId: "t1" } })} className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
+        <Link to="/chat/$threadId" params={{ threadId: "t1" }} preload="intent" className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
           <MessageSquare size={20} />
           <span className="text-[10px] font-semibold mt-0.5">Chat</span>
-        </button>
+        </Link>
 
-        <button onClick={() => navigate({ to: "/profile" })} className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white active:scale-90 transition-transform cursor-pointer">
+        <Link to="/profile" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white active:scale-90 transition-transform">
           <User size={20} />
           <span className="text-[10px] font-semibold mt-0.5">Profile</span>
-        </button>
+        </Link>
 
       </div>
 
