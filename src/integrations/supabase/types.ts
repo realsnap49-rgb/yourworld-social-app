@@ -113,6 +113,7 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      shares_thread_with: { Args: { _other_user: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
