@@ -23,6 +23,37 @@ type Post = {
   isSaved: boolean;
 };
 
+type Story = { id: number; name: string; letter: string; bg: string; ring: string };
+
+const STORY_CIRCLES: Story[] = [
+  { id: 1, name: "riko.night", letter: "R", bg: "bg-[#7e22ce]", ring: "border-[#ec4899]" },
+  { id: 2, name: "sea.salt", letter: "M", bg: "bg-[#0d9488]", ring: "border-[#14b8a6]" },
+  { id: 3, name: "spinsolo", letter: "A", bg: "bg-[#ea580c]", ring: "border-[#f97316]" },
+  { id: 4, name: "slowbrunch", letter: "N", bg: "bg-[#dc2626]", ring: "border-[#ef4444]" },
+  { id: 5, name: "wavelen", letter: "K", bg: "bg-[#0284c7]", ring: "border-[#38bdf8]" },
+];
+
+const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
+  return (
+    <Link
+      to="/moment"
+      preload="intent"
+      className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform"
+    >
+      <div className={`p-[2px] rounded-full border-2 ${story.ring}`}>
+        <div
+          className={`w-15 h-15 rounded-full ${story.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#0d0d0f]`}
+        >
+          {story.letter}
+        </div>
+      </div>
+      <span className="text-[11px] font-medium text-zinc-300 w-16 truncate text-center">
+        {story.name}
+      </span>
+    </Link>
+  );
+});
+
 export function HomePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const navigate = useNavigate();
