@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import type { User } from "@/lib/yw-data";
 
-export function YwAvatar({
+function YwAvatarBase({
   user,
   size = 40,
   className,
@@ -28,3 +29,5 @@ export function YwAvatar({
     </span>
   );
 }
+
+export const YwAvatar = memo(YwAvatarBase);
