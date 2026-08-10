@@ -172,3 +172,4 @@ function PostCardBase({ post }: { post: Post }) {
     </article>
   );
 }
+export const PostCard = memo(PostCardBase);
