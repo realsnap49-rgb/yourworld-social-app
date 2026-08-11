@@ -109,11 +109,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_thread_member: {
-        Args: { _thread_id: string; _user_id: string }
-        Returns: boolean
-      }
-      shares_thread_with: { Args: { _other_user: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
