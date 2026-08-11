@@ -149,11 +149,11 @@ export function CreateStudioPage() {
             {flash ? <Zap className="w-5 h-5 fill-current" /> : <ZapOff className="w-5 h-5" />}
           </button>
 
-          <button className="p-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white active:scale-90 transition">
-            <RefreshCw
-              className="w-5 h-5"
-              onClick={() => setFacingMode((m) => (m === "user" ? "environment" : "user"))}
-            />
+          <button
+            onClick={() => setFacingMode((m) => (m === "user" ? "environment" : "user"))}
+            className="p-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white active:scale-90 transition"
+          >
+            <RefreshCw className="w-5 h-5" />
           </button>
         </div>
       </div>
