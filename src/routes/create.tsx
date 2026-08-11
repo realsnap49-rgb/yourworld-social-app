@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { 
   X, 
@@ -40,6 +40,54 @@ export function CreateStudioPage() {
   const [isBoomerang, setIsBoomerang] = useState(false);
   const [isLayoutGrid, setIsLayoutGrid] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [pickedFile, setPickedFile] = useState<{ url: string; type: string } | null>(null);
+
+  // Live webcam feed
+  useEffect(() => {
+    let cancelled = false;
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        setCameraError(null);
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      } catch (err: any) {
+        if (!cancelled) setCameraError(err?.message ?? "Camera unavailable");
+      }
+    }
+    start();
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, [facingMode]);
+
+  useEffect(() => {
+    return () => {
+      if (pickedFile) URL.revokeObjectURL(pickedFile.url);
+    };
+  }, [pickedFile]);
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPickedFile({ url: URL.createObjectURL(file), type: file.type });
+    setShowEditor(true);
+    e.target.value = "";
+  };
 
   // Recording Progress Bar Animation
   useEffect(() => {
@@ -101,7 +149,10 @@ export function CreateStudioPage() {
             {flash ? <Zap className="w-5 h-5 fill-current" /> : <ZapOff className="w-5 h-5" />}
           </button>
 
-          <button className="p-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white active:scale-90 transition">
+          <button
+            onClick={() => setFacingMode((m) => (m === "user" ? "environment" : "user"))}
+            className="p-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white active:scale-90 transition"
+          >
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -156,18 +207,29 @@ export function CreateStudioPage() {
         </button>
       </div>
 
-      {/* Camera Viewport Placeholder */}
-      <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 z-0">
-        <div className="text-center flex flex-col items-center gap-2">
-          <div className="w-20 h-20 rounded-full border border-white/10 flex items-center justify-center bg-white/5 backdrop-blur-xl">
-            {activeMode === "POST" && <Grid className="w-8 h-8 text-white/60" />}
-            {activeMode === "REEL" && <Video className="w-8 h-8 text-pink-400" />}
-            {activeMode === "LIVE" && <Radio className="w-8 h-8 text-red-500 animate-pulse" />}
+      {/* Live Camera Viewport */}
+      <div className="absolute inset-0 bg-zinc-950 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`w-full h-full object-contain ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+        />
+        {cameraError && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center flex flex-col items-center gap-2">
+              <div className="w-20 h-20 rounded-full border border-white/10 flex items-center justify-center bg-white/5 backdrop-blur-xl">
+                {activeMode === "POST" && <Grid className="w-8 h-8 text-white/60" />}
+                {activeMode === "REEL" && <Video className="w-8 h-8 text-pink-400" />}
+                {activeMode === "LIVE" && <Radio className="w-8 h-8 text-red-500 animate-pulse" />}
+              </div>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+                Camera unavailable
+              </p>
+            </div>
           </div>
-          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
-            {activeMode} Camera Viewport
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Bottom Shutter & Mode Switcher */}
@@ -175,7 +237,17 @@ export function CreateStudioPage() {
         
         <div className="flex items-center justify-around w-full px-8">
           {/* Gallery Picker */}
-          <button className="w-12 h-12 rounded-2xl border-2 border-white/30 bg-zinc-900 overflow-hidden flex items-center justify-center active:scale-95 transition shadow-2xl">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={onPickFile}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-12 h-12 rounded-2xl border-2 border-white/30 bg-zinc-900 overflow-hidden flex items-center justify-center active:scale-95 transition shadow-2xl"
+          >
             <ImageIcon className="w-6 h-6 text-zinc-300" />
           </button>
 
@@ -247,8 +319,16 @@ export function CreateStudioPage() {
           </div>
 
           {/* Timeline / Video Preview Box */}
-          <div className="flex-1 bg-zinc-900 flex items-center justify-center relative">
-            <p className="text-xs text-zinc-500 tracking-widest uppercase">Video Multi-Layer Preview</p>
+          <div className="flex-1 bg-zinc-900 flex items-center justify-center relative overflow-hidden">
+            {pickedFile ? (
+              pickedFile.type.startsWith("video") ? (
+                <video src={pickedFile.url} controls className="max-h-full max-w-full object-contain" />
+              ) : (
+                <img src={pickedFile.url} alt="Selected media preview" className="max-h-full max-w-full object-contain" />
+              )
+            ) : (
+              <p className="text-xs text-zinc-500 tracking-widest uppercase">Video Multi-Layer Preview</p>
+            )}
           </div>
 
           {/* CapCut Style Editing Tools Slider */}
