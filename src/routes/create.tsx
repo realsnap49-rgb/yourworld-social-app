@@ -22,7 +22,7 @@ import {
   RotateCw,
   Wand2,
   Sparkle,
-  Sticker
+  Move
 } from "lucide-react";
 
 export const Route = createFileRoute("/create")({
@@ -43,41 +43,48 @@ export function CreateStudioPage() {
   const [showEditor, setShowEditor] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
-  // Editor Sub-Tool States (Crop, Zoom & Interactive Controls)
+  // Editor States: Crop, Scale & Manual Drag Positions
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [textOverlay, setTextOverlay] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("None");
   const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
   
-  // Crop & Zoom States
-  const [scale, setScale] = useState(1); // Video Zoom (1x to 3x)
-  const [rotation, setRotation] = useState(0); // Video Rotate (0, 90, 180, 270)
-  const [aspectRatio, setAspectRatio] = useState("9:16"); // Crop Ratio
+  const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [aspectRatio, setAspectRatio] = useState("9:16");
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
-  // Camera & File Refs
+  // Real Camera Ref & Initializer
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Initialize Real Camera
   useEffect(() => {
     let stream: MediaStream | null = null;
-    navigator.mediaDevices?.getUserMedia({ video: true, audio: true })
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
+        audio: true 
+      })
       .then((s) => {
         stream = s;
         if (videoRef.current) {
           videoRef.current.srcObject = s;
+          videoRef.current.play().catch(() => {});
         }
       })
-      .catch((err) => console.log("Camera access error:", err));
+      .catch((err) => console.error("Camera permissions error:", err));
+    }
 
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [showEditor]);
 
-  // Handle Gallery Selection
+  // Gallery File Selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -87,7 +94,27 @@ export function CreateStudioPage() {
     }
   };
 
-  // Recording Progress Bar
+  // Dragging logic for manual cropping position
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    dragStartRef.current = { x: clientX - position.x, y: clientY - position.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setPosition({
+      x: clientX - dragStartRef.current.x,
+      y: clientY - dragStartRef.current.y
+    });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  // Recording Progress
   useEffect(() => {
     let interval: any;
     if (isRecording) {
@@ -110,7 +137,6 @@ export function CreateStudioPage() {
   return (
     <div className="fixed inset-0 z-50 bg-black text-white flex flex-col justify-between select-none overflow-hidden font-sans">
       
-      {/* Hidden Gallery Input */}
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -119,7 +145,7 @@ export function CreateStudioPage() {
         className="hidden" 
       />
 
-      {/* Top Reel Progress Bar */}
+      {/* Reel Progress Bar */}
       {activeMode === "REEL" && (
         <div className="absolute top-0 left-0 right-0 z-30 h-1.5 bg-white/20">
           <div 
@@ -129,7 +155,7 @@ export function CreateStudioPage() {
         </div>
       )}
 
-      {/* Header Bar */}
+      {/* Header */}
       <div className="flex items-center justify-between p-4 z-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-6">
         <button 
           onClick={() => navigate({ to: "/" })} 
@@ -138,7 +164,6 @@ export function CreateStudioPage() {
           <X className="w-5 h-5 text-white" />
         </button>
 
-        {/* Audio Picker */}
         {activeMode === "REEL" && (
           <button 
             onClick={() => setSelectedAudio(selectedAudio ? null : "Trending Sound - Original Audio")}
@@ -165,47 +190,24 @@ export function CreateStudioPage() {
         </div>
       </div>
 
-      {/* Compact Side Toolbar */}
+      {/* Side Toolbar */}
       <div className="absolute left-3 top-20 z-20 flex flex-col gap-3 bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-xl">
-        <button 
-          onClick={() => setIsBoomerang(!isBoomerang)} 
-          className={`p-2 rounded-full transition active:scale-90 ${isBoomerang ? "bg-pink-500 text-white" : "text-white/80 hover:bg-white/10"}`}
-          title="Boomerang"
-        >
+        <button onClick={() => setIsBoomerang(!isBoomerang)} className={`p-2 rounded-full transition ${isBoomerang ? "bg-pink-500 text-white" : "text-white/80"}`}>
           <BoomerangIcon className="w-4 h-4" />
         </button>
-
-        <button 
-          onClick={() => setIsLayoutGrid(!isLayoutGrid)} 
-          className={`p-2 rounded-full transition active:scale-90 ${isLayoutGrid ? "bg-cyan-500 text-white" : "text-white/80 hover:bg-white/10"}`}
-          title="Layout"
-        >
+        <button onClick={() => setIsLayoutGrid(!isLayoutGrid)} className={`p-2 rounded-full transition ${isLayoutGrid ? "bg-cyan-500 text-white" : "text-white/80"}`}>
           <LayoutGrid className="w-4 h-4" />
         </button>
-
-        <button 
-          onClick={() => setSpeed(speed === "1x" ? "2x" : speed === "2x" ? "0.5x" : "1x")}
-          className="p-2 rounded-full text-white/80 hover:bg-white/10 font-bold text-[10px] active:scale-90 transition"
-          title="Speed"
-        >
+        <button onClick={() => setSpeed(speed === "1x" ? "2x" : "1x")} className="p-2 rounded-full text-white/80 font-bold text-[10px]">
           {speed}
         </button>
-
-        <button className="p-2 rounded-full text-white/80 hover:bg-white/10 active:scale-90 transition" title="Effects">
-          <Sparkles className="w-4 h-4 text-amber-300" />
-        </button>
-
-        <button className="p-2 rounded-full text-white/80 hover:bg-white/10 active:scale-90 transition" title="AutoCut">
-          <Wand2 className="w-4 h-4 text-purple-400" />
-        </button>
-
-        <button className="p-2 rounded-full text-white/80 hover:bg-white/10 active:scale-90 transition" title="Timer">
-          <Clock className="w-4 h-4 text-emerald-400" />
-        </button>
+        <button className="p-2 rounded-full text-white/80"><Sparkles className="w-4 h-4 text-amber-300" /></button>
+        <button className="p-2 rounded-full text-white/80"><Wand2 className="w-4 h-4 text-purple-400" /></button>
+        <button className="p-2 rounded-full text-white/80"><Clock className="w-4 h-4 text-emerald-400" /></button>
       </div>
 
-      {/* Live Camera Feed */}
-      <div className="absolute inset-0 bg-black z-0 flex items-center justify-center">
+      {/* Camera Live Stream Element */}
+      <div className="absolute inset-0 bg-black z-0 flex items-center justify-center overflow-hidden">
         <video 
           ref={videoRef} 
           autoPlay 
@@ -215,7 +217,7 @@ export function CreateStudioPage() {
         />
       </div>
 
-      {/* Bottom Controls */}
+      {/* Shutter Controls */}
       <div className="flex flex-col items-center gap-5 pb-8 z-20 bg-gradient-to-t from-black via-black/80 to-transparent pt-14">
         <div className="flex items-center justify-around w-full px-8">
           <button 
@@ -230,22 +232,13 @@ export function CreateStudioPage() {
             className="relative flex items-center justify-center group"
           >
             <div className={`rounded-full transition-all duration-300 flex items-center justify-center ${
-              isRecording 
-                ? "w-20 h-20 border-4 border-red-500 bg-red-500/20 animate-pulse" 
-                : "w-20 h-20 border-4 border-white p-1"
+              isRecording ? "w-20 h-20 border-4 border-red-500 bg-red-500/20 animate-pulse" : "w-20 h-20 border-4 border-white p-1"
             }`}>
-              <div className={`transition-all duration-300 ${
-                isRecording 
-                  ? "w-8 h-8 rounded-md bg-red-500" 
-                  : "w-full h-full rounded-full bg-white group-hover:scale-95"
-              }`} />
+              <div className={`transition-all duration-300 ${isRecording ? "w-8 h-8 rounded-md bg-red-500" : "w-full h-full rounded-full bg-white"}`} />
             </div>
           </button>
 
-          <button 
-            onClick={() => setShowEditor(true)}
-            className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/15 flex items-center justify-center text-white active:scale-95 transition"
-          >
+          <button onClick={() => setShowEditor(true)} className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/15 flex items-center justify-center text-white active:scale-95 transition">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -255,51 +248,41 @@ export function CreateStudioPage() {
           {(["POST", "REEL", "LIVE"] as Mode[]).map((mode) => (
             <button
               key={mode}
-              onClick={() => {
-                setActiveMode(mode);
-                setIsRecording(false);
-              }}
-              className={`relative text-[11px] font-black tracking-widest transition-all duration-200 ${
-                activeMode === mode 
-                  ? "text-white scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]" 
-                  : "text-zinc-500 hover:text-zinc-300"
+              onClick={() => { setActiveMode(mode); setIsRecording(false); }}
+              className={`relative text-[11px] font-black tracking-widest transition-all ${
+                activeMode === mode ? "text-white scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
               {mode}
-              {activeMode === mode && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
-              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* FULL STUDIO EDITOR WITH CROP & ZOOM TOOLS */}
+      {/* EDITOR MODAL WITH MANUAL DRAG & CROP ADJUSTMENTS */}
       {showEditor && (
         <div className="fixed inset-0 z-50 bg-black text-white flex flex-col justify-between animate-in fade-in duration-200">
           
-          {/* Top Bar */}
           <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
             <button onClick={() => setShowEditor(false)} className="p-2 rounded-full hover:bg-zinc-900">
               <X className="w-5 h-5" />
             </button>
-            <span className="text-xs font-bold tracking-wider uppercase">YW Studio Editor</span>
-            <button 
-              onClick={() => {
-                alert("Post Shared Successfully!");
-                setShowEditor(false);
-                navigate({ to: "/" });
-              }}
-              className="px-4 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full text-xs font-bold shadow-lg hover:opacity-90 active:scale-95 transition"
-            >
-              Share Post
+            <span className="text-xs font-bold uppercase tracking-wider">Studio Editor</span>
+            <button onClick={() => { alert("Post Shared!"); setShowEditor(false); navigate({ to: "/" }); }} className="px-4 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full text-xs font-bold">
+              Share
             </button>
           </div>
 
-          {/* Realtime Interactive Media Viewport (Supports Scale & Crop Ratio) */}
-          <div className="flex-1 bg-zinc-900 flex items-center justify-center relative overflow-hidden p-4">
+          {/* Interactive Canvas Viewport (Supports Drag & Manual Position) */}
+          <div className="flex-1 bg-zinc-950 flex items-center justify-center relative overflow-hidden p-4 select-none">
             <div 
-              className="relative transition-all duration-300 flex items-center justify-center overflow-hidden border border-white/10 rounded-2xl shadow-2xl"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onTouchStart={handleMouseDown}
+              onTouchMove={handleMouseMove}
+              onTouchEnd={handleMouseUp}
+              className="relative overflow-hidden border border-white/20 rounded-2xl shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center"
               style={{
                 aspectRatio: aspectRatio === "1:1" ? "1/1" : aspectRatio === "4:5" ? "4/5" : "9/16",
                 maxHeight: "100%",
@@ -310,138 +293,103 @@ export function CreateStudioPage() {
                 <img 
                   src={selectedMedia} 
                   alt="Preview" 
-                  className={`w-full h-full object-cover transition-transform duration-200 ${
+                  draggable={false}
+                  className={`w-full h-full object-cover pointer-events-none transition-transform duration-75 ${
                     selectedFilter === "Vintage" ? "sepia" : selectedFilter === "B&W" ? "grayscale" : ""
                   }`} 
                   style={{
-                    transform: `scale(${scale}) rotate(${rotation}deg)`
+                    transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`
                   }}
                 />
               ) : (
                 <div className="text-center p-6">
-                  <Video className="w-12 h-12 text-pink-500 mx-auto mb-2 animate-pulse" />
-                  <p className="text-xs text-zinc-400">Captured Reel Preview</p>
+                  <Video className="w-10 h-10 text-pink-500 mx-auto mb-2 animate-pulse" />
+                  <p className="text-xs text-zinc-400">Captured Media Preview</p>
                 </div>
               )}
 
-              {/* Text Overlay Render */}
+              {/* Position Guide Icon */}
+              <div className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 backdrop-blur-md text-white/80 pointer-events-none">
+                <Move className="w-3.5 h-3.5" />
+              </div>
+
               {textOverlay && (
-                <div className="absolute text-2xl font-black text-white bg-black/50 px-4 py-2 rounded-xl backdrop-blur-md drop-shadow-2xl">
+                <div className="absolute text-2xl font-black text-white bg-black/50 px-4 py-2 rounded-xl backdrop-blur-md">
                   {textOverlay}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Interactive Sub-Tool Panels */}
+          {/* Active Tool Control Strip */}
           {activeTool && (
-            <div className="bg-zinc-900 border-t border-zinc-800 p-3 flex items-center justify-between">
-              
-              {/* ZOOM CONTROLLER */}
+            <div className="bg-zinc-900 border-t border-zinc-800 p-3">
               {activeTool === "zoom" && (
-                <div className="w-full flex items-center gap-3 text-xs px-2">
-                  <span className="font-semibold text-zinc-400">Zoom:</span>
+                <div className="flex items-center gap-3 text-xs px-2">
+                  <span className="text-zinc-400 font-semibold">Zoom & Pan:</span>
                   <input 
-                    type="range" 
-                    min="1" 
-                    max="3" 
-                    step="0.1"
-                    value={scale}
-                    onChange={(e) => setScale(parseFloat(e.target.value))}
-                    className="w-full accent-pink-500 cursor-pointer" 
+                    type="range" min="1" max="3.5" step="0.1" value={scale} 
+                    onChange={(e) => setScale(parseFloat(e.target.value))} 
+                    className="w-full accent-pink-500" 
                   />
                   <span className="font-bold text-pink-400">{scale.toFixed(1)}x</span>
+                  <button onClick={() => setPosition({ x: 0, y: 0 })} className="text-[10px] bg-zinc-800 px-2 py-1 rounded">Reset Pos</button>
                 </div>
               )}
 
-              {/* CROP RATIO CONTROLLER */}
               {activeTool === "crop" && (
-                <div className="w-full flex items-center justify-between text-xs px-2">
+                <div className="flex items-center justify-between text-xs px-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-400">Ratio:</span>
+                    <span className="text-zinc-400 font-semibold">Ratio:</span>
                     {["9:16", "1:1", "4:5"].map((r) => (
                       <button 
-                        key={r}
-                        onClick={() => setAspectRatio(r)}
+                        key={r} onClick={() => setAspectRatio(r)}
                         className={`px-3 py-1 rounded-full border ${aspectRatio === r ? "border-pink-500 bg-pink-500/20 text-white font-bold" : "border-zinc-700 text-zinc-400"}`}
                       >
                         {r}
                       </button>
                     ))}
                   </div>
-
-                  <button 
-                    onClick={() => setRotation((prev) => (prev + 90) % 360)}
-                    className="p-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white flex items-center gap-1 text-[11px]"
-                  >
-                    <RotateCw className="w-3.5 h-3.5" /> Rotate
+                  <button onClick={() => setRotation((prev) => (prev + 90) % 360)} className="px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-300 flex items-center gap-1 text-[11px]">
+                    <RotateCw className="w-3 h-3" /> Rotate
                   </button>
                 </div>
               )}
 
-              {activeTool === "trim" && (
-                <div className="w-full flex items-center gap-3 text-xs px-2">
-                  <span className="font-semibold text-zinc-400">Trim:</span>
-                  <input type="range" className="w-full accent-pink-500" />
-                </div>
-              )}
-
               {activeTool === "text" && (
-                <div className="w-full flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <input 
-                    type="text" 
-                    placeholder="Type text overlay..." 
-                    value={textOverlay}
+                    type="text" placeholder="Add caption overlay..." value={textOverlay}
                     onChange={(e) => setTextOverlay(e.target.value)}
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
                   />
                   <button onClick={() => setActiveTool(null)} className="text-xs text-pink-400 font-bold px-2">Done</button>
                 </div>
               )}
-
-              {activeTool === "filter" && (
-                <div className="w-full flex items-center gap-3 overflow-x-auto text-xs py-1">
-                  {["None", "Vintage", "B&W", "Vivid"].map((f) => (
-                    <button 
-                      key={f}
-                      onClick={() => setSelectedFilter(f)}
-                      className={`px-3 py-1 rounded-full border ${selectedFilter === f ? "border-pink-500 bg-pink-500/20 text-white" : "border-zinc-700 text-zinc-400"}`}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              )}
-
             </div>
           )}
 
-          {/* Bottom Tool Selection Suite */}
+          {/* Bottom Toolbar */}
           <div className="bg-zinc-950 border-t border-zinc-800 p-3">
             <div className="flex items-center justify-around gap-2">
-              <button onClick={() => setActiveTool("zoom")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300 hover:text-white">
+              <button onClick={() => setActiveTool("zoom")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300">
                 <div className="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800"><ZoomIn className="w-4 h-4 text-pink-400" /></div>
-                <span>Zoom</span>
+                <span>Zoom & Position</span>
               </button>
 
-              <button onClick={() => setActiveTool("crop")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300 hover:text-white">
+              <button onClick={() => setActiveTool("crop")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300">
                 <div className="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800"><Crop className="w-4 h-4 text-cyan-400" /></div>
-                <span>Crop / Ratio</span>
+                <span>Crop / Aspect</span>
               </button>
 
-              <button onClick={() => setActiveTool("trim")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300 hover:text-white">
-                <div className="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800"><Scissors className="w-4 h-4 text-amber-400" /></div>
-                <span>Trim</span>
-              </button>
-
-              <button onClick={() => setActiveTool("text")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300 hover:text-white">
+              <button onClick={() => setActiveTool("text")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300">
                 <div className="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800"><Type className="w-4 h-4 text-purple-400" /></div>
                 <span>Text</span>
               </button>
 
-              <button onClick={() => setActiveTool("filter")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300 hover:text-white">
-                <div className="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800"><Sparkle className="w-4 h-4 text-emerald-400" /></div>
-                <span>Filter</span>
+              <button onClick={() => alert("Music Overlay Opened")} className="flex flex-col items-center gap-1 text-[10px] text-zinc-300">
+                <div className="p-2.5 bg-zinc-900 rounded-xl border border-zinc-800"><Music className="w-4 h-4 text-amber-400" /></div>
+                <span>Music</span>
               </button>
             </div>
           </div>
