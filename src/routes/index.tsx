@@ -1,14 +1,22 @@
 import React, { memo, useCallback, useState } from "react";
-import { CreateSheet } from "@/components/yw/CreateSheet";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-  Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
-  Plus, Home, Film, MessageSquare, User
+  Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
+  head: () => ({
+    meta: [
+      { title: "YourWorld — Moments, Reels & Chat" },
+      { name: "description", content: "YourWorld (YW) is a premium social app for sharing moments, reels, stories and private chats with the people who matter." },
+      { property: "og:title", content: "YourWorld — Moments, Reels & Chat" },
+      { property: "og:description", content: "Share moments, watch reels and chat privately on YourWorld." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
 });
 
 type Post = {
@@ -55,7 +63,6 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
 });
 
 export function HomePage() {
-  const [createOpen, setCreateOpen] = useState(false);
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState<Post[]>([
@@ -90,8 +97,6 @@ export function HomePage() {
   const toggleSave = useCallback((postId: number) => {
     setPosts(prev => prev.map(p => (p.id === postId ? { ...p, isSaved: !p.isSaved } : p)));
   }, []);
-
-  const openCreate = useCallback(() => setCreateOpen(true), []);
 
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
@@ -212,8 +217,6 @@ export function HomePage() {
         ))}
       </div>
 
-      {/* 4. FLOATING BOTTOM NAV (PROFILE WORKING FIX) */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md bg-[#1f1a2e]/90 border border-white/10 backdrop-blur-xl rounded-full p-2 px-4 shadow-2xl flex items-center justify-between">
-        
-        <Link to="/" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 bg-zinc-800/80 rounded-2xl text-white">
-          <Home size={20} />
+    </div>
+  );
+}
