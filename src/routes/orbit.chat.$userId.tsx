@@ -1,6 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, EyeOff, ImagePlus, Camera, Send } from "lucide-react";
+import {
+  ChevronLeft,
+  EyeOff,
+  ImagePlus,
+  Camera,
+  Send,
+  Phone,
+  Video,
+  MonitorUp,
+  Square,
+} from "lucide-react";
 import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
 import {
@@ -10,6 +20,7 @@ import {
   useOrbit,
 } from "@/lib/orbit-store";
 import { OrbitChatGate } from "@/components/yw/OrbitChatGate";
+import { OrbitCallSheet, type OrbitCallMode } from "@/components/yw/OrbitCallSheet";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -34,6 +45,19 @@ export const Route = createFileRoute("/orbit/chat/$userId")({
 
 type Msg = { id: string; me: boolean; text?: string; url?: string };
 
+const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
+
+function loadHistory(userId: string): Msg[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(historyKey(userId));
+    const parsed = raw ? (JSON.parse(raw) as Msg[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function OrbitChatPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
@@ -45,6 +69,9 @@ function OrbitChatPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
+  const [call, setCall] = useState<OrbitCallMode | null>(null);
+  const [recording, setRecording] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
@@ -58,8 +85,75 @@ function OrbitChatPage() {
   const photosLeft = ORBIT_REQUEST_PHOTO_MAX - sentPhotos;
 
   useEffect(() => {
-    if (!accepted) setMsgs([]);
-  }, [accepted]);
+    if (!accepted) {
+      setMsgs([]);
+      return;
+    }
+    const history = loadHistory(userId);
+    seq.current = history.length;
+    setMsgs(history);
+  }, [accepted, userId]);
+
+  // Persist chat history (blob previews are session-only and are skipped).
+  useEffect(() => {
+    if (!accepted || typeof window === "undefined") return;
+    const durable = msgs.filter((m) => !m.url?.startsWith("blob:"));
+    window.localStorage.setItem(historyKey(userId), JSON.stringify(durable));
+  }, [msgs, accepted, userId]);
+
+  const startCall = (mode: OrbitCallMode) => {
+    if (!accepted) {
+      toast.warning("Calls unlock once your Orbit request is accepted.");
+      return;
+    }
+    if (!orbit.privacy.callsEnabled) {
+      toast.warning("Calls are turned off in your Orbit privacy settings.");
+      return;
+    }
+    setCall(mode);
+  };
+
+  const stopRecording = useCallback(() => {
+    recorderRef.current?.stop();
+  }, []);
+
+  const startRecording = async () => {
+    if (recording) return stopRecording();
+    if (!accepted) {
+      toast.warning("Screen recording unlocks once you're connected.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+      const rec = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        recorderRef.current = null;
+        setRecording(false);
+        const url = URL.createObjectURL(new Blob(chunks, { type: "video/webm" }));
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `orbit-${p?.id ?? "chat"}-${Date.now()}.webm`;
+        a.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+        toast.success("Screen recording saved");
+      };
+      stream.getVideoTracks()[0]?.addEventListener("ended", () => rec.state !== "inactive" && rec.stop());
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+      toast.success("Screen recording started");
+    } catch {
+      toast.error("Screen recording was not allowed");
+    }
+  };
+
+  useEffect(() => () => recorderRef.current?.stop(), []);
 
   if (!p) {
     return (
@@ -140,6 +234,42 @@ function OrbitChatPage() {
             </span>
           </span>
         </Link>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => startCall("voice")}
+            aria-label="Voice call"
+            className="grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90 disabled:opacity-40"
+            disabled={!accepted}
+          >
+            <Phone className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            onClick={() => startCall("video")}
+            aria-label="Video call"
+            className="grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90 disabled:opacity-40"
+            disabled={!accepted}
+          >
+            <Video className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            onClick={startRecording}
+            aria-label={recording ? "Stop screen recording" : "Record screen"}
+            aria-pressed={recording}
+            className={`grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90 disabled:opacity-40 ${
+              recording ? "bg-foreground text-background" : ""
+            }`}
+            disabled={!accepted}
+          >
+            {recording ? (
+              <Square className="h-4 w-4" strokeWidth={2.4} />
+            ) : (
+              <MonitorUp className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            )}
+          </button>
+        </div>
       </header>
 
       <section className="flex-1 space-y-2 px-4 py-4">
@@ -263,6 +393,13 @@ function OrbitChatPage() {
           </button>
         </div>
       </form>
+
+      <OrbitCallSheet
+        mode={call}
+        peerName={p.name}
+        peerPhoto={p.photo}
+        onClose={() => setCall(null)}
+      />
     </main>
   );
 }
