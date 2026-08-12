@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { 
-  ArrowLeft, ArrowRight, Play, Pause, RotateCcw, RotateCw, 
-  Scissors, Gauge, Volume2, Sparkles, Captions, Trash2, 
-  Copy, RefreshCw, Mic, MoveHorizontal, Snowflake, Undo2, Redo2,
-  Plus, VolumeX, Music, Type, Smile, Sliders, Download, Layers, Droplet, UserCheck
+  ArrowLeft, Play, Pause, Scissors, Gauge, Volume2, 
+  Sparkles, Captions, Trash2, Copy, RotateCw, Plus, 
+  VolumeX, Music, Type, Smile, Sliders, Download, Undo2, Redo2, Snowflake, MoveHorizontal
 } from "lucide-react";
 
 export const Route = createFileRoute("/create")({
@@ -14,11 +13,9 @@ export const Route = createFileRoute("/create")({
 interface ClipItem {
   id: string;
   url: string;
-  duration: number;
   speed: number;
-  volume: number;
-  filter: string;
   rotation: number;
+  filter: string;
   textOverlay: string;
 }
 
@@ -27,33 +24,28 @@ export function CreateStudioPage() {
   const [clips, setClips] = useState<ClipItem[]>([]);
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState("0:02.0");
-  const [totalTime, setTotalTime] = useState("0:15.9");
   const [isMuted, setIsMuted] = useState(false);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Add Clips (Up to 10)
+  // Smooth Multi-Select (Memory Optimized)
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
     const remaining = 10 - clips.length;
     if (remaining <= 0) {
-      alert("Maximum 10 clips limit reached!");
+      alert("Maximum 10 clips limit!");
       return;
     }
 
     const newClips: ClipItem[] = Array.from(files).slice(0, remaining).map((f, i) => ({
-      id: `clip_${Date.now()}_${i}`,
+      id: `c_${Date.now()}_${i}`,
       url: URL.createObjectURL(f),
-      duration: 5,
       speed: 1,
-      volume: 100,
-      filter: "none",
       rotation: 0,
+      filter: "none",
       textOverlay: ""
     }));
 
@@ -62,7 +54,6 @@ export function CreateStudioPage() {
 
   const currentClip = clips[activeClipIndex];
 
-  // Action Functions
   const updateCurrentClip = (key: keyof ClipItem, val: any) => {
     if (!currentClip) return;
     const updated = [...clips];
@@ -72,7 +63,7 @@ export function CreateStudioPage() {
 
   const handleDuplicate = () => {
     if (!currentClip || clips.length >= 10) return;
-    const copy = { ...currentClip, id: `clip_${Date.now()}` };
+    const copy = { ...currentClip, id: `c_${Date.now()}` };
     const updated = [...clips];
     updated.splice(activeClipIndex + 1, 0, copy);
     setClips(updated);
@@ -127,7 +118,7 @@ export function CreateStudioPage() {
               <Plus size={44} />
             </div>
             <p className="font-black text-base text-zinc-200">Select Up to 10 Videos / Photos</p>
-            <p className="text-xs text-zinc-500">Tap to browse phone media</p>
+            <p className="text-xs text-zinc-500">Fast & Lag-free Engine</p>
           </div>
 
           <button 
@@ -138,10 +129,10 @@ export function CreateStudioPage() {
           </button>
         </div>
       ) : (
-        /* INSTAGRAM EDITS / CAPCUT PRO STUDIO ENGINE */
+        /* PRO EDITOR ENGINE (Optimized) */
         <div className="flex-1 flex flex-col justify-between bg-black relative">
           
-          {/* TOP HEADER BAR */}
+          {/* HEADER BAR */}
           <div className="flex justify-between items-center px-4 py-3 bg-black z-30">
             <button onClick={() => setClips([])} className="p-2 bg-zinc-900 rounded-full">
               <ArrowLeft size={20} />
@@ -154,16 +145,16 @@ export function CreateStudioPage() {
 
             <button 
               onClick={() => {
-                alert("Video exported successfully to Gallery!");
+                alert("Saved to Gallery!");
                 navigate({ to: "/" });
               }}
-              className="bg-orange-500 hover:bg-orange-600 text-black font-black px-6 py-2 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-orange-500/20"
+              className="bg-orange-500 hover:bg-orange-600 text-black font-black px-6 py-2 rounded-xl text-xs uppercase shadow-lg shadow-orange-500/20"
             >
               SAVE
             </button>
           </div>
 
-          {/* MAIN VIDEO PREVIEW CANVAS (Orange Border) */}
+          {/* MAIN PLAYER */}
           <div className="flex-1 flex items-center justify-center p-2 relative bg-black overflow-hidden">
             <div className="relative max-h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center">
               <video 
@@ -173,7 +164,7 @@ export function CreateStudioPage() {
                 loop 
                 playsInline
                 muted={isMuted}
-                className="max-h-[52vh] max-w-full object-contain"
+                className="max-h-[50vh] max-w-full object-contain"
                 style={{
                   transform: `rotate(${currentClip?.rotation || 0}deg)`,
                   filter: currentClip?.filter === "vivid" ? "saturate(1.8)" : currentClip?.filter === "noir" ? "grayscale(1)" : "none"
@@ -188,46 +179,33 @@ export function CreateStudioPage() {
             </div>
           </div>
 
-          {/* PLAYER CONTROLS & TIMELINE ROW */}
-          <div className="flex items-center justify-between px-6 py-2 text-xs font-mono text-zinc-400">
+          {/* PLAYER CONTROLS */}
+          <div className="flex items-center justify-between px-6 py-1.5 text-xs font-mono text-zinc-400">
             <button onClick={togglePlay} className="p-2 bg-zinc-900 rounded-full text-white">
               {isPlaying ? <Pause size={18} /> : <Play size={18} />}
             </button>
-            <span>{currentTime} / {totalTime}</span>
+            <span>Clip {activeClipIndex + 1} / {clips.length}</span>
             <div className="flex items-center gap-3">
               <button className="text-zinc-400"><Undo2 size={18} /></button>
               <button className="text-zinc-400"><Redo2 size={18} /></button>
             </div>
           </div>
 
-          {/* SECONDARY ACTION RIBBON (ORANGE CAPCUT ICONS) */}
+          {/* SECONDARY ACTION RIBBON (ORANGE ICONS) */}
           <div className="bg-zinc-950 border-t border-zinc-900 py-2.5 px-3 flex items-center gap-5 overflow-x-auto text-[10px] text-orange-400 font-extrabold uppercase whitespace-nowrap scrollbar-none">
-            <button onClick={() => updateCurrentClip("duration", 3)} className="flex flex-col items-center gap-1 hover:text-white"><Scissors size={18} /> Trim</button>
-            <button onClick={handleDuplicate} className="flex flex-col items-center gap-1 hover:text-white"><Scissors size={18} /> Split</button>
             <button onClick={() => updateCurrentClip("speed", currentClip?.speed === 1 ? 2 : 1)} className="flex flex-col items-center gap-1 hover:text-white"><Gauge size={18} /> Speed ({currentClip?.speed}x)</button>
-            <button onClick={() => updateCurrentClip("volume", currentClip?.volume === 100 ? 0 : 100)} className="flex flex-col items-center gap-1 hover:text-white"><Volume2 size={18} /> Volume</button>
+            <button onClick={handleDuplicate} className="flex flex-col items-center gap-1 hover:text-white"><Scissors size={18} /> Split</button>
+            <button onClick={handleDuplicate} className="flex flex-col items-center gap-1 hover:text-white"><Copy size={18} /> Copy</button>
+            <button onClick={handleDelete} className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300"><Trash2 size={18} /> Delete</button>
+            <button onClick={() => updateCurrentClip("rotation", (currentClip?.rotation || 0) + 90)} className="flex flex-col items-center gap-1 hover:text-white"><RotateCw size={18} /> Rotate</button>
             <button className="flex flex-col items-center gap-1 hover:text-white"><Sparkles size={18} /> Enhance</button>
             <button className="flex flex-col items-center gap-1 hover:text-white"><Captions size={18} /> Captions</button>
-            <button onClick={handleDelete} className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300"><Trash2 size={18} /> Delete</button>
-            <button onClick={handleDuplicate} className="flex flex-col items-center gap-1 hover:text-white"><Copy size={18} /> Copy</button>
-            <button onClick={() => updateCurrentClip("rotation", (currentClip?.rotation || 0) + 90)} className="flex flex-col items-center gap-1 hover:text-white"><RotateCw size={18} /> Rotate</button>
-            <button className="flex flex-col items-center gap-1 hover:text-white"><MoveHorizontal size={18} /> Sort</button>
-            <button className="flex flex-col items-center gap-1 hover:text-white"><Snowflake size={18} /> Freeze</button>
           </div>
 
-          {/* MULTI-TRACK TIMELINE EDITOR */}
+          {/* TIMELINE TRACK (Optimized Single Thumbnail Preview) */}
           <div className="bg-zinc-900 border-t border-zinc-800 p-3 flex flex-col gap-2 relative">
-            {/* Center Playhead Vertical White Line */}
-            <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-white z-20 pointer-events-none shadow-glow" />
+            <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-white z-20 pointer-events-none" />
 
-            {/* Time Markers */}
-            <div className="flex justify-between text-[10px] text-zinc-500 font-mono px-12">
-              <span>1s</span>
-              <span>3s</span>
-              <span>5s</span>
-            </div>
-
-            {/* Video Filmstrip Track with Orange Handles */}
             <div className="flex items-center gap-2 overflow-x-auto py-1 px-4">
               <button 
                 onClick={() => setIsMuted(!isMuted)} 
@@ -237,65 +215,52 @@ export function CreateStudioPage() {
                 <span>Unmute</span>
               </button>
 
-              <div className="flex items-center gap-1 border-2 border-orange-500 rounded-2xl bg-orange-500/10 p-1 relative">
-                {/* Left Orange Trim Handle */}
-                <div className="w-2 h-12 bg-orange-500 rounded-l-md flex items-center justify-center">
-                  <div className="w-0.5 h-4 bg-black rounded-full" />
-                </div>
-
+              <div className="flex items-center gap-1.5 border-2 border-orange-500 rounded-2xl bg-orange-500/10 p-1 relative">
                 {clips.map((c, i) => (
-                  <div 
+                  <button 
                     key={c.id} 
                     onClick={() => setActiveClipIndex(i)}
-                    className={`w-14 h-12 rounded-lg overflow-hidden border-2 cursor-pointer transition ${
-                      activeClipIndex === i ? "border-orange-400 scale-105" : "border-transparent opacity-60"
+                    className={`w-12 h-10 rounded-lg font-black text-xs transition flex items-center justify-center ${
+                      activeClipIndex === i ? "bg-orange-500 text-black scale-105 shadow-md" : "bg-zinc-800 text-zinc-400"
                     }`}
                   >
-                    <video src={c.url} className="w-full h-full object-cover pointer-events-none" />
-                  </div>
+                    #{i + 1}
+                  </button>
                 ))}
-
-                {/* Right Orange Trim Handle */}
-                <div className="w-2 h-12 bg-orange-500 rounded-r-md flex items-center justify-center">
-                  <div className="w-0.5 h-4 bg-black rounded-full" />
-                </div>
               </div>
 
               {clips.length < 10 && (
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-10 h-10 rounded-full bg-white text-black font-black flex items-center justify-center shadow-lg active:scale-90 transition"
+                  className="w-9 h-9 rounded-full bg-white text-black font-black flex items-center justify-center shadow-lg active:scale-90 transition"
                 >
-                  <Plus size={22} />
+                  <Plus size={20} />
                 </button>
               )}
             </div>
 
-            {/* Sub-Tracks (+ Add audio / + Add text) */}
-            <div className="flex flex-col gap-1.5 px-4">
+            <div className="flex flex-col gap-1 px-4">
               <button 
                 onClick={() => {
                   const t = prompt("Enter text overlay:");
                   if (t) updateCurrentClip("textOverlay", t);
                 }} 
-                className="w-full py-2 bg-zinc-800/80 hover:bg-zinc-800 rounded-xl text-xs font-bold text-zinc-400 flex items-center justify-center gap-2 border border-zinc-700/50"
+                className="w-full py-2 bg-zinc-800/80 rounded-xl text-xs font-bold text-zinc-400 flex items-center justify-center gap-2 border border-zinc-700/50"
               >
                 <Plus size={14} /> Add text
               </button>
             </div>
-
-            <p className="text-[10px] text-center text-zinc-500 font-medium">Tap on a track to trim. Pinch to zoom.</p>
           </div>
 
-          {/* BOTTOM MAIN NAVIGATION BAR (DARK PILLS) */}
+          {/* BOTTOM MAIN NAV */}
           <div className="grid grid-cols-7 gap-1 p-2 bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
-            <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300 hover:text-white"><Music size={18} /> Audio</button>
-            <button onClick={() => { const t = prompt("Enter text:"); if (t) updateCurrentClip("textOverlay", t); }} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300 hover:text-white"><Type size={18} /> Text</button>
-            <button className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300 hover:text-white"><Mic size={18} /> Voice</button>
-            <button className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300 hover:text-white"><Captions size={18} /> Captions</button>
-            <button className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300 hover:text-white"><Smile size={18} /> Stickers</button>
-            <button onClick={() => updateCurrentClip("filter", currentClip?.filter === "vivid" ? "noir" : "vivid")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300 hover:text-white"><Sliders size={18} /> Filters</button>
-            <button onClick={() => { alert("Video saved to gallery!"); navigate({ to: "/" }); }} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300 hover:text-white"><Download size={18} /> Save</button>
+            <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Music size={18} /> Audio</button>
+            <button onClick={() => { const t = prompt("Enter text:"); if (t) updateCurrentClip("textOverlay", t); }} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Type size={18} /> Text</button>
+            <button className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Voice</button>
+            <button className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Captions</button>
+            <button className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Smile size={18} /> Stickers</button>
+            <button onClick={() => updateCurrentClip("filter", currentClip?.filter === "vivid" ? "noir" : "vivid")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Sliders size={18} /> Filters</button>
+            <button onClick={() => { alert("Saved!"); navigate({ to: "/" }); }} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Download size={18} /> Save</button>
           </div>
 
         </div>
