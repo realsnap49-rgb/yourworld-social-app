@@ -85,7 +85,6 @@ function OrbitChatPage() {
     if (!t) return;
     if (declined || incomingPending) return;
     if (!accepted) {
-      // Up to 3 texts before acceptance.
       const ok = orbit.sendRequestMessage(userId, { kind: "text", text: t });
       if (!ok) {
         toast.error(`You can send ${ORBIT_REQUEST_TEXT_MAX} texts until ${p.name} accepts`);
@@ -201,59 +200,59 @@ function OrbitChatPage() {
       >
         <CaptureFxBar fx={fx} className="pb-2" />
         <div className="flex items-center gap-2">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) sendPhoto(f);
-            e.target.value = "";
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={photoDisabled}
-          aria-label="Send photo"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
-        >
-          <ImagePlus className="h-4 w-4" strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setCameraOpen(true)}
-          disabled={photoDisabled}
-          aria-label="Open camera"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
-        >
-          <Camera className="h-4 w-4" strokeWidth={1.8} />
-        </button>
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={inputDisabled}
-          placeholder={
-            incomingPending || declined
-              ? "Waiting for the request to be accepted"
-              : !accepted && textsLeft <= 0
-                ? "Text limit reached until accepted"
-              : accepted
-                ? `Message ${p.name}`
-                : `${textsLeft} of ${ORBIT_REQUEST_TEXT_MAX} texts left`
-          }
-          aria-label={`Message ${p.name}`}
-          className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-2.5 text-sm outline-none disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={inputDisabled}
-          aria-label="Send message"
-          className="grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-90 disabled:opacity-50"
-        >
-          <Send className="h-4 w-4" strokeWidth={1.8} />
-        </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) sendPhoto(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={photoDisabled}
+            aria-label="Send photo"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
+          >
+            <ImagePlus className="h-4 w-4" strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCameraOpen(true)}
+            disabled={photoDisabled}
+            aria-label="Open camera"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
+          >
+            <Camera className="h-4 w-4" strokeWidth={1.8} />
+          </button>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={inputDisabled}
+            placeholder={
+              incomingPending || declined
+                ? "Waiting for the request to be accepted"
+                : !accepted && textsLeft <= 0
+                  ? "Text limit reached until accepted"
+                : accepted
+                  ? `Message ${p.name}`
+                  : `${textsLeft} of ${ORBIT_REQUEST_TEXT_MAX} texts left`
+            }
+            aria-label={`Message ${p.name}`}
+            className="min-w-0 flex-1 rounded-full bg-secondary px-4 py-2.5 text-sm outline-none disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={inputDisabled}
+            aria-label="Send message"
+            className="grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-90 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" strokeWidth={1.8} />
+          </button>
         </div>
       </form>
 
