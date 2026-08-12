@@ -217,8 +217,6 @@ export function HomePage() {
         ))}
       </div>
 
-      {/* 4. FLOATING BOTTOM NAV (PROFILE WORKING FIX) */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md bg-[#1f1a2e]/90 border border-white/10 backdrop-blur-xl rounded-full p-2 px-4 shadow-2xl flex items-center justify-between">
-        
-        <Link to="/" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 bg-zinc-800/80 rounded-2xl text-white">
-          <Home size={20} />
+    </div>
+  );
+}
