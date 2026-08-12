@@ -154,7 +154,7 @@ function RootComponent() {
                   <div className="mx-auto min-h-screen w-full max-w-lg pb-20">
                     <Outlet />
                   </div>
-                  <BottomNav />
+                  <BottomNav onOpenCreate={() => { window.location.href = '/create'; }} />
                 </AuthGate>
                 <Toaster position="top-center" />
                 </ChannelProvider>
