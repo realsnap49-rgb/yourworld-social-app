@@ -1,338 +1,116 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { 
-  X, RefreshCw, Zap, ZapOff, Music, Download, 
-  RotateCcw, Crop, ZoomIn, Captions, Languages, 
-  Mic, Image as ImageIcon, ChevronRight
+  X, Download, Share2, Scissors, Music, Type, 
+  Sparkles, Layers, Captions, Sliders, ChevronDown, 
+  Play, Pause, ChevronUp
 } from "lucide-react";
-import { NO_COPYRIGHT_MUSIC, MusicTrack } from "../components/yw/MusicVault";
 
 export const Route = createFileRoute("/create")({
   component: CreateStudioPage,
 });
 
-type Mode = "POST" | "REEL" | "LIVE";
-type LiveType = "FACE" | "ANONYMOUS";
-
 export function CreateStudioPage() {
   const navigate = useNavigate();
-  const [activeMode, setActiveMode] = useState<Mode>("REEL");
-  const [liveType, setLiveType] = useState<LiveType>("FACE");
-  const [facing, setFacing] = useState<"user" | "environment">("user");
-  const [flash, setFlash] = useState(false);
-  
-  const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [showEditor, setShowEditor] = useState(false);
-  const [exportQuality, setExportQuality] = useState<"1080p" | "4K">("4K");
+  const [showResMenu, setShowResMenu] = useState(false);
+  const [resolution, setResolution] = useState("4K Ultra HD");
+  
+  // Basic States
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedMusic, setSelectedMusic] = useState<MusicTrack | null>(null);
-  const [showMusicVault, setShowMusicVault] = useState(false);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-
-  const [scale, setScale] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
-
-  const [autoCaptionsEnabled, setAutoCaptionsEnabled] = useState(false);
-  const [captionLanguage, setCaptionLanguage] = useState<"HI" | "EN" | "ES">("HI");
-  const [generatedCaption, setGeneratedCaption] = useState("");
-
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Camera Init & Back Camera Fix
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    const initCamera = async () => {
-      try {
-        if (activeMode === "LIVE" && liveType === "ANONYMOUS") {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        } else {
-          // Attempt exact constraint first, fallback to string mode
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: { exact: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-              audio: true
-            });
-          } catch {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: facing },
-              audio: true
-            });
-          }
-
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play().catch(() => {});
-          }
-        }
-      } catch (err) {
-        console.error("Camera Init Error:", err);
-      }
-    };
-
-    if (!showEditor) initCamera();
-
-    return () => {
-      if (stream) stream.getTracks().forEach((t) => t.stop());
-    };
-  }, [facing, activeMode, liveType, showEditor]);
-
-  // Gallery Picker Handler
-  const handleGallerySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setVideoUrl(url);
-      setShowEditor(true);
-    }
-  };
-
-  const toggleRecording = () => {
-    if (!isRecording) {
-      const stream = videoRef.current?.srcObject as MediaStream;
-      if (!stream) return;
-
-      try {
-        mediaRecorderRef.current = new MediaRecorder(stream);
-      } catch {
-        mediaRecorderRef.current = new MediaRecorder(stream);
-      }
-
-      chunksRef.current = [];
-      mediaRecorderRef.current.ondataavailable = (e) => chunksRef.current.push(e.data);
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
-        setVideoUrl(URL.createObjectURL(blob));
-        setShowEditor(true);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-
-      if (selectedMusic && audioPlayerRef.current) {
-        audioPlayerRef.current.play();
-      }
-    } else {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-      if (audioPlayerRef.current) audioPlayerRef.current.pause();
-    }
-  };
-
-  useEffect(() => {
-    if (autoCaptionsEnabled && showEditor) {
-      const sampleCaptions = {
-        HI: "YourWorld Studio par aapka swagat hai! 🔥",
-        EN: "Welcome to YourWorld Pro Studio! 🔥",
-        ES: "¡Bienvenido a YourWorld Pro Studio! 🔥"
-      };
-      setGeneratedCaption(sampleCaptions[captionLanguage]);
-    } else {
-      setGeneratedCaption("");
-    }
-  }, [autoCaptionsEnabled, captionLanguage, showEditor]);
-
-  const saveVideo = () => {
-    if (!videoUrl) return;
-    const a = document.createElement("a");
-    a.href = videoUrl;
-    a.download = `YourWorld_${exportQuality}_Creation.webm`;
-    a.click();
-    navigate({ to: "/" });
-  };
+  // Resolution Options
+  const resolutions = ["8K", "4K Ultra HD", "2K", "Pro Ultra HD", "1080P", "720P"];
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-black text-white flex flex-col justify-between overflow-hidden select-none font-sans">
+    <div className="fixed inset-0 z-[99999] bg-zinc-950 text-white flex flex-col font-sans select-none">
       
-      {/* Hidden File Input for Gallery */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleGallerySelect} 
-        accept="image/*,video/*" 
-        className="hidden" 
-      />
+      <input type="file" ref={fileInputRef} onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (file) setVideoUrl(URL.createObjectURL(file));
+      }} accept="video/*" className="hidden" />
 
-      {selectedMusic && <audio ref={audioPlayerRef} src={selectedMusic.url} loop />}
+      {!videoUrl ? (
+        /* GALLERY PICKER SCREEN */
+        <div className="flex-1 flex flex-col p-4">
+          <div className="flex justify-between items-center py-4">
+            <button onClick={() => navigate({ to: "/" })}><X size={24} /></button>
+            <span className="font-bold text-lg">Albums</span>
+            <div className="w-6" />
+          </div>
+          
+          <div className="flex gap-8 mb-6 font-bold text-zinc-500">
+            <button className="text-white border-b-2 border-white pb-1">Videos</button>
+            <button>Photos</button>
+          </div>
 
-      {!showEditor ? (
-        <div className="relative w-full h-full">
-          {activeMode === "LIVE" && liveType === "ANONYMOUS" ? (
-            <div className="w-full h-full bg-gradient-to-b from-purple-950 via-zinc-950 to-black flex flex-col items-center justify-center p-6">
-              <div className="w-32 h-32 rounded-full bg-pink-600/30 border-4 border-pink-500 flex items-center justify-center animate-pulse">
-                <Mic className="w-16 h-16 text-pink-400" />
+          <div className="flex-1 grid grid-cols-3 gap-1 overflow-y-auto">
+            {/* Mock Gallery Grid */}
+            {[...Array(12)].map((_, i) => (
+              <div key={i} onClick={() => fileInputRef.current?.click()} className="aspect-square bg-zinc-800 relative flex items-center justify-center border border-zinc-700">
+                <span className="text-[10px] text-zinc-400">00:{10 + i}</span>
               </div>
-              <h2 className="mt-6 text-xl font-black">Anonymous Audio Live</h2>
-              <p className="text-xs text-zinc-400 mt-2">Voice stream active • Camera Hidden</p>
-            </div>
-          ) : (
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              muted 
-              className="w-full h-full object-cover" 
-              style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }}
-            />
-          )}
-
-          {/* Top Controls */}
-          <div className="absolute top-0 left-0 right-0 p-4 pt-6 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent">
-            <button onClick={() => navigate({ to: "/" })} className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/20">
-              <X className="w-5 h-5" />
-            </button>
-
-            <button 
-              onClick={() => setShowMusicVault(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 text-xs font-bold"
-            >
-              <Music className="w-4 h-4 text-pink-400 animate-pulse" />
-              <span>{selectedMusic ? selectedMusic.title : "Add Sound"}</span>
-            </button>
-
-            <div className="flex gap-2">
-              <button onClick={() => setFlash(!flash)} className={`p-3 rounded-full border backdrop-blur-md ${flash ? "bg-amber-400 text-black" : "bg-black/50 text-white border-white/20"}`}>
-                {flash ? <Zap className="w-5 h-5 fill-current" /> : <ZapOff className="w-5 h-5" />}
-              </button>
-              <button 
-                onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} 
-                className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/20 active:scale-90 transition"
-              >
-                <RefreshCw className="w-5 h-5" />
-              </button>
-            </div>
+            ))}
           </div>
 
-          {activeMode === "LIVE" && (
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex gap-2 bg-black/60 p-1 rounded-full border border-white/20">
-              <button onClick={() => setLiveType("FACE")} className={`px-4 py-1.5 rounded-full text-xs font-bold ${liveType === "FACE" ? "bg-pink-600" : "text-zinc-400"}`}>Face Live</button>
-              <button onClick={() => setLiveType("ANONYMOUS")} className={`px-4 py-1.5 rounded-full text-xs font-bold ${liveType === "ANONYMOUS" ? "bg-pink-600" : "text-zinc-400"}`}>Anonymous Live</button>
-            </div>
-          )}
-
-          {/* Bottom Bar: Gallery, Shutter & Next */}
-          <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-20 px-6">
-            <div className="flex items-center justify-between w-full max-w-xs">
-              {/* Gallery Button */}
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="p-3.5 bg-black/60 backdrop-blur-md rounded-2xl border border-white/20 active:scale-90 transition"
-              >
-                <ImageIcon className="w-6 h-6 text-white" />
-              </button>
-
-              {/* Shutter Button */}
-              <button 
-                onClick={toggleRecording}
-                className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${
-                  isRecording ? "border-red-500 bg-red-500/30 animate-pulse" : "border-white bg-white/20"
-                }`}
-              >
-                <div className={`transition-all ${isRecording ? "w-8 h-8 bg-red-500 rounded-sm" : "w-16 h-16 bg-white rounded-full"}`} />
-              </button>
-
-              {/* Skip / Next */}
-              <button 
-                onClick={() => setShowEditor(true)}
-                className="p-3.5 bg-black/60 backdrop-blur-md rounded-2xl border border-white/20 active:scale-90 transition"
-              >
-                <ChevronRight className="w-6 h-6 text-white" />
-              </button>
-            </div>
-
-            <div className="flex gap-6 bg-black/70 backdrop-blur-xl px-6 py-2 rounded-full border border-white/20 text-xs font-black">
-              {(["POST", "REEL", "LIVE"] as Mode[]).map((mode) => (
-                <button key={mode} onClick={() => setActiveMode(mode)} className={activeMode === mode ? "text-pink-400 scale-110" : "text-zinc-500"}>
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
+          <button onClick={() => fileInputRef.current?.click()} className="w-full py-4 bg-teal-600 rounded-xl font-bold mt-4">Add</button>
         </div>
       ) : (
-        /* EDITOR VIEW */
-        <div className="w-full h-full flex flex-col bg-zinc-950">
-          <div className="flex justify-between items-center p-4 border-b border-zinc-800">
-            <button onClick={() => setShowEditor(false)} className="p-2"><X className="w-6 h-6" /></button>
+        /* PRO EDITOR SCREEN */
+        <div className="flex-1 flex flex-col">
+          {/* Top Bar */}
+          <div className="flex justify-between items-center p-4">
+            <button onClick={() => setVideoUrl(null)}><X size={24} /></button>
             
-            <div className="flex items-center gap-2">
-              <button onClick={() => setExportQuality(exportQuality === "4K" ? "1080p" : "4K")} className="px-3 py-1 bg-zinc-800 rounded-full text-xs font-bold text-amber-400 border border-zinc-700">
-                {exportQuality} ULTRA
-              </button>
-              <button onClick={saveVideo} className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 px-5 py-2 rounded-full text-xs font-bold shadow-lg">
-                <Download className="w-4 h-4" /> Save Video
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
-            <div 
-              className="relative overflow-hidden border border-white/20 rounded-2xl transition-all"
-              style={{
-                aspectRatio: aspectRatio === "1:1" ? "1/1" : aspectRatio === "16:9" ? "16/9" : "9/16",
-                maxHeight: "100%",
-                maxWidth: "100%"
-              }}
-            >
-              <video 
-                src={videoUrl || ""} 
-                autoPlay 
-                loop 
-                playsInline 
-                controls
-                className="w-full h-full object-cover" 
-                style={{ transform: `scale(${scale}) rotate(${rotation}deg)` }}
-              />
-
-              {generatedCaption && (
-                <div className="absolute bottom-10 left-4 right-4 text-center bg-black/70 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-sm font-bold text-amber-300">
-                  {generatedCaption}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-black p-4 border-t border-zinc-800 grid grid-cols-5 gap-2 text-[10px] text-center font-bold">
-            <button onClick={() => setScale((s) => (s >= 2 ? 1 : s + 0.3))} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><ZoomIn className="w-5 h-5 text-pink-400" /> Free Zoom</button>
-            <button onClick={() => setRotation((r) => r + 90)} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><RotateCcw className="w-5 h-5 text-purple-400" /> Rotate</button>
-            <button onClick={() => setAspectRatio(aspectRatio === "9:16" ? "1:1" : aspectRatio === "1:1" ? "16:9" : "9:16")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><Crop className="w-5 h-5 text-amber-400" /> Aspect Ratio</button>
-            <button onClick={() => setAutoCaptionsEnabled(!autoCaptionsEnabled)} className={`flex flex-col items-center gap-1 p-2 rounded-xl ${autoCaptionsEnabled ? "bg-pink-600" : "bg-zinc-900"}`}><Captions className="w-5 h-5 text-emerald-400" /> AI Caption</button>
-            <button onClick={() => setCaptionLanguage(captionLanguage === "HI" ? "EN" : captionLanguage === "EN" ? "ES" : "HI")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><Languages className="w-5 h-5 text-cyan-400" /> {captionLanguage}</button>
-          </div>
-        </div>
-      )}
-
-      {showMusicVault && (
-        <div className="fixed inset-0 z-[100000] bg-black/90 backdrop-blur-2xl p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-black">YourWorld Music Vault</h2>
-              <button onClick={() => setShowMusicVault(false)}><X className="w-6 h-6" /></button>
-            </div>
-
-            <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 mb-4 bg-zinc-800 rounded-2xl font-bold text-xs border border-zinc-700">
-              📁 Upload From Phone Storage
-            </button>
-
-            <div className="flex flex-col gap-3">
-              {NO_COPYRIGHT_MUSIC.map((track) => (
-                <div key={track.id} onClick={() => { setSelectedMusic(track); setShowMusicVault(false); }} className="flex justify-between items-center p-4 bg-zinc-900 rounded-2xl border border-zinc-800">
-                  <div>
-                    <p className="font-bold text-sm">{track.title}</p>
-                    <p className="text-xs text-zinc-400">{track.artist} • {track.category}</p>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <button onClick={() => setShowResMenu(!showResMenu)} className="flex items-center gap-1 bg-zinc-800 px-3 py-1.5 rounded-full text-xs font-bold">
+                  {resolution} <ChevronDown size={14}/>
+                </button>
+                {showResMenu && (
+                  <div className="absolute right-0 top-10 bg-zinc-900 border border-zinc-700 rounded-xl p-2 w-32 z-50">
+                    {resolutions.map(res => (
+                      <button key={res} onClick={() => { setResolution(res); setShowResMenu(false); }} className="block w-full text-left p-2 hover:bg-zinc-800 text-xs">{res}</button>
+                    ))}
                   </div>
-                  <span className="text-xs text-pink-400 font-bold">{track.duration}</span>
-                </div>
-              ))}
+                )}
+              </div>
+              <button className="bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-1.5 rounded-full text-xs font-bold">Export</button>
             </div>
+          </div>
+
+          {/* Video Preview */}
+          <div className="flex-1 flex items-center justify-center p-4">
+            <video src={videoUrl} controls className="max-h-full rounded-xl border border-zinc-800" />
+          </div>
+
+          {/* Timeline & Actions */}
+          <div className="h-40 bg-zinc-900 p-4 border-t border-zinc-800">
+            <div className="flex gap-4 mb-4">
+               <div className="flex items-center gap-2"><div className="w-10 h-10 bg-zinc-800 rounded-lg flex items-center justify-center">🔇</div> <span className="text-xs">Mute</span></div>
+               <div className="flex-1 h-10 bg-zinc-800 rounded-lg flex items-center px-4">+ Add Track</div>
+            </div>
+          </div>
+
+          {/* Bottom Toolbar */}
+          <div className="grid grid-cols-7 gap-1 p-2 bg-black text-[10px] text-center border-t border-zinc-800">
+            {[
+              { icon: Scissors, label: "Edit" },
+              { icon: Music, label: "Audio" },
+              { icon: Type, label: "Text" },
+              { icon: Sparkles, label: "Effects" },
+              { icon: Layers, label: "Overlay" },
+              { icon: Captions, label: "Captions" },
+              { icon: Sliders, label: "Filters" }
+            ].map((tool, i) => (
+              <button key={i} className="flex flex-col items-center gap-1 py-2 hover:bg-zinc-900 rounded-lg">
+                <tool.icon size={20} /> {tool.label}
+              </button>
+            ))}
           </div>
         </div>
       )}
-
     </div>
   );
 }
