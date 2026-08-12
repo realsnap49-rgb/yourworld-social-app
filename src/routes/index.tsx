@@ -241,7 +241,7 @@ export function HomePage() {
 
       </div>
 
-      <CreateSheet open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateSheet isOpen={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }
