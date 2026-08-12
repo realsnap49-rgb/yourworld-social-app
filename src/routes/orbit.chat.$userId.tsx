@@ -10,8 +10,6 @@ import {
   useOrbit,
 } from "@/lib/orbit-store";
 import { OrbitChatGate } from "@/components/yw/OrbitChatGate";
-import { QuickCaptureSheet } from "@/components/yw/QuickCaptureSheet";
-import { CaptureFxBar, useCaptureFx } from "@/lib/capture-fx";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -45,9 +43,8 @@ function OrbitChatPage() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const seq = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
-  const fx = useCaptureFx();
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [viewOnce] = useState<Record<string, number>>({});
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
@@ -198,12 +195,23 @@ function OrbitChatPage() {
         }}
         className="sticky bottom-0 border-t border-border glass px-3 py-3"
       >
-        <CaptureFxBar fx={fx} className="pb-2" />
         <div className="flex items-center gap-2">
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) sendPhoto(f);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -222,7 +230,7 @@ function OrbitChatPage() {
           </button>
           <button
             type="button"
-            onClick={() => setCameraOpen(true)}
+            onClick={() => cameraRef.current?.click()}
             disabled={photoDisabled}
             aria-label="Open camera"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
@@ -255,16 +263,6 @@ function OrbitChatPage() {
           </button>
         </div>
       </form>
-
-      <QuickCaptureSheet
-        open={cameraOpen}
-        onOpenChange={setCameraOpen}
-        fx={fx}
-        onCapture={({ url, viewOnce: secs }) => {
-          pushPhoto(url, secs ?? undefined);
-          toast.success((secs ?? 0) > 0 ? `Sent as view once · ${secs}s` : "Photo sent");
-        }}
-      />
     </main>
   );
 }
