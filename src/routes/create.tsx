@@ -1,88 +1,95 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { 
-  X, 
-  RefreshCw, 
-  Zap, 
-  ZapOff, 
-  Image as ImageIcon, 
-  Music, 
-  Clock, 
-  Sparkles, 
-  ChevronRight,
-  Type,
-  Crop,
-  ZoomIn,
-  RotateCw,
-  Wand2,
-  Download
+  X, RefreshCw, Zap, ZapOff, Music, Download, 
+  RotateCw, Crop, ZoomIn, Captions, Languages, 
+  Mic, Radio
 } from "lucide-react";
+import { NO_COPYRIGHT_MUSIC, MusicTrack } from "../../components/yw/MusicVault";
 
 export const Route = createFileRoute("/create")({
   component: CreateStudioPage,
 });
 
 type Mode = "POST" | "REEL" | "LIVE";
+type LiveType = "FACE" | "ANONYMOUS";
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
   const [activeMode, setActiveMode] = useState<Mode>("REEL");
+  const [liveType, setLiveType] = useState<LiveType>("FACE");
+  const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flash, setFlash] = useState(false);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  
+  // Recording & Media States
   const [isRecording, setIsRecording] = useState(false);
-  const [recordProgress, setRecordProgress] = useState(0);
-  const [showEditor, setShowEditor] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [exportQuality, setExportQuality] = useState<"1080p" | "4K">("4K");
+
+  // Sound & Music Vault
+  const [selectedMusic, setSelectedMusic] = useState<MusicTrack | null>(null);
+  const [showMusicVault, setShowMusicVault] = useState(false);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   // Editor States
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [aspectRatio, setAspectRatio] = useState("9:16");
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
+  const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
+  const [activeFilter, setActiveFilter] = useState("none");
+
+  // AI Subtitles & Translation
+  const [autoCaptionsEnabled, setAutoCaptionsEnabled] = useState(false);
+  const [captionLanguage, setCaptionLanguage] = useState<"HI" | "EN" | "ES">("HI");
+  const [generatedCaption, setGeneratedCaption] = useState("");
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Camera Setup
+  // Ultra High Bitrate Camera Stream
   useEffect(() => {
     let stream: MediaStream | null = null;
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, 
-        audio: true 
-      })
-      .then((s) => {
-        stream = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          videoRef.current.play().catch(() => {});
+    const initCamera = async () => {
+      try {
+        if (activeMode === "LIVE" && liveType === "ANONYMOUS") {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        } else {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facing, width: { ideal: 3840 }, height: { ideal: 2160 } },
+            audio: true
+          });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play().catch(() => {});
+          }
         }
-      })
-      .catch((err) => console.error("Camera error:", err));
-    }
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      } catch (err) {
+        console.error("Camera Init Error:", err);
       }
     };
-  }, [facingMode, showEditor]);
 
-  // Flip Camera Front / Back
-  const toggleCameraFacing = () => {
-    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-  };
+    if (!showEditor) initCamera();
 
-  // Recording Logic
+    return () => {
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+    };
+  }, [facing, activeMode, liveType, showEditor]);
+
+  // Recording Handler
   const toggleRecording = () => {
     if (!isRecording) {
-      const stream = (videoRef.current?.srcObject as MediaStream);
+      const stream = videoRef.current?.srcObject as MediaStream;
       if (!stream) return;
-      mediaRecorderRef.current = new MediaRecorder(stream);
+
+      const options = { mimeType: "video/webm;codecs=vp9", videoBitsPerSecond: 25000000 };
+      try {
+        mediaRecorderRef.current = new MediaRecorder(stream, options);
+      } catch {
+        mediaRecorderRef.current = new MediaRecorder(stream);
+      }
+
       chunksRef.current = [];
       mediaRecorderRef.current.ondataavailable = (e) => chunksRef.current.push(e.data);
       mediaRecorderRef.current.onstop = () => {
@@ -90,45 +97,46 @@ export function CreateStudioPage() {
         setVideoUrl(URL.createObjectURL(blob));
         setShowEditor(true);
       };
+
       mediaRecorderRef.current.start();
       setIsRecording(true);
+
+      if (selectedMusic && audioPlayerRef.current) {
+        audioPlayerRef.current.play();
+      }
     } else {
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
+      if (audioPlayerRef.current) audioPlayerRef.current.pause();
     }
   };
 
+  // AI Caption Simulation
   useEffect(() => {
-    let interval: any;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordProgress((prev) => {
-          if (prev >= 100) {
-            toggleRecording();
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 150);
+    if (autoCaptionsEnabled && showEditor) {
+      const sampleCaptions = {
+        HI: "YourWorld Studio par aapka swagat hai! 🔥",
+        EN: "Welcome to YourWorld Pro Studio! 🔥",
+        ES: "¡Bienvenido a YourWorld Pro Studio! 🔥"
+      };
+      setGeneratedCaption(sampleCaptions[captionLanguage]);
     } else {
-      setRecordProgress(0);
+      setGeneratedCaption("");
     }
-    return () => clearInterval(interval);
-  }, [isRecording]);
+  }, [autoCaptionsEnabled, captionLanguage, showEditor]);
 
-  const handleSaveVideo = () => {
+  // Save Video
+  const saveVideo = () => {
     if (!videoUrl) return;
     const a = document.createElement("a");
     a.href = videoUrl;
-    a.download = "my-creation.webm";
+    a.download = `YourWorld_${exportQuality}_Creation.webm`;
     a.click();
-    alert("Saved to Gallery!");
     navigate({ to: "/" });
   };
 
   return (
-    // fixed inset-0 z-[9999] forces full screen over all global layout navbars
-    <div className="fixed inset-0 z-[9999] bg-black text-white flex flex-col justify-between select-none overflow-hidden font-sans">
+    <div className="fixed inset-0 z-[99999] bg-black text-white flex flex-col justify-between overflow-hidden select-none font-sans">
       
       <input 
         type="file" 
@@ -140,152 +148,157 @@ export function CreateStudioPage() {
             setShowEditor(true);
           }
         }} 
-        accept="image/*,video/*" 
+        accept="image/*,video/*,audio/*" 
         className="hidden" 
       />
 
-      {!showEditor && (
-        <>
-          {/* Progress Bar */}
-          {activeMode === "REEL" && (
-            <div className="absolute top-0 left-0 right-0 z-30 h-1.5 bg-white/20">
-              <div 
-                className="h-full bg-gradient-to-r from-pink-500 via-purple-600 to-amber-500 transition-all duration-150"
-                style={{ width: `${recordProgress}%` }}
-              />
+      {selectedMusic && <audio ref={audioPlayerRef} src={selectedMusic.url} loop />}
+
+      {!showEditor ? (
+        /* CAMERA & LIVE VIEWPORT */
+        <div className="relative w-full h-full">
+          {activeMode === "LIVE" && liveType === "ANONYMOUS" ? (
+            <div className="w-full h-full bg-gradient-to-b from-purple-950 via-zinc-950 to-black flex flex-col items-center justify-center p-6">
+              <div className="w-32 h-32 rounded-full bg-pink-600/30 border-4 border-pink-500 flex items-center justify-center animate-pulse">
+                <Mic className="w-16 h-16 text-pink-400" />
+              </div>
+              <h2 className="mt-6 text-xl font-black">Anonymous Audio Live</h2>
+              <p className="text-xs text-zinc-400 mt-2">Voice stream active • Camera Hidden</p>
+            </div>
+          ) : (
+            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+          )}
+
+          {/* Top Bar Controls */}
+          <div className="absolute top-0 left-0 right-0 p-4 pt-6 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent">
+            <button onClick={() => navigate({ to: "/" })} className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/20">
+              <X className="w-5 h-5" />
+            </button>
+
+            <button 
+              onClick={() => setShowMusicVault(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 text-xs font-bold"
+            >
+              <Music className="w-4 h-4 text-pink-400 animate-pulse" />
+              <span>{selectedMusic ? selectedMusic.title : "Add Music"}</span>
+            </button>
+
+            <div className="flex gap-2">
+              <button onClick={() => setFlash(!flash)} className={`p-3 rounded-full border backdrop-blur-md ${flash ? "bg-amber-400 text-black" : "bg-black/50 text-white border-white/20"}`}>
+                {flash ? <Zap className="w-5 h-5 fill-current" /> : <ZapOff className="w-5 h-5" />}
+              </button>
+              <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/20">
+                <RefreshCw className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Live Type Toggle */}
+          {activeMode === "LIVE" && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex gap-2 bg-black/60 p-1 rounded-full border border-white/20">
+              <button onClick={() => setLiveType("FACE")} className={`px-4 py-1.5 rounded-full text-xs font-bold ${liveType === "FACE" ? "bg-pink-600" : "text-zinc-400"}`}>Face Live</button>
+              <button onClick={() => setLiveType("ANONYMOUS")} className={`px-4 py-1.5 rounded-full text-xs font-bold ${liveType === "ANONYMOUS" ? "bg-pink-600" : "text-zinc-400"}`}>Anonymous Live</button>
             </div>
           )}
 
-          {/* Header Controls */}
-          <div className="flex items-center justify-between p-4 z-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-6">
+          {/* Shutter & Mode Switcher */}
+          <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-20">
             <button 
-              onClick={() => navigate({ to: "/" })} 
-              className="p-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 hover:bg-black/60 transition active:scale-90"
+              onClick={toggleRecording}
+              className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${
+                isRecording ? "border-red-500 bg-red-500/30 animate-pulse" : "border-white bg-white/20"
+              }`}
             >
-              <X className="w-5 h-5 text-white" />
+              <div className={`transition-all ${isRecording ? "w-8 h-8 bg-red-500 rounded-sm" : "w-16 h-16 bg-white rounded-full"}`} />
             </button>
 
-            <button 
-              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/50 backdrop-blur-xl border border-white/15 text-xs font-semibold"
-            >
-              <Music className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
-              <span>Add Sound</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setFlash(!flash)} 
-                className={`p-2.5 rounded-full backdrop-blur-xl border transition active:scale-90 ${
-                  flash ? "bg-amber-400 text-black border-amber-300" : "bg-black/40 text-white border-white/10"
-                }`}
-              >
-                {flash ? <Zap className="w-4 h-4 fill-current" /> : <ZapOff className="w-4 h-4" />}
-              </button>
-
-              {/* CAMERA FLIP BUTTON (Back/Front Camera Switch) */}
-              <button 
-                onClick={toggleCameraFacing} 
-                className="p-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white active:scale-90 transition hover:bg-black/60"
-                title="Switch Camera"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Side Toolbar */}
-          <div className="absolute left-3 top-20 z-20 flex flex-col gap-3 bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-xl">
-            <button className="p-2 rounded-full text-white/80"><Sparkles className="w-4 h-4 text-amber-300" /></button>
-            <button className="p-2 rounded-full text-white/80"><Wand2 className="w-4 h-4 text-purple-400" /></button>
-            <button className="p-2 rounded-full text-white/80"><Clock className="w-4 h-4 text-emerald-400" /></button>
-          </div>
-
-          {/* Live Camera Viewport */}
-          <div className="absolute inset-0 bg-black z-0 flex items-center justify-center overflow-hidden">
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              muted 
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Shutter Bottom Controls */}
-          <div className="flex flex-col items-center gap-5 pb-8 z-20 bg-gradient-to-t from-black via-black/80 to-transparent pt-14">
-            <div className="flex items-center justify-around w-full px-8">
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-2xl border-2 border-white/40 bg-zinc-900 overflow-hidden flex items-center justify-center active:scale-95 transition shadow-2xl"
-              >
-                <ImageIcon className="w-5 h-5 text-zinc-300" />
-              </button>
-
-              {/* Shutter Record */}
-              <button 
-                onClick={toggleRecording}
-                className="relative flex items-center justify-center group"
-              >
-                <div className={`rounded-full transition-all duration-300 flex items-center justify-center ${
-                  isRecording ? "w-20 h-20 border-4 border-red-500 bg-red-500/20 animate-pulse" : "w-20 h-20 border-4 border-white p-1"
-                }`}>
-                  <div className={`transition-all duration-300 ${isRecording ? "w-8 h-8 rounded-md bg-red-500" : "w-full h-full rounded-full bg-white"}`} />
-                </div>
-              </button>
-
-              <button onClick={() => setShowEditor(true)} className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/15 flex items-center justify-center text-white active:scale-95 transition">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Mode Switcher */}
-            <div className="flex items-center gap-7 bg-zinc-950/80 backdrop-blur-2xl px-5 py-2 rounded-full border border-white/10 shadow-2xl">
+            <div className="flex gap-6 bg-black/70 backdrop-blur-xl px-6 py-2 rounded-full border border-white/20 text-xs font-black">
               {(["POST", "REEL", "LIVE"] as Mode[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => { setActiveMode(mode); setIsRecording(false); }}
-                  className={`relative text-[11px] font-black tracking-widest transition-all ${
-                    activeMode === mode ? "text-white scale-110 drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]" : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
+                <button key={mode} onClick={() => setActiveMode(mode)} className={activeMode === mode ? "text-pink-400 scale-110" : "text-zinc-500"}>
                   {mode}
                 </button>
               ))}
             </div>
           </div>
-        </>
-      )}
-
-      {/* Editor View */}
-      {showEditor && (
+        </div>
+      ) : (
+        /* PRO EDITOR VIEW */
         <div className="w-full h-full flex flex-col bg-zinc-950">
-          <div className="flex justify-between p-4 border-b border-zinc-800">
-            <button onClick={() => setShowEditor(false)}><X className="w-6 h-6" /></button>
-            <button onClick={handleSaveVideo} className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 px-5 py-2 rounded-full font-bold text-xs">
-              <Download className="w-4 h-4" /> Save / Share
-            </button>
-          </div>
-
-          <div className="flex-1 flex items-center justify-center p-4">
-             <div 
-              onMouseDown={(e) => { setIsDragging(true); dragStartRef.current = { x: e.clientX - position.x, y: e.clientY - position.y }; }}
-              onMouseMove={(e) => { if(isDragging) setPosition({ x: e.clientX - dragStartRef.current.x, y: e.clientY - dragStartRef.current.y }); }}
-              onMouseUp={() => setIsDragging(false)}
-              onTouchStart={(e) => { setIsDragging(true); dragStartRef.current = { x: e.touches[0].clientX - position.x, y: e.touches[0].clientY - position.y }; }}
-              onTouchMove={(e) => { if(isDragging) setPosition({ x: e.touches[0].clientX - dragStartRef.current.x, y: e.touches[0].clientY - dragStartRef.current.y }); }}
-              onTouchEnd={() => setIsDragging(false)}
-              className="overflow-hidden border border-white/20 rounded-2xl relative"
-              style={{ aspectRatio: aspectRatio === "1:1" ? "1/1" : "9/16", maxHeight: "100%", maxWidth: "100%" }}
-            >
-              <video src={videoUrl || ""} autoPlay loop muted className="w-full h-full object-cover" style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)` }} />
+          <div className="flex justify-between items-center p-4 border-b border-zinc-800">
+            <button onClick={() => setShowEditor(false)} className="p-2"><X className="w-6 h-6" /></button>
+            
+            <div className="flex items-center gap-2">
+              <button onClick={() => setExportQuality(exportQuality === "4K" ? "1080p" : "4K")} className="px-3 py-1 bg-zinc-800 rounded-full text-xs font-bold text-amber-400 border border-zinc-700">
+                {exportQuality} ULTRA
+              </button>
+              <button onClick={saveVideo} className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 px-5 py-2 rounded-full text-xs font-bold shadow-lg">
+                <Download className="w-4 h-4" /> Save Video
+              </button>
             </div>
           </div>
 
-          <div className="bg-black p-4 flex justify-around border-t border-zinc-900 text-xs">
-            <button onClick={() => setScale((s) => s + 0.2)} className="flex flex-col items-center gap-1"><ZoomIn className="w-5 h-5 text-pink-400"/> Zoom</button>
-            <button onClick={() => setRotation((r) => r + 90)} className="flex flex-col items-center gap-1"><RotateCw className="w-5 h-5 text-cyan-400"/> Rotate</button>
-            <button onClick={() => setAspectRatio(aspectRatio === "9:16" ? "1:1" : "9:16")} className="flex flex-col items-center gap-1"><Crop className="w-5 h-5 text-purple-400"/> Ratio</button>
-            <button className="flex flex-col items-center gap-1"><Type className="w-5 h-5 text-amber-400"/> Text</button>
+          <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
+            <div 
+              className="relative overflow-hidden border border-white/20 rounded-2xl transition-all"
+              style={{
+                aspectRatio: aspectRatio === "1:1" ? "1/1" : aspectRatio === "16:9" ? "16/9" : "9/16",
+                maxHeight: "100%",
+                maxWidth: "100%",
+                filter: activeFilter === "vintage" ? "sepia(0.6)" : activeFilter === "bw" ? "grayscale(1)" : activeFilter === "vivid" ? "saturate(1.8)" : "none"
+              }}
+            >
+              <video 
+                src={videoUrl || ""} 
+                autoPlay 
+                loop 
+                playsInline 
+                muted
+                className="w-full h-full object-cover" 
+                style={{ transform: `scale(${scale}) rotate(${rotation}deg)` }}
+              />
+
+              {generatedCaption && (
+                <div className="absolute bottom-10 left-4 right-4 text-center bg-black/70 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-sm font-bold text-amber-300">
+                  {generatedCaption}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-black p-4 border-t border-zinc-800 grid grid-cols-5 gap-2 text-[10px] text-center font-bold">
+            <button onClick={() => setScale((s) => (s >= 2 ? 1 : s + 0.3))} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><ZoomIn className="w-5 h-5 text-pink-400" /> Free Zoom</button>
+            <button onClick={() => setRotation((r) => r + 90)} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><RotateCw className="w-5 h-5 text-purple-400" /> Rotate</button>
+            <button onClick={() => setAspectRatio(aspectRatio === "9:16" ? "1:1" : aspectRatio === "1:1" ? "16:9" : "9:16")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><Crop className="w-5 h-5 text-amber-400" /> Aspect Ratio</button>
+            <button onClick={() => setAutoCaptionsEnabled(!autoCaptionsEnabled)} className={`flex flex-col items-center gap-1 p-2 rounded-xl ${autoCaptionsEnabled ? "bg-pink-600" : "bg-zinc-900"}`}><Captions className="w-5 h-5 text-emerald-400" /> AI Caption</button>
+            <button onClick={() => setCaptionLanguage(captionLanguage === "HI" ? "EN" : captionLanguage === "EN" ? "ES" : "HI")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><Languages className="w-5 h-5 text-cyan-400" /> {captionLanguage}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Music Vault Modal */}
+      {showMusicVault && (
+        <div className="fixed inset-0 z-[100000] bg-black/90 backdrop-blur-2xl p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-black">YourWorld Music Vault</h2>
+              <button onClick={() => setShowMusicVault(false)}><X className="w-6 h-6" /></button>
+            </div>
+
+            <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 mb-4 bg-zinc-800 rounded-2xl font-bold text-xs border border-zinc-700">
+              📁 Upload From Phone Storage
+            </button>
+
+            <div className="flex flex-col gap-3">
+              {NO_COPYRIGHT_MUSIC.map((track) => (
+                <div key={track.id} onClick={() => { setSelectedMusic(track); setShowMusicVault(false); }} className="flex justify-between items-center p-4 bg-zinc-900 rounded-2xl border border-zinc-800">
+                  <div>
+                    <p className="font-bold text-sm">{track.title}</p>
+                    <p className="text-xs text-zinc-400">{track.artist} • {track.category}</p>
+                  </div>
+                  <span className="text-xs text-pink-400 font-bold">{track.duration}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
