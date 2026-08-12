@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { 
   X, RefreshCw, Zap, ZapOff, Music, Download, 
-  RotateCw, Crop, ZoomIn, Captions, Languages, 
-  Mic, Radio
+  RotateCcw, Crop, ZoomIn, Captions, Languages, 
+  Mic, Image as ImageIcon, ChevronRight
 } from "lucide-react";
 import { NO_COPYRIGHT_MUSIC, MusicTrack } from "../components/yw/MusicVault";
 
@@ -21,24 +21,19 @@ export function CreateStudioPage() {
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flash, setFlash] = useState(false);
   
-  // Recording & Media States
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [exportQuality, setExportQuality] = useState<"1080p" | "4K">("4K");
 
-  // Sound & Music Vault
   const [selectedMusic, setSelectedMusic] = useState<MusicTrack | null>(null);
   const [showMusicVault, setShowMusicVault] = useState(false);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  // Editor States
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "1:1" | "16:9">("9:16");
-  const [activeFilter, setActiveFilter] = useState("none");
 
-  // AI Subtitles & Translation
   const [autoCaptionsEnabled, setAutoCaptionsEnabled] = useState(false);
   const [captionLanguage, setCaptionLanguage] = useState<"HI" | "EN" | "ES">("HI");
   const [generatedCaption, setGeneratedCaption] = useState("");
@@ -48,7 +43,7 @@ export function CreateStudioPage() {
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Ultra High Bitrate Camera Stream
+  // Camera Init & Back Camera Fix
   useEffect(() => {
     let stream: MediaStream | null = null;
     const initCamera = async () => {
@@ -56,10 +51,19 @@ export function CreateStudioPage() {
         if (activeMode === "LIVE" && liveType === "ANONYMOUS") {
           stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         } else {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: facing, width: { ideal: 3840 }, height: { ideal: 2160 } },
-            audio: true
-          });
+          // Attempt exact constraint first, fallback to string mode
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { exact: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+              audio: true
+            });
+          } catch {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: facing },
+              audio: true
+            });
+          }
+
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
             videoRef.current.play().catch(() => {});
@@ -77,15 +81,23 @@ export function CreateStudioPage() {
     };
   }, [facing, activeMode, liveType, showEditor]);
 
-  // Recording Handler
+  // Gallery Picker Handler
+  const handleGallerySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setVideoUrl(url);
+      setShowEditor(true);
+    }
+  };
+
   const toggleRecording = () => {
     if (!isRecording) {
       const stream = videoRef.current?.srcObject as MediaStream;
       if (!stream) return;
 
-      const options = { mimeType: "video/webm;codecs=vp9", videoBitsPerSecond: 25000000 };
       try {
-        mediaRecorderRef.current = new MediaRecorder(stream, options);
+        mediaRecorderRef.current = new MediaRecorder(stream);
       } catch {
         mediaRecorderRef.current = new MediaRecorder(stream);
       }
@@ -111,7 +123,6 @@ export function CreateStudioPage() {
     }
   };
 
-  // AI Caption Simulation
   useEffect(() => {
     if (autoCaptionsEnabled && showEditor) {
       const sampleCaptions = {
@@ -125,7 +136,6 @@ export function CreateStudioPage() {
     }
   }, [autoCaptionsEnabled, captionLanguage, showEditor]);
 
-  // Save Video
   const saveVideo = () => {
     if (!videoUrl) return;
     const a = document.createElement("a");
@@ -138,24 +148,18 @@ export function CreateStudioPage() {
   return (
     <div className="fixed inset-0 z-[99999] bg-black text-white flex flex-col justify-between overflow-hidden select-none font-sans">
       
+      {/* Hidden File Input for Gallery */}
       <input 
         type="file" 
         ref={fileInputRef} 
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            setVideoUrl(URL.createObjectURL(file));
-            setShowEditor(true);
-          }
-        }} 
-        accept="image/*,video/*,audio/*" 
+        onChange={handleGallerySelect} 
+        accept="image/*,video/*" 
         className="hidden" 
       />
 
       {selectedMusic && <audio ref={audioPlayerRef} src={selectedMusic.url} loop />}
 
       {!showEditor ? (
-        /* CAMERA & LIVE VIEWPORT */
         <div className="relative w-full h-full">
           {activeMode === "LIVE" && liveType === "ANONYMOUS" ? (
             <div className="w-full h-full bg-gradient-to-b from-purple-950 via-zinc-950 to-black flex flex-col items-center justify-center p-6">
@@ -166,10 +170,17 @@ export function CreateStudioPage() {
               <p className="text-xs text-zinc-400 mt-2">Voice stream active • Camera Hidden</p>
             </div>
           ) : (
-            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              playsInline 
+              muted 
+              className="w-full h-full object-cover" 
+              style={{ transform: facing === "user" ? "scaleX(-1)" : "none" }}
+            />
           )}
 
-          {/* Top Bar Controls */}
+          {/* Top Controls */}
           <div className="absolute top-0 left-0 right-0 p-4 pt-6 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent">
             <button onClick={() => navigate({ to: "/" })} className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/20">
               <X className="w-5 h-5" />
@@ -180,20 +191,22 @@ export function CreateStudioPage() {
               className="flex items-center gap-2 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 text-xs font-bold"
             >
               <Music className="w-4 h-4 text-pink-400 animate-pulse" />
-              <span>{selectedMusic ? selectedMusic.title : "Add Music"}</span>
+              <span>{selectedMusic ? selectedMusic.title : "Add Sound"}</span>
             </button>
 
             <div className="flex gap-2">
               <button onClick={() => setFlash(!flash)} className={`p-3 rounded-full border backdrop-blur-md ${flash ? "bg-amber-400 text-black" : "bg-black/50 text-white border-white/20"}`}>
                 {flash ? <Zap className="w-5 h-5 fill-current" /> : <ZapOff className="w-5 h-5" />}
               </button>
-              <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/20">
+              <button 
+                onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} 
+                className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/20 active:scale-90 transition"
+              >
                 <RefreshCw className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Live Type Toggle */}
           {activeMode === "LIVE" && (
             <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 flex gap-2 bg-black/60 p-1 rounded-full border border-white/20">
               <button onClick={() => setLiveType("FACE")} className={`px-4 py-1.5 rounded-full text-xs font-bold ${liveType === "FACE" ? "bg-pink-600" : "text-zinc-400"}`}>Face Live</button>
@@ -201,16 +214,35 @@ export function CreateStudioPage() {
             </div>
           )}
 
-          {/* Shutter & Mode Switcher */}
-          <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-20">
-            <button 
-              onClick={toggleRecording}
-              className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${
-                isRecording ? "border-red-500 bg-red-500/30 animate-pulse" : "border-white bg-white/20"
-              }`}
-            >
-              <div className={`transition-all ${isRecording ? "w-8 h-8 bg-red-500 rounded-sm" : "w-16 h-16 bg-white rounded-full"}`} />
-            </button>
+          {/* Bottom Bar: Gallery, Shutter & Next */}
+          <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-20 px-6">
+            <div className="flex items-center justify-between w-full max-w-xs">
+              {/* Gallery Button */}
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3.5 bg-black/60 backdrop-blur-md rounded-2xl border border-white/20 active:scale-90 transition"
+              >
+                <ImageIcon className="w-6 h-6 text-white" />
+              </button>
+
+              {/* Shutter Button */}
+              <button 
+                onClick={toggleRecording}
+                className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${
+                  isRecording ? "border-red-500 bg-red-500/30 animate-pulse" : "border-white bg-white/20"
+                }`}
+              >
+                <div className={`transition-all ${isRecording ? "w-8 h-8 bg-red-500 rounded-sm" : "w-16 h-16 bg-white rounded-full"}`} />
+              </button>
+
+              {/* Skip / Next */}
+              <button 
+                onClick={() => setShowEditor(true)}
+                className="p-3.5 bg-black/60 backdrop-blur-md rounded-2xl border border-white/20 active:scale-90 transition"
+              >
+                <ChevronRight className="w-6 h-6 text-white" />
+              </button>
+            </div>
 
             <div className="flex gap-6 bg-black/70 backdrop-blur-xl px-6 py-2 rounded-full border border-white/20 text-xs font-black">
               {(["POST", "REEL", "LIVE"] as Mode[]).map((mode) => (
@@ -222,7 +254,7 @@ export function CreateStudioPage() {
           </div>
         </div>
       ) : (
-        /* PRO EDITOR VIEW */
+        /* EDITOR VIEW */
         <div className="w-full h-full flex flex-col bg-zinc-950">
           <div className="flex justify-between items-center p-4 border-b border-zinc-800">
             <button onClick={() => setShowEditor(false)} className="p-2"><X className="w-6 h-6" /></button>
@@ -243,8 +275,7 @@ export function CreateStudioPage() {
               style={{
                 aspectRatio: aspectRatio === "1:1" ? "1/1" : aspectRatio === "16:9" ? "16/9" : "9/16",
                 maxHeight: "100%",
-                maxWidth: "100%",
-                filter: activeFilter === "vintage" ? "sepia(0.6)" : activeFilter === "bw" ? "grayscale(1)" : activeFilter === "vivid" ? "saturate(1.8)" : "none"
+                maxWidth: "100%"
               }}
             >
               <video 
@@ -252,7 +283,7 @@ export function CreateStudioPage() {
                 autoPlay 
                 loop 
                 playsInline 
-                muted
+                controls
                 className="w-full h-full object-cover" 
                 style={{ transform: `scale(${scale}) rotate(${rotation}deg)` }}
               />
@@ -267,7 +298,7 @@ export function CreateStudioPage() {
 
           <div className="bg-black p-4 border-t border-zinc-800 grid grid-cols-5 gap-2 text-[10px] text-center font-bold">
             <button onClick={() => setScale((s) => (s >= 2 ? 1 : s + 0.3))} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><ZoomIn className="w-5 h-5 text-pink-400" /> Free Zoom</button>
-            <button onClick={() => setRotation((r) => r + 90)} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><RotateCw className="w-5 h-5 text-purple-400" /> Rotate</button>
+            <button onClick={() => setRotation((r) => r + 90)} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><RotateCcw className="w-5 h-5 text-purple-400" /> Rotate</button>
             <button onClick={() => setAspectRatio(aspectRatio === "9:16" ? "1:1" : aspectRatio === "1:1" ? "16:9" : "9:16")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><Crop className="w-5 h-5 text-amber-400" /> Aspect Ratio</button>
             <button onClick={() => setAutoCaptionsEnabled(!autoCaptionsEnabled)} className={`flex flex-col items-center gap-1 p-2 rounded-xl ${autoCaptionsEnabled ? "bg-pink-600" : "bg-zinc-900"}`}><Captions className="w-5 h-5 text-emerald-400" /> AI Caption</button>
             <button onClick={() => setCaptionLanguage(captionLanguage === "HI" ? "EN" : captionLanguage === "EN" ? "ES" : "HI")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-xl"><Languages className="w-5 h-5 text-cyan-400" /> {captionLanguage}</button>
@@ -275,7 +306,6 @@ export function CreateStudioPage() {
         </div>
       )}
 
-      {/* Music Vault Modal */}
       {showMusicVault && (
         <div className="fixed inset-0 z-[100000] bg-black/90 backdrop-blur-2xl p-6 flex flex-col justify-between">
           <div>
