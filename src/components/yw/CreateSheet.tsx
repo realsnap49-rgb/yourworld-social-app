@@ -1,6 +1,15 @@
-import React from "react";
+import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 
-// Completely bypass the bottom modal so it never overlays on screen
 export function CreateSheet({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isOpen) {
+      if (onClose) onClose();
+      navigate({ to: "/create" });
+    }
+  }, [isOpen, navigate, onClose]);
+
   return null;
 }
