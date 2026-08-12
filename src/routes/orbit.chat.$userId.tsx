@@ -44,7 +44,7 @@ function OrbitChatPage() {
   const seq = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
-  const [viewOnce] = useState<Record<string, number>>({});
+  const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
