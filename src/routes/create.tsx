@@ -59,30 +59,71 @@ export function CreateStudioPage() {
   // Real Camera Ref & Initializer
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [camError, setCamError] = useState<string | null>(null);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
-        audio: true 
-      })
-      .then((s) => {
-        stream = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          videoRef.current.play().catch(() => {});
+    let cancelled = false;
+
+    const attach = (s: MediaStream) => {
+      streamRef.current = s;
+      const el = videoRef.current;
+      if (!el) return;
+      el.srcObject = s;
+      el.muted = true;
+      el.setAttribute("playsinline", "true");
+      el.play().catch(() => {
+        // iOS can reject autoplay until a gesture; retry on first tap
+        const retry = () => {
+          el.play().catch(() => {});
+          document.removeEventListener("touchend", retry);
+          document.removeEventListener("click", retry);
+        };
+        document.addEventListener("touchend", retry, { once: true });
+        document.addEventListener("click", retry, { once: true });
+      });
+    };
+
+    const start = async () => {
+      if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        setCamError("Camera not supported on this browser.");
+        return;
+      }
+      const attempts: MediaStreamConstraints[] = [
+        { video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true },
+        { video: { facingMode: { ideal: facingMode } }, audio: false },
+        { video: true, audio: false },
+      ];
+      for (const constraints of attempts) {
+        try {
+          const s = await navigator.mediaDevices.getUserMedia(constraints);
+          if (cancelled) {
+            s.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          setCamError(null);
+          attach(s);
+          return;
+        } catch (err: any) {
+          if (err?.name === "NotAllowedError" || err?.name === "SecurityError") {
+            if (!cancelled) setCamError("Camera permission denied. Enable it in your browser settings.");
+            return;
+          }
         }
-      })
-      .catch((err) => console.error("Camera permissions error:", err));
-    }
+      }
+      if (!cancelled) setCamError("No camera available on this device.");
+    };
+
+    start();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
     };
-  }, [showEditor]);
+  }, [facingMode]);
 
   // Gallery File Selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,7 +225,10 @@ export function CreateStudioPage() {
             {flash ? <Zap className="w-4 h-4 fill-current" /> : <ZapOff className="w-4 h-4" />}
           </button>
 
-          <button className="p-2 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white active:scale-90 transition">
+          <button
+            onClick={() => setFacingMode((m) => (m === "user" ? "environment" : "user"))}
+            className="p-2 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white active:scale-90 transition"
+          >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
@@ -213,8 +257,19 @@ export function CreateStudioPage() {
           autoPlay 
           playsInline 
           muted 
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
         />
+        {camError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center">
+            <p className="text-sm text-zinc-300 max-w-xs">{camError}</p>
+            <button
+              onClick={() => { setCamError(null); setFacingMode((m) => m); location.reload(); }}
+              className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-xs font-semibold"
+            >
+              Retry
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Shutter Controls */}
