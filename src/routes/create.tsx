@@ -5,7 +5,7 @@ import {
   RotateCw, Crop, ZoomIn, Captions, Languages, 
   Mic, Radio
 } from "lucide-react";
-import { NO_COPYRIGHT_MUSIC, MusicTrack } from "../../components/yw/MusicVault";
+import { NO_COPYRIGHT_MUSIC, MusicTrack } from "../components/yw/MusicVault";
 
 export const Route = createFileRoute("/create")({
   component: CreateStudioPage,
