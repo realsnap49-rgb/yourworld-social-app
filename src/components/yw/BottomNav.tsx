@@ -1,49 +1,49 @@
-import React, { memo, useState, useCallback } from "react";
-import { Link } from "@tanstack/react-router";
-import { Home, Film, Plus, MessageSquare, User } from "lucide-react";
-import { CreateSheet } from "@/components/yw/CreateSheet";
+import React from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { Home, Film, MessageSquare, User, Plus } from "lucide-react";
 
-export const BottomNav = memo(function BottomNav() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const openCreate = useCallback(() => setIsCreateOpen(true), []);
-  const closeCreate = useCallback(() => setIsCreateOpen(false), []);
+interface BottomNavProps {
+  onOpenCreate?: () => void;
+}
+
+export function BottomNav({ onOpenCreate }: BottomNavProps) {
+  const location = useLocation();
+
+  // Hide bottom nav completely when on /create route
+  if (location.pathname === "/create") {
+    return null;
+  }
 
   return (
-    <>
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md bg-[#1f1a2e]/90 border border-white/10 backdrop-blur-xl rounded-full p-2 px-4 shadow-2xl flex items-center justify-between">
-        <Link to="/" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white" activeProps={{ className: "flex flex-col items-center justify-center py-1 px-3 text-white" }} activeOptions={{ exact: true }}>
-          <Home size={20} />
-          <span className="text-[10px] font-semibold mt-0.5">Home</span>
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-800/60 px-4 py-2">
+      <div className="max-w-md mx-auto flex items-center justify-around">
+        <Link to="/" className="flex flex-col items-center gap-1 text-[10px] text-zinc-400 hover:text-white">
+          <Home className="w-5 h-5" />
+          <span>Home</span>
         </Link>
 
-        <Link to="/reels" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
-          <Film size={20} />
-          <span className="text-[10px] font-semibold mt-0.5">Reels</span>
+        <Link to="/reels" className="flex flex-col items-center gap-1 text-[10px] text-zinc-400 hover:text-white">
+          <Film className="w-5 h-5" />
+          <span>Reels</span>
         </Link>
 
-        <button
-          type="button"
-          onClick={openCreate}
-          aria-label="Create"
-          className="w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 via-pink-500 to-purple-500 flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform"
+        <button 
+          onClick={onOpenCreate}
+          className="w-12 h-12 -mt-5 bg-gradient-to-tr from-pink-500 via-purple-500 to-amber-400 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition"
         >
-          <Plus size={26} />
+          <Plus className="w-6 h-6 stroke-[3]" />
         </button>
 
-        <Link to="/chat" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
-          <MessageSquare size={20} />
-          <span className="text-[10px] font-semibold mt-0.5">Chat</span>
+        <Link to="/chat" className="flex flex-col items-center gap-1 text-[10px] text-zinc-400 hover:text-white">
+          <MessageSquare className="w-5 h-5" />
+          <span>Chat</span>
         </Link>
 
-        <Link to="/profile" preload="intent" className="flex flex-col items-center justify-center py-1 px-3 text-zinc-400 hover:text-white">
-          <User size={20} />
-          <span className="text-[10px] font-semibold mt-0.5">Profile</span>
+        <Link to="/profile" className="flex flex-col items-center gap-1 text-[10px] text-zinc-400 hover:text-white">
+          <User className="w-5 h-5" />
+          <span>Profile</span>
         </Link>
       </div>
-
-      <CreateSheet isOpen={isCreateOpen} onClose={closeCreate} />
-    </>
+    </div>
   );
-});
-
-export default BottomNav;
+}
