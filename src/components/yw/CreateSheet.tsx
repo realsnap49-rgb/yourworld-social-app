@@ -14,21 +14,25 @@ export function CreateSheet({ isOpen, onClose }: CreateSheetProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-zinc-950 text-white rounded-3xl border border-zinc-800 p-5 flex flex-col gap-4">
+      <div className="w-full max-w-md bg-zinc-950 text-white rounded-3xl border border-zinc-800 p-5 flex flex-col gap-4 animate-in slide-in-from-bottom duration-200">
         
+        {/* Header */}
         <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
           <h2 className="text-lg font-bold">Create</h2>
-          <button onClick={onClose} className="p-1 rounded-full bg-zinc-900">
+          <button onClick={onClose} className="p-1 rounded-full bg-zinc-900 hover:bg-zinc-800">
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Options Grid */}
         <div className="flex flex-col gap-3">
           <button 
             onClick={() => { onClose(); navigate({ to: "/create" }); }}
-            className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-left"
+            className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
           >
-            <Image className="w-6 h-6 text-purple-400" />
+            <div className="p-3 rounded-xl bg-zinc-800 text-purple-400">
+              <Image className="w-6 h-6" />
+            </div>
             <div>
               <p className="font-bold text-sm">Post</p>
               <p className="text-xs text-zinc-400">Photo or video for feed</p>
@@ -37,12 +41,27 @@ export function CreateSheet({ isOpen, onClose }: CreateSheetProps) {
 
           <button 
             onClick={() => { onClose(); navigate({ to: "/create" }); }}
-            className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900 border border-zinc-800 text-left"
+            className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
           >
-            <Video className="w-6 h-6 text-pink-400" />
+            <div className="p-3 rounded-xl bg-zinc-800 text-pink-400">
+              <Video className="w-6 h-6" />
+            </div>
             <div>
               <p className="font-bold text-sm">Reel</p>
               <p className="text-xs text-zinc-400">Short video</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => { onClose(); navigate({ to: "/create" }); }}
+            className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
+          >
+            <div className="p-3 rounded-xl bg-zinc-800 text-red-500">
+              <Radio className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Live</p>
+              <p className="text-xs text-zinc-400">Stream to your world right now</p>
             </div>
           </button>
         </div>
