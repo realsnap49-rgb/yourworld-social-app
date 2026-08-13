@@ -159,8 +159,8 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
                 style={{ width: CELL_WIDTH }}
                 className={`relative h-14 cursor-pointer overflow-hidden flex-shrink-0 bg-muted ${
                   idx === activeIndex
-                    ? "ring-2 ring-inset ring-orange-500"
-                    : "opacity-80"
+                    ? "ring-2 ring-inset ring-orange-500 z-10"
+                    : "opacity-50"
                 }`}
               >
                 <video
