@@ -628,7 +628,7 @@ export function CreateStudioPage() {
 
           {/* BOTTOM MAIN NAV */}
           <div className="flex-shrink-0 grid grid-cols-7 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
-            <button onClick={() => audioInputRef.current?.click()} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Music size={18} /> Audio</button>
+            <button onClick={() => setShowMusicPicker(true)} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Music size={18} /> Audio</button>
             <button onClick={() => setActiveToolPanel("TEXT")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Type size={18} /> Text</button>
             <button onClick={() => updateCurrentClip("textOverlay", "Voiceover Track 🎙️")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Voice</button>
             <button onClick={() => updateCurrentClip("textOverlay", "Live Auto Subtitles 🪟")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Captions</button>
