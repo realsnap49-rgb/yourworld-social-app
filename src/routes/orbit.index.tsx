@@ -199,14 +199,14 @@ function OrbitBrowse() {
       )}
 
       <div
-        className={`no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden px-4 pt-4 ${
+        className={`no-scrollbar flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden px-4 pt-4 ${
           obscured ? "pointer-events-none blur-xl" : ""
         }`}
       >
         {ranked.map((p, i) => (
           <article
             key={p.id}
-            className="surface-card animate-rise relative w-[86vw] max-w-md shrink-0 snap-center overflow-hidden rounded-[28px]"
+            className="surface-card animate-rise relative w-full max-w-md shrink-0 snap-center overflow-hidden rounded-[28px]"
             style={{ animationDelay: `${i * 40}ms` }}
           >
             <Link
