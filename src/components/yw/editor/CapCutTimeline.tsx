@@ -120,7 +120,7 @@ function ClipCell({
     <div
       ref={ref}
       onClick={onSelect}
-      className={`relative h-14 min-w-[112px] flex-shrink-0 rounded-lg overflow-hidden border-2 transition ${
+      className={`relative h-14 w-[112px] flex-shrink-0 rounded-lg overflow-hidden border-2 transition ${
         active ? "border-orange-500" : "border-zinc-800"
       }`}
     >
