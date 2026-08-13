@@ -265,6 +265,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-black text-white select-none">
       <div
         className="absolute inset-0 touch-none"
+        style={{ transform: "translateZ(0)", backfaceVisibility: "hidden", contain: "strict" }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -274,9 +275,14 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
           autoPlay
           playsInline
           muted
-          className="h-full w-full object-cover transition-transform duration-100"
+          disablePictureInPicture
+          className="h-full w-full object-cover"
           style={{
-            transform: `${facing === "user" ? "scaleX(-1) " : ""}scale(${zoomRange.native ? 1 : zoom})`,
+            transform: `translateZ(0) ${facing === "user" ? "scaleX(-1) " : ""}scale(${zoomRange.native ? 1 : zoom})`,
+            willChange: "transform",
+            backfaceVisibility: "hidden",
+            perspective: 1000,
+            imageRendering: "auto",
           }}
         />
       </div>
