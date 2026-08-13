@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -13,6 +13,11 @@ import {
   Square,
   MapPin,
   Star,
+  MoreVertical,
+  Trash2,
+  CheckCheck,
+  Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
@@ -91,6 +96,11 @@ function OrbitChatPage() {
   const [inviteKind, setInviteKind] = useState<InviteKind | null>(null);
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [actionSheetId, setActionSheetId] = useState<string | null>(null);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
@@ -230,7 +240,37 @@ function OrbitChatPage() {
 
   const sendPhoto = (file: File) => pushPhoto(URL.createObjectURL(file));
 
-  const inputDisabled = incomingPending || declined || (!accepted && textsLeft <= 0);
+  // Only messages from the local accepted-chat history are deletable.
+  // Request preview messages (preMessages) are managed by the orbit store.
+  const localIds = useMemo(() => new Set(msgs.map((m) => m.id)), [msgs]);
+  const isDeletable = (id: string) => localIds.has(id);
+
+  const startLongPress = (id: string) => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = setTimeout(() => setActionSheetId(id), 450);
+  };
+  const cancelLongPress = () => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = null;
+  };
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const deleteIds = (ids: string[]) => {
+    setMsgs((m) => m.filter((x) => !ids.includes(x.id)));
+    setSelectedIds([]);
+  };
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds([]);
+  };
+  const clearChat = () => {
+    setMsgs([]);
+    exitSelectMode();
+    setMenuOpen(false);
+    toast.success("Chat cleared");
+  };
+
+  const inputDisabled = incomingPending || declined || (!accepted && textsLeft <= 0) || selectMode;
   const photoDisabled = incomingPending || declined || (!accepted && photosLeft <= 0);
   const allMsgs: Msg[] = accepted
     ? [...preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url })), ...msgs]
@@ -279,8 +319,72 @@ function OrbitChatPage() {
           >
             <Video className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </button>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Chat options"
+            className="grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90"
+          >
+            <MoreVertical className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
         </div>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-[70]" onClick={() => setMenuOpen(false)} />
+            <div className="absolute right-3 top-14 z-[80] w-56 rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
+              <button
+                type="button"
+                onClick={clearChat}
+                disabled={allMsgs.length === 0}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Clear Chat
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  exitSelectMode();
+                  setSelectMode(true);
+                  setMenuOpen(false);
+                  toast.info("Tap messages to select multiple for deletion");
+                }}
+                disabled={allMsgs.length === 0}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
+              >
+                <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
+              </button>
+            </div>
+          </>
+        )}
       </header>
+
+      {selectMode && (
+        <div className="flex shrink-0 items-center justify-between border-b border-border bg-secondary/60 px-4 py-2">
+          <button
+            type="button"
+            onClick={exitSelectMode}
+            className="text-xs font-semibold text-muted-foreground"
+          >
+            Cancel
+          </button>
+          <span className="text-xs font-bold text-foreground">
+            {selectedIds.length} selected
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              deleteIds(selectedIds);
+              setSelectMode(false);
+            }}
+            disabled={selectedIds.length === 0}
+            className={`flex items-center gap-1 text-xs font-bold transition-colors ${
+              selectedIds.length ? "text-destructive" : "text-muted-foreground/50"
+            }`}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} /> Delete
+          </button>
+        </div>
+      )}
 
       <section className="relative flex-1 space-y-2 overflow-y-auto px-4 py-4">
         <UserWatermark username={currentUser.username} className="fixed" />
@@ -304,41 +408,74 @@ function OrbitChatPage() {
               : `Send up to ${ORBIT_REQUEST_TEXT_MAX} texts and ${ORBIT_REQUEST_PHOTO_MAX} photos to request a chat with ${p.name}.`}
           </p>
         ) : (
-          allMsgs.map((m) =>
-            m.system ? (
-              <p
+          allMsgs.map((m) => {
+            if (m.system) {
+              return (
+                <p
+                  key={m.id}
+                  className="mx-auto w-fit rounded-full bg-secondary/70 px-3 py-1 text-center text-[11px] text-muted-foreground"
+                >
+                  {m.text}
+                </p>
+              );
+            }
+            const deletable = isDeletable(m.id);
+            const selected = selectedIds.includes(m.id);
+            const handlers = deletable
+              ? {
+                  onPointerDown: () => !selectMode && startLongPress(m.id),
+                  onPointerUp: cancelLongPress,
+                  onPointerLeave: cancelLongPress,
+                  onContextMenu: (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    if (!selectMode) setActionSheetId(m.id);
+                  },
+                  onClick: () => selectMode && toggleSelect(m.id),
+                }
+              : {};
+            return (
+              <div
                 key={m.id}
-                className="mx-auto w-fit rounded-full bg-secondary/70 px-3 py-1 text-center text-[11px] text-muted-foreground"
+                {...handlers}
+                className={`flex flex-col ${m.me ? "items-end" : "items-start"} ${
+                  selectMode && selected ? "rounded-2xl bg-primary/10 ring-1 ring-primary/40" : ""
+                } ${selectMode && deletable ? "cursor-pointer select-none px-1 py-1" : ""}`}
               >
-                {m.text}
-              </p>
-            ) : (
-            <div
-              key={m.id}
-              className={`max-w-[75%] overflow-hidden rounded-2xl text-sm ${
-                m.url || m.invite ? "" : "px-3.5 py-2"
-              } ${
-                m.me
-                  ? "ml-auto bg-primary text-primary-foreground"
-                  : "chip text-foreground"
-              }`}
-            >
-              {m.invite ? (
-                <InviteBubble invite={m.invite} />
-              ) : m.audio ? (
-                <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
-              ) : m.url ? (
-                viewOnce[m.id] ? (
-                  <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
-                ) : (
-                  <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
-                )
-              ) : (
-                m.text
-              )}
-            </div>
-            ),
-          )
+                {selectMode && deletable && (
+                  <span
+                    className={`mb-1 flex h-4 w-4 items-center justify-center rounded-full border ${
+                      selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                    }`}
+                  >
+                    {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                  </span>
+                )}
+                <div
+                  className={`max-w-[75%] overflow-hidden rounded-2xl text-sm ${
+                    m.url || m.invite ? "" : "px-3.5 py-2"
+                  } ${
+                    m.me
+                      ? "bg-primary text-primary-foreground"
+                      : "chip text-foreground"
+                  }`}
+                >
+                  {m.invite ? (
+                    <InviteBubble invite={m.invite} />
+                  ) : m.audio ? (
+                    <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
+                  ) : m.url ? (
+                    viewOnce[m.id] ? (
+                      <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
+                    ) : (
+                      <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                    )
+                  ) : (
+                    m.text
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
       </section>
 
@@ -472,6 +609,48 @@ function OrbitChatPage() {
           toast.success(`Invite sent to ${p.name}`, { description: place.name });
         }}
       />
+
+      {actionSheetId !== null && (
+        <div
+          className="fixed inset-0 z-[90] flex items-end bg-black/60 backdrop-blur-sm"
+          onClick={() => setActionSheetId(null)}
+        >
+          <div
+            className="w-full rounded-t-3xl border-t border-border bg-popover p-3 pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/40" />
+            <button
+              type="button"
+              onClick={() => {
+                deleteIds([actionSheetId]);
+                setActionSheetId(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Delete Message
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectMode(true);
+                setSelectedIds([actionSheetId]);
+                setActionSheetId(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+            >
+              <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
+            </button>
+            <button
+              type="button"
+              onClick={() => setActionSheetId(null)}
+              className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary"
+            >
+              <X className="h-4 w-4" strokeWidth={1.8} /> Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
