@@ -64,22 +64,6 @@ const TOOL_MENU: { id: ToolId; label: string; Icon: React.ComponentType<{ size?:
   { id: "CROP", label: "Crop", Icon: Crop },
 ];
 
-interface UnusedClipItem {
-  id: string;
-  url: string;
-  speed: number;
-  rotation: number;
-  filter: "none" | "vivid" | "noir" | "cyber" | "warm";
-  textOverlay: string;
-  volume: number;
-  trimStart?: number;
-  trimEnd?: number;
-  duration?: number;
-  crop?: number;
-  textX?: number;
-  textY?: number;
-  cropBox?: { x: number; y: number; w: number; h: number };
-}
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
@@ -88,13 +72,21 @@ export function CreateStudioPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [activeToolPanel, setActiveToolPanel] = useState<
-    "NONE" | "TEXT" | "FILTER" | "SPEED" | "TRIM" | "VOLUME" | "CROP"
+    "NONE" | ToolId | "VOLUME"
   >("NONE");
+  const [currentTime, setCurrentTime] = useState(0);
   const [customTextInput, setCustomTextInput] = useState("");
   const [showMusicPicker, setShowMusicPicker] = useState(false);
   const [audioTrack, setAudioTrack] = useState<
     { id: string; title: string; url: string; start: number; duration: number } | null
   >(null);
+
+  const totalDuration = clips.reduce((acc, c) => {
+    const d = c.duration || 0;
+    const start = c.trimStart ?? 0;
+    const end = c.trimEnd ?? d;
+    return acc + Math.max(0, end - start);
+  }, 0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
