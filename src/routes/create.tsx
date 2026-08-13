@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
 import { CapCutTimeline } from "@/components/yw/editor/CapCutTimeline";
+import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -57,10 +58,15 @@ export function CreateStudioPage() {
     "NONE" | "TEXT" | "FILTER" | "SPEED" | "TRIM" | "VOLUME" | "CROP"
   >("NONE");
   const [customTextInput, setCustomTextInput] = useState("");
+  const [showMusicPicker, setShowMusicPicker] = useState(false);
+  const [audioTrack, setAudioTrack] = useState<
+    { id: string; title: string; url: string; start: number; duration: number } | null
+  >(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioElRef = useRef<HTMLAudioElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // Push files into the Pro Edits Studio editor
