@@ -3,7 +3,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
   Mic, Send, Smile, Play, Pause, X, MicOff,
-  Pencil, Lock, EyeOff, Clock, Camera, VideoOff, BellOff, UserX, Flag
+  Pencil, Lock, EyeOff, Clock, Camera, VideoOff, BellOff, UserX, Flag,
+  Trash2, CheckCheck, Check
 } from "lucide-react";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
@@ -44,6 +45,31 @@ export function ChatThreadPage() {
   const [activeCall, setActiveCall] = useState<"audio" | "video" | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [actionSheetId, setActionSheetId] = useState<number | null>(null);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startLongPress = (id: number) => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = setTimeout(() => setActionSheetId(id), 450);
+  };
+  const cancelLongPress = () => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = null;
+  };
+  const toggleSelect = (id: number) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const deleteIds = (ids: number[]) => {
+    setMessages((prev) => prev.filter((m) => !ids.includes(m.id)));
+    setSelectedIds([]);
+  };
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds([]);
+  };
+
+  useEffect(() => () => cancelLongPress(), []);
 
   const EMOJIS = ["👍", "❤️", "😂", "🔥", "🎉", "😍", "👏", "🙌", "🚀", "💯"];
 
@@ -250,6 +276,11 @@ export function ChatThreadPage() {
               <span>Mute Notifications</span>
             </button>
 
+            <button onClick={() => { setMessages([]); exitSelectMode(); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
+              <Trash2 size={16} className="text-zinc-400" />
+              <span>Clear Chat</span>
+            </button>
+
             <button onClick={() => { alert("User Blocked!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-3">
               <UserX size={16} className="text-red-400" />
               <span>Block User</span>
@@ -264,6 +295,20 @@ export function ChatThreadPage() {
       </div>
 
       {/* MESSAGES AREA */}
+      {selectMode && (
+        <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800 shrink-0">
+          <button onClick={exitSelectMode} className="text-xs font-semibold text-zinc-300">Cancel</button>
+          <span className="text-xs font-bold text-white">{selectedIds.length} selected</span>
+          <button
+            onClick={() => { deleteIds(selectedIds); setSelectMode(false); }}
+            disabled={selectedIds.length === 0}
+            className={`text-xs font-bold flex items-center gap-1 ${selectedIds.length ? "text-red-400" : "text-zinc-600"}`}
+          >
+            <Trash2 size={15} /> Delete
+          </button>
+        </div>
+      )}
+
       <div className="relative flex-1 overflow-y-auto p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
         <UserWatermark username={currentUser.username} className="fixed text-white" />
         {messages.map((m) => m.system ? (
@@ -271,7 +316,24 @@ export function ChatThreadPage() {
             {m.text}
           </p>
         ) : (
-          <div key={m.id} className={`flex flex-col ${m.sender === "me" ? "items-end" : "items-start"}`}>
+          <div
+            key={m.id}
+            onPointerDown={() => !selectMode && startLongPress(m.id)}
+            onPointerUp={cancelLongPress}
+            onPointerLeave={cancelLongPress}
+            onContextMenu={(e) => { e.preventDefault(); if (!selectMode) setActionSheetId(m.id); }}
+            onClick={() => selectMode && toggleSelect(m.id)}
+            className={`flex flex-col ${m.sender === "me" ? "items-end" : "items-start"} ${
+              selectMode && selectedIds.includes(m.id) ? "rounded-2xl bg-purple-500/10 ring-1 ring-purple-500/40" : ""
+            } ${selectMode ? "cursor-pointer select-none px-1 py-1" : ""}`}
+          >
+            {selectMode && (
+              <span className={`mb-1 flex h-4 w-4 items-center justify-center rounded-full border ${
+                selectedIds.includes(m.id) ? "border-purple-500 bg-purple-600 text-white" : "border-zinc-600"
+              }`}>
+                {selectedIds.includes(m.id) && <Check size={11} />}
+              </span>
+            )}
             {m.text && (
               <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                 m.sender === "me" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-br-xs" : "bg-zinc-800/90 text-zinc-100 rounded-bl-xs border border-zinc-700/50"
@@ -319,6 +381,27 @@ export function ChatThreadPage() {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* LONG-PRESS ACTION SHEET */}
+      {actionSheetId !== null && (
+        <div className="fixed inset-0 z-[60] flex items-end bg-black/60 backdrop-blur-sm" onClick={() => setActionSheetId(null)}>
+          <div className="w-full rounded-t-3xl border-t border-zinc-800 bg-zinc-900 p-3 pb-6" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-700" />
+            <button
+              onClick={() => { deleteIds([actionSheetId]); setActionSheetId(null); }}
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-400 hover:bg-red-950/40"
+            >
+              <Trash2 size={18} /> Delete Message
+            </button>
+            <button
+              onClick={() => { setSelectMode(true); setSelectedIds([actionSheetId]); setActionSheetId(null); }}
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-200 hover:bg-zinc-800"
+            >
+              <CheckCheck size={18} /> Select Multiple
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* EMOJI PICKER */}
       {showEmojis && (
