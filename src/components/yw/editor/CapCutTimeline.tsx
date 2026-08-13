@@ -180,6 +180,7 @@ export function CapCutTimeline({
   audioTrack,
   totalDuration,
   onAudioMove,
+  onScrub,
 }: {
   clips: TimelineClip[];
   activeIndex: number;
@@ -194,6 +195,7 @@ export function CapCutTimeline({
   audioTrack?: { title: string; start: number; duration: number } | null;
   totalDuration?: number;
   onAudioMove?: (start: number) => void;
+  onScrub?: (index: number, fraction: number) => void;
 }) {
   const textClips = useMemo(
     () => clips.map((c, i) => ({ i, text: c.textOverlay })).filter((c) => c.text),
@@ -202,6 +204,63 @@ export function CapCutTimeline({
 
   const audioRowRef = useRef<HTMLDivElement>(null);
   const total = Math.max(totalDuration || 0, 0.1);
+
+  // ---- Horizontal scrub track (playhead is the fixed center line) ----
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [pad, setPad] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const draggingRef = useRef(false);
+  const movedRef = useRef(false);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const update = () => setPad(el.clientWidth / 2);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const emitScrub = () => {
+    const el = trackRef.current;
+    if (!el || !onScrub || clips.length === 0) return;
+    const x = el.scrollLeft; // center line offset into the clip strip
+    const step = CELL_WIDTH + CELL_GAP;
+    let idx = Math.floor(x / step);
+    idx = Math.min(clips.length - 1, Math.max(0, idx));
+    const frac = Math.min(1, Math.max(0, (x - idx * step) / CELL_WIDTH));
+    onScrub(idx, frac);
+  };
+
+  const onTrackScroll = () => {
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      emitScrub();
+    });
+  };
+
+  const dragTrack = (e: React.PointerEvent) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const startX = e.clientX;
+    const startScroll = el.scrollLeft;
+    draggingRef.current = true;
+    movedRef.current = false;
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      if (Math.abs(dx) > 3) movedRef.current = true;
+      el.scrollLeft = startScroll - dx;
+    };
+    const up = () => {
+      draggingRef.current = false;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   const dragAudio = (e: React.PointerEvent) => {
     if (!audioTrack || !onAudioMove) return;
@@ -239,14 +298,22 @@ export function CapCutTimeline({
         >
           {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </button>
-        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+        <div
+          ref={trackRef}
+          onScroll={onTrackScroll}
+          onPointerDown={dragTrack}
+          className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 cursor-ew-resize touch-pan-x overscroll-x-contain"
+          style={{ paddingLeft: pad, paddingRight: pad, scrollBehavior: "auto" }}
+        >
           {clips.map((c, i) => (
             <ClipCell
               key={c.id}
               clip={c}
               index={i}
               active={i === activeIndex}
-              onSelect={() => onSelect(i)}
+              onSelect={() => {
+                if (!movedRef.current) onSelect(i);
+              }}
               onTrim={(s, e) => onTrim(i, s, e)}
             />
           ))}
