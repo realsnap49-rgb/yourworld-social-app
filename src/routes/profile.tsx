@@ -24,6 +24,7 @@ import {
   reels,
 } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
+import { UserWatermark } from "@/components/yw/UserWatermark";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -62,7 +63,8 @@ function ProfilePage() {
   ] as typeof posts;
 
   return (
-    <main className="pb-6">
+    <main className="relative pb-6">
+      <UserWatermark username={profile.username} />
       <header className="sticky top-0 z-40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border glass px-4 py-3">
         <h1 className="flex min-w-0 items-center gap-1.5 font-display text-xl font-bold">
           <span className="truncate">@{profile.username}</span>
