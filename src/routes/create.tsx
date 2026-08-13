@@ -667,7 +667,7 @@ export function CreateStudioPage() {
               if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
               scrubTimerRef.current = setTimeout(() => {
                 scrubbingRef.current = false;
-              }, 300);
+              }, 220);
               if (i !== activeClipIndex) setActiveClipIndex(i);
               const clip = clips[i];
               if (!v || !clip) return;
@@ -679,7 +679,19 @@ export function CreateStudioPage() {
                 v.pause();
                 setIsPlaying(false);
               }
-              v.currentTime = Math.min(end, Math.max(start, start + frac * (end - start)));
+              const target = Math.min(end, Math.max(start, start + frac * (end - start)));
+              pendingSeekRef.current = target;
+              // One seek per animation frame — prevents decoder thrash while dragging
+              if (seekRafRef.current) return;
+              seekRafRef.current = requestAnimationFrame(() => {
+                seekRafRef.current = null;
+                const t = pendingSeekRef.current;
+                if (t == null || !videoRef.current) return;
+                const vid = videoRef.current;
+                if (Math.abs(vid.currentTime - t) < 0.02) return;
+                if (typeof vid.fastSeek === "function") vid.fastSeek(t);
+                else vid.currentTime = t;
+              });
             }}
             onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
           />
