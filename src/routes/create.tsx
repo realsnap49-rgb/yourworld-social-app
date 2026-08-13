@@ -70,6 +70,26 @@ export function CreateStudioPage() {
   const stageRef = useRef<HTMLDivElement>(null);
   const scrubbingRef = useRef(false);
   const scrubTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragRafRef = useRef<number | null>(null);
+  const seekRafRef = useRef<number | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current);
+      if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
+      if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
+    };
+  }, []);
+
+  // Coalesce high-frequency pointer updates into one state write per frame
+  const scheduleFrame = (fn: () => void) => {
+    if (dragRafRef.current) return;
+    dragRafRef.current = requestAnimationFrame(() => {
+      dragRafRef.current = null;
+      fn();
+    });
+  };
 
   // Push files into the Pro Edits Studio editor
   const addFiles = (files: File[]) => {
@@ -131,15 +151,24 @@ export function CreateStudioPage() {
     el.setPointerCapture?.(e.pointerId);
     const move = (ev: PointerEvent) => {
       const p = stagePct(ev);
-      setClips((prev) =>
-        prev.map((c, i) => (i === activeClipIndex ? { ...c, textX: p.x, textY: p.y } : c)),
+      // paint immediately (GPU only), commit state once per frame
+      el.style.left = `${p.x}%`;
+      el.style.top = `${p.y}%`;
+      scheduleFrame(() =>
+        setClips((prev) =>
+          prev.map((c, i) => (i === activeClipIndex ? { ...c, textX: p.x, textY: p.y } : c)),
+        ),
       );
     };
     const end = () => {
+      if (dragRafRef.current) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
     };
-    window.addEventListener("pointermove", move);
+    window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerup", end);
   };
 
@@ -173,15 +202,21 @@ export function CreateStudioPage() {
           next.h = clamp(box.h + dy, 10, 100 - box.y);
         }
       }
-      setClips((prev) =>
-        prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: next } : c)),
+      scheduleFrame(() =>
+        setClips((prev) =>
+          prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: next } : c)),
+        ),
       );
     };
     const end = () => {
+      if (dragRafRef.current) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
     };
-    window.addEventListener("pointermove", move);
+    window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerup", end);
   };
 
