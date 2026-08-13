@@ -408,41 +408,74 @@ function OrbitChatPage() {
               : `Send up to ${ORBIT_REQUEST_TEXT_MAX} texts and ${ORBIT_REQUEST_PHOTO_MAX} photos to request a chat with ${p.name}.`}
           </p>
         ) : (
-          allMsgs.map((m) =>
-            m.system ? (
-              <p
+          allMsgs.map((m) => {
+            if (m.system) {
+              return (
+                <p
+                  key={m.id}
+                  className="mx-auto w-fit rounded-full bg-secondary/70 px-3 py-1 text-center text-[11px] text-muted-foreground"
+                >
+                  {m.text}
+                </p>
+              );
+            }
+            const deletable = isDeletable(m.id);
+            const selected = selectedIds.includes(m.id);
+            const handlers = deletable
+              ? {
+                  onPointerDown: () => !selectMode && startLongPress(m.id),
+                  onPointerUp: cancelLongPress,
+                  onPointerLeave: cancelLongPress,
+                  onContextMenu: (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    if (!selectMode) setActionSheetId(m.id);
+                  },
+                  onClick: () => selectMode && toggleSelect(m.id),
+                }
+              : {};
+            return (
+              <div
                 key={m.id}
-                className="mx-auto w-fit rounded-full bg-secondary/70 px-3 py-1 text-center text-[11px] text-muted-foreground"
+                {...handlers}
+                className={`flex flex-col ${m.me ? "items-end" : "items-start"} ${
+                  selectMode && selected ? "rounded-2xl bg-primary/10 ring-1 ring-primary/40" : ""
+                } ${selectMode && deletable ? "cursor-pointer select-none px-1 py-1" : ""}`}
               >
-                {m.text}
-              </p>
-            ) : (
-            <div
-              key={m.id}
-              className={`max-w-[75%] overflow-hidden rounded-2xl text-sm ${
-                m.url || m.invite ? "" : "px-3.5 py-2"
-              } ${
-                m.me
-                  ? "ml-auto bg-primary text-primary-foreground"
-                  : "chip text-foreground"
-              }`}
-            >
-              {m.invite ? (
-                <InviteBubble invite={m.invite} />
-              ) : m.audio ? (
-                <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
-              ) : m.url ? (
-                viewOnce[m.id] ? (
-                  <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
-                ) : (
-                  <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
-                )
-              ) : (
-                m.text
-              )}
-            </div>
-            ),
-          )
+                {selectMode && deletable && (
+                  <span
+                    className={`mb-1 flex h-4 w-4 items-center justify-center rounded-full border ${
+                      selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                    }`}
+                  >
+                    {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                  </span>
+                )}
+                <div
+                  className={`max-w-[75%] overflow-hidden rounded-2xl text-sm ${
+                    m.url || m.invite ? "" : "px-3.5 py-2"
+                  } ${
+                    m.me
+                      ? "bg-primary text-primary-foreground"
+                      : "chip text-foreground"
+                  }`}
+                >
+                  {m.invite ? (
+                    <InviteBubble invite={m.invite} />
+                  ) : m.audio ? (
+                    <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
+                  ) : m.url ? (
+                    viewOnce[m.id] ? (
+                      <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
+                    ) : (
+                      <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                    )
+                  ) : (
+                    m.text
+                  )}
+                </div>
+              </div>
+            );
+          },
         )}
       </section>
 
