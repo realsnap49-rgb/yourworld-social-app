@@ -479,7 +479,11 @@ export function ChatThreadPage() {
 
       {/* INPUT BAR */}
       <div className="p-3 bg-zinc-950/95 border-t border-zinc-800/80 backdrop-blur-md flex items-center gap-2 shrink-0">
-        {isRecording ? (
+        {blocked ? (
+          <p className="flex-1 text-center text-xs font-semibold text-zinc-500 py-2">
+            You blocked {displayName}. Unblock from the menu to message.
+          </p>
+        ) : isRecording ? (
           <div className="flex-1 flex items-center justify-between bg-red-950/40 border border-red-500/50 rounded-full px-4 py-2 text-red-400">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
