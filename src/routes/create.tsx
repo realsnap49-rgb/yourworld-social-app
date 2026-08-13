@@ -364,7 +364,7 @@ export function CreateStudioPage() {
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-black text-white font-sans flex flex-col overflow-hidden select-none">
+    <div className="fixed inset-0 z-[99999] bg-background text-foreground font-sans flex flex-col overflow-hidden select-none">
       
       {/* Hidden File Inputs */}
       <input 
@@ -393,35 +393,36 @@ export function CreateStudioPage() {
           onDrafts={() => toast("No drafts yet — capture something first")}
         />
       ) : (
-        /* REAL-TIME PRO EDITOR ENGINE */
-        <div className="flex-1 min-h-0 flex flex-col bg-black relative">
-          
+        /* LIGHT PRO EDITOR */
+        <div className="flex-1 min-h-0 flex flex-col bg-background text-foreground relative">
+
           {/* HEADER BAR */}
-          <div className="flex-shrink-0 flex justify-between items-center px-4 py-2 bg-black z-30 border-b border-zinc-900">
-            <button onClick={() => setClips([])} className="p-2 bg-zinc-900 rounded-full">
+          <div className="flex-shrink-0 flex justify-between items-center px-4 py-2 bg-card z-30 border-b border-border">
+            <button onClick={() => setClips([])} className="p-2 bg-muted rounded-full text-foreground">
               <ArrowLeft size={18} />
             </button>
-
-            <button 
+            <span className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">Edit</span>
+            <button
               onClick={() => {
-                alert("Real-Time Video Rendered & Saved to Phone Gallery!");
+                toast.success("Video rendered & saved to gallery");
                 navigate({ to: "/" });
               }}
-              className="bg-orange-500 hover:bg-orange-600 text-black font-black px-3.5 py-1.5 rounded-lg text-[10px] uppercase tracking-wide shadow-lg shadow-orange-500/20 active:scale-95 transition"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-black px-3.5 py-1.5 rounded-lg text-[10px] uppercase tracking-wide shadow-sm active:scale-95 transition"
             >
               SAVE
             </button>
           </div>
 
-          {/* MAIN PLAYER CANVAS (Real-Time Filter & Transform Sync) */}
-          <div className="flex-1 min-h-0 flex items-center justify-center px-1 py-0 relative bg-black overflow-hidden">
-            <div ref={stageRef} className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center touch-none">
-              <video 
+          {/* FULL-WIDTH VIDEO CANVAS */}
+          <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-white overflow-hidden">
+            <div ref={stageRef} className="relative h-full w-full flex items-center justify-center touch-none">
+              <video
                 ref={videoRef}
-                autoPlay 
-                loop 
+                autoPlay
+                loop
                 playsInline
                 muted={isMuted}
+                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
                 onLoadedMetadata={(e) => {
                   const d = e.currentTarget.duration;
                   if (isFinite(d) && d > 0 && !currentClip?.duration) updateCurrentClip("duration", d);
@@ -433,10 +434,10 @@ export function CreateStudioPage() {
                   clipPath: currentClip?.cropBox
                     ? `inset(${currentClip.cropBox.y}% ${100 - (currentClip.cropBox.x + currentClip.cropBox.w)}% ${100 - (currentClip.cropBox.y + currentClip.cropBox.h)}% ${currentClip.cropBox.x}%)`
                     : undefined,
-                  filter: 
-                    currentClip?.filter === "vivid" ? "saturate(2) contrast(1.1)" : 
-                    currentClip?.filter === "noir" ? "grayscale(1) contrast(1.2)" : 
-                    currentClip?.filter === "cyber" ? "hue-rotate(90deg) contrast(1.2)" : 
+                  filter:
+                    currentClip?.filter === "vivid" ? "saturate(2) contrast(1.1)" :
+                    currentClip?.filter === "noir" ? "grayscale(1) contrast(1.2)" :
+                    currentClip?.filter === "cyber" ? "hue-rotate(90deg) contrast(1.2)" :
                     currentClip?.filter === "warm" ? "sepia(0.5) saturate(1.4)" : "none"
                 }}
               />
@@ -445,7 +446,7 @@ export function CreateStudioPage() {
               {activeToolPanel === "CROP" && currentClip && (
                 <div
                   onPointerDown={(e) => startCropDrag(e, "move")}
-                  className="absolute border-2 border-orange-400 bg-orange-400/10 cursor-move touch-none"
+                  className="absolute border-2 border-orange-500 bg-orange-500/10 cursor-move touch-none"
                   style={{
                     left: `${currentClip.cropBox?.x ?? 10}%`,
                     top: `${currentClip.cropBox?.y ?? 10}%`,
@@ -457,7 +458,7 @@ export function CreateStudioPage() {
                     <div
                       key={h}
                       onPointerDown={(e) => startCropDrag(e, h)}
-                      className="absolute w-5 h-5 bg-orange-500 rounded-full border-2 border-black touch-none"
+                      className="absolute w-5 h-5 bg-orange-500 rounded-full border-2 border-white shadow touch-none"
                       style={{
                         left: h.includes("w") ? -10 : undefined,
                         right: h.includes("e") ? -10 : undefined,
@@ -469,11 +470,11 @@ export function CreateStudioPage() {
                 </div>
               )}
 
-              {/* Real-time Draggable Text Overlay */}
+              {/* Draggable Text Overlay */}
               {currentClip?.textOverlay && (
                 <div
                   onPointerDown={startTextDrag}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 bg-black/70 text-orange-400 font-black px-4 py-2 rounded-xl text-lg border border-orange-500/50 backdrop-blur-md shadow-2xl cursor-move touch-none select-none"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 bg-white/85 text-foreground font-black px-4 py-2 rounded-xl text-lg border border-orange-400 shadow-lg backdrop-blur-sm cursor-move touch-none select-none"
                   style={{ left: `${currentClip.textX ?? 50}%`, top: `${currentClip.textY ?? 50}%` }}
                 >
                   {currentClip.textOverlay}
@@ -482,33 +483,63 @@ export function CreateStudioPage() {
             </div>
           </div>
 
-          {/* PLAYER CONTROL RIBBON */}
-          <div className="flex-shrink-0 flex items-center justify-between px-6 py-1 text-xs font-mono text-zinc-400">
-            <button onClick={togglePlay} className="p-2 bg-zinc-900 rounded-full text-white active:scale-90 transition">
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-            </button>
-            <span className="font-bold text-orange-400">Clip {activeClipIndex + 1} / {clips.length} ({currentClip?.speed}x)</span>
+          {/* PLAY CONTROLS DIRECTLY BELOW CANVAS */}
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-card border-t border-border">
             <div className="flex items-center gap-3">
-              <button onClick={() => updateCurrentClip("rotation", 0)} className="text-zinc-400 active:scale-90 transition"><Undo2 size={16} /></button>
-              <button onClick={() => updateCurrentClip("filter", "none")} className="text-zinc-400 active:scale-90 transition"><Redo2 size={16} /></button>
+              <button
+                onClick={togglePlay}
+                className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center active:scale-90 transition shadow-sm"
+                aria-label={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+              <span className="text-[11px] font-bold text-muted-foreground">
+                Clip {activeClipIndex + 1}/{clips.length} · {currentClip?.speed}x
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <button onClick={() => updateCurrentClip("rotation", 0)} className="active:scale-90 transition" aria-label="Reset rotation"><Undo2 size={16} /></button>
+              <button onClick={() => updateCurrentClip("filter", "none")} className="active:scale-90 transition" aria-label="Reset filter"><Redo2 size={16} /></button>
+              <button onClick={handleDuplicate} className="active:scale-90 transition" aria-label="Duplicate clip"><Copy size={16} /></button>
+              <button onClick={handleDelete} className="text-destructive active:scale-90 transition" aria-label="Delete clip"><Trash2 size={16} /></button>
             </div>
           </div>
 
-          {/* TOOL POPUP DRAWER (Real-time Options Selector) */}
-          {activeToolPanel !== "NONE" && (
-            <div className="flex-shrink-0 bg-zinc-900 border-t border-zinc-800 p-3 flex flex-col gap-2 animate-in slide-in-from-bottom">
+          {/* HORIZONTAL SCROLLABLE TOOL MENU */}
+          <div className="flex-shrink-0 bg-card border-t border-border px-3 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none">
+            {TOOL_MENU.map((t) => {
+              const active = activeToolPanel === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleToolMenu(t.id)}
+                  className={`flex flex-col items-center justify-center gap-1 min-w-[64px] py-2 px-2 rounded-2xl text-[9px] font-extrabold uppercase tracking-wide flex-shrink-0 border transition active:scale-95 ${
+                    active
+                      ? "bg-orange-500 text-white border-orange-500"
+                      : "bg-muted text-foreground border-transparent"
+                  }`}
+                >
+                  <t.Icon size={18} />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
 
-              {/* Trim Panel — selected clip only */}
+          {/* TOOL PANEL */}
+          {activeToolPanel !== "NONE" && (
+            <div className="flex-shrink-0 bg-card border-t border-border p-3 flex flex-col gap-2">
+
               {activeToolPanel === "TRIM" && currentClip && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-[10px] font-bold uppercase text-zinc-400">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground">
                     Trim clip {activeClipIndex + 1}
                   </span>
                   {(["trimStart", "trimEnd"] as const).map((k) => {
                     const dur = currentClip.duration || 0;
                     const val = k === "trimStart" ? currentClip.trimStart ?? 0 : currentClip.trimEnd ?? dur;
                     return (
-                      <label key={k} className="flex items-center gap-3 text-[10px] font-bold text-zinc-300">
+                      <label key={k} className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
                         <span className="w-10">{k === "trimStart" ? "Start" : "End"}</span>
                         <input
                           type="range"
@@ -529,30 +560,13 @@ export function CreateStudioPage() {
                       </label>
                     );
                   })}
+                  <button onClick={handleSplit} className="self-start text-[10px] font-black uppercase text-orange-600">Split at playhead</button>
                 </div>
               )}
 
-              {/* Volume Panel — selected clip only */}
-              {activeToolPanel === "VOLUME" && currentClip && (
-                <label className="flex items-center gap-3 text-[10px] font-bold text-zinc-300">
-                  <Volume2 size={14} className="text-orange-400" />
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={currentClip.volume}
-                    onChange={(e) => updateCurrentClip("volume", Number(e.target.value))}
-                    className="flex-1 accent-orange-500"
-                  />
-                  <span className="w-10 text-right font-mono">{Math.round(currentClip.volume * 100)}%</span>
-                </label>
-              )}
-
-              {/* Crop / Zoom Panel — selected clip only */}
               {activeToolPanel === "CROP" && currentClip && (
-                <label className="flex items-center gap-3 text-[10px] font-bold text-zinc-300">
-                  <Crop size={14} className="text-orange-400" />
+                <label className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
+                  <Crop size={14} className="text-orange-500" />
                   <input
                     type="range"
                     min={1}
@@ -565,16 +579,17 @@ export function CreateStudioPage() {
                   <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
                 </label>
               )}
-              
-              {/* Filter Selector Panel */}
+
               {activeToolPanel === "FILTER" && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                   {(["none", "vivid", "noir", "cyber", "warm"] as const).map((f) => (
-                    <button 
-                      key={f} 
+                    <button
+                      key={f}
                       onClick={() => updateCurrentClip("filter", f)}
-                      className={`px-4 py-2 rounded-xl font-bold text-xs uppercase border transition ${
-                        currentClip?.filter === f ? "bg-orange-500 text-black border-orange-400" : "bg-zinc-800 text-zinc-300 border-zinc-700"
+                      className={`px-4 py-2 rounded-xl font-bold text-xs uppercase border transition flex-shrink-0 ${
+                        currentClip?.filter === f
+                          ? "bg-orange-500 text-white border-orange-500"
+                          : "bg-muted text-foreground border-border"
                       }`}
                     >
                       {f}
@@ -583,15 +598,16 @@ export function CreateStudioPage() {
                 </div>
               )}
 
-              {/* Speed Ramp Panel */}
               {activeToolPanel === "SPEED" && (
                 <div className="flex gap-2 justify-around py-1">
                   {[0.25, 0.5, 1, 2, 4].map((s) => (
-                    <button 
-                      key={s} 
+                    <button
+                      key={s}
                       onClick={() => updateCurrentClip("speed", s)}
                       className={`px-4 py-1.5 rounded-xl font-bold text-xs border transition ${
-                        currentClip?.speed === s ? "bg-orange-500 text-black border-orange-400" : "bg-zinc-800 text-zinc-300 border-zinc-700"
+                        currentClip?.speed === s
+                          ? "bg-orange-500 text-white border-orange-500"
+                          : "bg-muted text-foreground border-border"
                       }`}
                     >
                       {s}x
@@ -600,22 +616,35 @@ export function CreateStudioPage() {
                 </div>
               )}
 
-              {/* Text Input Panel */}
+              {activeToolPanel === "STICKER" && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {["🔥", "✨", "😎", "💚", "🎧", "📍", "🫶", "⚡"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => updateCurrentClip("textOverlay", s)}
+                      className="w-11 h-11 flex-shrink-0 rounded-2xl bg-muted text-xl flex items-center justify-center"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {activeToolPanel === "TEXT" && (
                 <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={customTextInput} 
+                  <input
+                    type="text"
+                    value={customTextInput}
                     onChange={(e) => setCustomTextInput(e.target.value)}
                     placeholder="Type text overlay..."
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-xs font-bold text-white focus:outline-none"
+                    className="flex-1 bg-muted border border-border rounded-xl px-4 py-2 text-xs font-bold text-foreground focus:outline-none"
                   />
-                  <button 
+                  <button
                     onClick={() => {
                       updateCurrentClip("textOverlay", customTextInput);
                       setActiveToolPanel("NONE");
                     }}
-                    className="bg-orange-500 text-black px-4 py-2 rounded-xl font-bold text-xs"
+                    className="bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-xs"
                   >
                     Apply
                   </button>
@@ -625,109 +654,56 @@ export function CreateStudioPage() {
             </div>
           )}
 
-          {/* CLIP TOOL ROW — applies to the selected clip only */}
-          <div className="flex-shrink-0 bg-zinc-950 border-t border-zinc-900 py-2 px-3 grid grid-cols-5 gap-2 text-[9px] font-extrabold uppercase">
-            {([
-              { id: "TRIM", label: "Trim", icon: <Scissors size={17} /> },
-              { id: "SPLIT", label: "Split", icon: <Sliders size={17} className="rotate-90" /> },
-              { id: "SPEED", label: "Speed", icon: <Gauge size={17} /> },
-              { id: "VOLUME", label: "Volume", icon: <Volume2 size={17} /> },
-              { id: "ENHANCE", label: "Enhance", icon: <Sparkles size={17} /> },
-            ] as const).map((t) => {
-              const active = activeToolPanel === t.id;
-              return (
-                <button
-                  key={t.id}
-                  disabled={!currentClip}
-                  onClick={() => {
-                    if (t.id === "SPLIT") return handleSplit();
-                    if (t.id === "ENHANCE")
-                      return updateCurrentClip("filter", currentClip?.filter === "vivid" ? "none" : "vivid");
-                    setActiveToolPanel(active ? "NONE" : (t.id as any));
-                  }}
-                  className={`flex flex-col items-center gap-1 py-2 rounded-2xl transition active:scale-95 ${
-                    active ? "bg-orange-500 text-black" : "bg-zinc-900 text-orange-400"
-                  }`}
-                >
-                  {t.icon}
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* CLIP UTILITIES */}
-          <div className="flex-shrink-0 bg-zinc-950 px-3 pb-1 flex items-center gap-4 overflow-x-auto text-[10px] text-zinc-400 font-bold uppercase whitespace-nowrap scrollbar-none">
-            <button onClick={() => setActiveToolPanel(activeToolPanel === "CROP" ? "NONE" : "CROP")} className="flex items-center gap-1 hover:text-white"><Crop size={14} /> Crop</button>
-            <button onClick={handleDuplicate} className="flex items-center gap-1 hover:text-white"><Copy size={14} /> Copy</button>
-            <button onClick={() => updateCurrentClip("rotation", (currentClip?.rotation || 0) + 90)} className="flex items-center gap-1 hover:text-white"><RotateCw size={14} /> Rotate</button>
-            <button onClick={() => updateCurrentClip("textOverlay", "AUTO CAPTION 🔥")} className="flex items-center gap-1 hover:text-white"><Captions size={14} /> Captions</button>
-            <button onClick={handleDelete} className="flex items-center gap-1 text-red-400 hover:text-red-300"><Trash2 size={14} /> Delete</button>
-          </div>
-
-          {/* REAL-TIME TIMELINE TRACK */}
-          <div className="flex-shrink-0">
-          <CapCutTimeline
-            clips={clips}
-            activeIndex={activeClipIndex}
-            onSelect={(i) => setActiveClipIndex(i)}
-            onTrim={(i, start, end) => {
-              setClips((prev) =>
-                prev.map((c, idx) => (idx === i ? { ...c, trimStart: start, trimEnd: end } : c)),
-              );
-            }}
-            onAdd={() => fileInputRef.current?.click()}
-            isMuted={isMuted}
-            onToggleMute={() => setIsMuted(!isMuted)}
-            onAddAudio={() => setShowMusicPicker(true)}
-            audioTrack={audioTrack ? { title: audioTrack.title, start: audioTrack.start, duration: audioTrack.duration } : null}
-            totalDuration={currentClip?.duration || videoRef.current?.duration || 15}
-            onAudioMove={(start) => setAudioTrack((p) => (p ? { ...p, start } : p))}
-            onScrub={(i, frac) => {
-              const v = videoRef.current;
-              scrubbingRef.current = true;
-              if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
-              scrubTimerRef.current = setTimeout(() => {
-                scrubbingRef.current = false;
-              }, 220);
-              if (i !== activeClipIndex) setActiveClipIndex(i);
-              const clip = clips[i];
-              if (!v || !clip) return;
-              const dur = clip.duration || v.duration || 0;
-              if (!dur || !isFinite(dur)) return;
-              const start = clip.trimStart ?? 0;
-              const end = clip.trimEnd ?? dur;
-              if (!v.paused) {
-                v.pause();
-                setIsPlaying(false);
-              }
-              const target = Math.min(end, Math.max(start, start + frac * (end - start)));
-              pendingSeekRef.current = target;
-              // One seek per animation frame — prevents decoder thrash while dragging
-              if (seekRafRef.current) return;
-              seekRafRef.current = requestAnimationFrame(() => {
-                seekRafRef.current = null;
-                const t = pendingSeekRef.current;
-                if (t == null || !videoRef.current) return;
-                const vid = videoRef.current;
-                if (Math.abs(vid.currentTime - t) < 0.02) return;
-                if (typeof vid.fastSeek === "function") vid.fastSeek(t);
-                else vid.currentTime = t;
-              });
-            }}
-            onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
-          />
-          </div>
-
-          {/* BOTTOM MAIN NAV */}
-          <div className="flex-shrink-0 grid grid-cols-7 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
-            <button onClick={() => setShowMusicPicker(true)} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Music size={18} /> Audio</button>
-            <button onClick={() => setActiveToolPanel("TEXT")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Type size={18} /> Text</button>
-            <button onClick={() => updateCurrentClip("textOverlay", "Voiceover Track 🎙️")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Voice</button>
-            <button onClick={() => updateCurrentClip("textOverlay", "Live Auto Subtitles 🪟")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Captions</button>
-            <button onClick={() => updateCurrentClip("textOverlay", "🔥 Trending Sticker")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Smile size={18} /> Stickers</button>
-            <button onClick={() => setActiveToolPanel(activeToolPanel === "FILTER" ? "NONE" : "FILTER")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Sliders size={18} /> Filters</button>
-            <button onClick={() => { alert("Exported to phone gallery!"); navigate({ to: "/" }); }} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Download size={18} /> Save</button>
+          {/* SINGLE SCROLLABLE CLIP TIMELINE */}
+          <div className="flex-shrink-0 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+            <LightTimeline
+              clips={clips}
+              activeIndex={activeClipIndex}
+              currentTime={currentTime}
+              totalDuration={totalDuration}
+              audioLabel={audioTrack?.title}
+              onAddAudio={() => setShowMusicPicker(true)}
+              isMuted={isMuted}
+              onToggleMute={() => setIsMuted(!isMuted)}
+              onSelect={(i) => setActiveClipIndex(i)}
+              onTrim={(i, start, end) => {
+                setClips((prev) =>
+                  prev.map((c, idx) => (idx === i ? { ...c, trimStart: start, trimEnd: end } : c)),
+                );
+              }}
+              onAdd={() => fileInputRef.current?.click()}
+              onScrub={(i, frac) => {
+                const v = videoRef.current;
+                scrubbingRef.current = true;
+                if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
+                scrubTimerRef.current = setTimeout(() => {
+                  scrubbingRef.current = false;
+                }, 220);
+                if (i !== activeClipIndex) setActiveClipIndex(i);
+                const clip = clips[i];
+                if (!v || !clip) return;
+                const dur = clip.duration || v.duration || 0;
+                if (!dur || !isFinite(dur)) return;
+                const start = clip.trimStart ?? 0;
+                const end = clip.trimEnd ?? dur;
+                if (!v.paused) {
+                  v.pause();
+                  setIsPlaying(false);
+                }
+                const target = Math.min(end, Math.max(start, start + frac * (end - start)));
+                pendingSeekRef.current = target;
+                if (seekRafRef.current) return;
+                seekRafRef.current = requestAnimationFrame(() => {
+                  seekRafRef.current = null;
+                  const t = pendingSeekRef.current;
+                  if (t == null || !videoRef.current) return;
+                  const vid = videoRef.current;
+                  if (Math.abs(vid.currentTime - t) < 0.02) return;
+                  if (typeof vid.fastSeek === "function") vid.fastSeek(t);
+                  else vid.currentTime = t;
+                });
+              }}
+            />
           </div>
 
           {/* HIDDEN AUDIO ENGINE */}
@@ -735,9 +711,9 @@ export function CreateStudioPage() {
 
           {/* MUSIC LIBRARY PICKER */}
           {showMusicPicker && (
-            <div className="absolute inset-0 z-[60] bg-black/80 flex items-end" onClick={() => setShowMusicPicker(false)}>
-              <div className="w-full bg-zinc-950 border-t border-zinc-800 rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <p className="text-[11px] font-black uppercase tracking-wide text-zinc-400 mb-3">Music Library</p>
+            <div className="absolute inset-0 z-[60] bg-foreground/30 flex items-end" onClick={() => setShowMusicPicker(false)}>
+              <div className="w-full bg-card border-t border-border rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground mb-3">Music Library</p>
                 <div className="flex flex-col gap-2">
                   {NO_COPYRIGHT_MUSIC.map((m) => {
                     const [mm, ss] = m.duration.split(":").map(Number);
@@ -750,21 +726,21 @@ export function CreateStudioPage() {
                           setShowMusicPicker(false);
                           toast.success(`${m.title} added to audio track`);
                         }}
-                        className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900 text-left active:scale-[0.99] transition"
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-muted text-left active:scale-[0.99] transition"
                       >
-                        <span className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center"><Music size={16} /></span>
+                        <span className="w-9 h-9 rounded-xl bg-orange-500/15 text-orange-600 flex items-center justify-center"><Music size={16} /></span>
                         <span className="flex-1 min-w-0">
-                          <span className="block text-xs font-bold truncate">{m.title}</span>
-                          <span className="block text-[10px] text-zinc-500 truncate">{m.artist} · {m.category}</span>
+                          <span className="block text-xs font-bold truncate text-foreground">{m.title}</span>
+                          <span className="block text-[10px] text-muted-foreground truncate">{m.artist} · {m.category}</span>
                         </span>
-                        <span className="text-[10px] font-mono text-zinc-500">{m.duration}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground">{m.duration}</span>
                       </button>
                     );
                   })}
                   {audioTrack && (
                     <button
                       onClick={() => { setAudioTrack(null); setShowMusicPicker(false); }}
-                      className="p-3 rounded-2xl bg-red-500/10 text-red-400 text-xs font-bold"
+                      className="p-3 rounded-2xl bg-destructive/10 text-destructive text-xs font-bold"
                     >
                       Remove audio track
                     </button>
