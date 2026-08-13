@@ -135,34 +135,13 @@ export function CreateStudioPage() {
       />
 
       {clips.length === 0 ? (
-        /* INITIAL MEDIA IMPORT VIEW */
-        <div className="flex-1 flex flex-col justify-between p-6 bg-zinc-950">
-          <div className="flex justify-between items-center">
-            <button onClick={() => navigate({ to: "/" })} className="p-2 bg-zinc-900 rounded-full">
-              <ArrowLeft size={20} />
-            </button>
-            <span className="font-extrabold text-lg">Pro Edits Studio</span>
-            <div className="w-8" />
-          </div>
-
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 my-8 border-2 border-dashed border-orange-500/40 bg-zinc-900/50 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-orange-500 transition"
-          >
-            <div className="w-20 h-20 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center shadow-lg">
-              <Plus size={44} />
-            </div>
-            <p className="font-black text-base text-zinc-200">Select Up to 10 Videos / Photos</p>
-            <p className="text-xs text-zinc-500">Real-time CapCut/InShot Editor Engine</p>
-          </div>
-
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-black font-black text-base rounded-2xl transition shadow-lg shadow-orange-500/30"
-          >
-            Open Media Library
-          </button>
-        </div>
+        /* MINIMALIST LIVE CAMERA */
+        <CameraCapture
+          onClose={() => navigate({ to: "/" })}
+          onCapture={(files) => addFiles(files)}
+          onPick={() => fileInputRef.current?.click()}
+          onDrafts={() => toast("No drafts yet — capture something first")}
+        />
       ) : (
         /* REAL-TIME PRO EDITOR ENGINE */
         <div className="flex-1 flex flex-col justify-between bg-black relative">
