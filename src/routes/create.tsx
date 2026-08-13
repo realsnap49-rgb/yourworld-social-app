@@ -5,8 +5,27 @@ import {
   Sparkles, Captions, Trash2, Copy, RotateCw, Plus, 
   VolumeX, Music, Type, Smile, Sliders, Download, Undo2, Redo2, Snowflake, MoveHorizontal, Wand2
 } from "lucide-react";
+import { toast } from "sonner";
+import { CameraCapture } from "@/components/yw/CameraCapture";
 
 export const Route = createFileRoute("/create")({
+  head: () => ({
+    meta: [
+      { title: "Camera & Pro Edits Studio — YourWorld" },
+      {
+        name: "description",
+        content:
+          "Shoot in 4K/60fps with flip camera, pinch zoom and one-tap record, then jump straight into the YourWorld Pro Edits Studio.",
+      },
+      { property: "og:title", content: "Camera & Pro Edits Studio — YourWorld" },
+      {
+        property: "og:description",
+        content: "Capture posts, reels and live moments in ultra HD, then edit them instantly.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CreateStudioPage,
 });
 
@@ -33,28 +52,32 @@ export function CreateStudioPage() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Smooth Multi-Select Import (Up to 10 clips)
-  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
+  // Push files into the Pro Edits Studio editor
+  const addFiles = (files: File[]) => {
     const remaining = 10 - clips.length;
     if (remaining <= 0) {
-      alert("Maximum 10 clips limit reached!");
+      toast.error("Maximum 10 clips limit reached!");
       return;
     }
-
-    const newClips: ClipItem[] = Array.from(files).slice(0, remaining).map((f, i) => ({
+    const newClips: ClipItem[] = files.slice(0, remaining).map((f, i) => ({
       id: `c_${Date.now()}_${i}`,
       url: URL.createObjectURL(f),
       speed: 1,
       rotation: 0,
       filter: "none",
       textOverlay: "",
-      volume: 1
+      volume: 1,
     }));
-
     setClips((prev) => [...prev, ...newClips]);
+    setActiveClipIndex(clips.length);
+  };
+
+  // Smooth Multi-Select Import (Up to 10 clips)
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    addFiles(Array.from(files));
+    e.target.value = "";
   };
 
   const currentClip = clips[activeClipIndex];
@@ -129,34 +152,13 @@ export function CreateStudioPage() {
       />
 
       {clips.length === 0 ? (
-        /* INITIAL MEDIA IMPORT VIEW */
-        <div className="flex-1 flex flex-col justify-between p-6 bg-zinc-950">
-          <div className="flex justify-between items-center">
-            <button onClick={() => navigate({ to: "/" })} className="p-2 bg-zinc-900 rounded-full">
-              <ArrowLeft size={20} />
-            </button>
-            <span className="font-extrabold text-lg">Pro Edits Studio</span>
-            <div className="w-8" />
-          </div>
-
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 my-8 border-2 border-dashed border-orange-500/40 bg-zinc-900/50 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-orange-500 transition"
-          >
-            <div className="w-20 h-20 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center shadow-lg">
-              <Plus size={44} />
-            </div>
-            <p className="font-black text-base text-zinc-200">Select Up to 10 Videos / Photos</p>
-            <p className="text-xs text-zinc-500">Real-time CapCut/InShot Editor Engine</p>
-          </div>
-
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-black font-black text-base rounded-2xl transition shadow-lg shadow-orange-500/30"
-          >
-            Open Media Library
-          </button>
-        </div>
+        /* MINIMALIST LIVE CAMERA */
+        <CameraCapture
+          onClose={() => navigate({ to: "/" })}
+          onCapture={(files) => addFiles(files)}
+          onPick={() => fileInputRef.current?.click()}
+          onDrafts={() => toast("No drafts yet — capture something first")}
+        />
       ) : (
         /* REAL-TIME PRO EDITOR ENGINE */
         <div className="flex-1 flex flex-col justify-between bg-black relative">
