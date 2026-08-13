@@ -328,51 +328,21 @@ export function CreateStudioPage() {
           </div>
 
           {/* REAL-TIME TIMELINE TRACK */}
-          <div className="bg-zinc-900 border-t border-zinc-800 p-3 flex flex-col gap-2 relative">
-            <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-white z-20 pointer-events-none" />
-
-            <div className="flex items-center gap-2 overflow-x-auto py-1 px-4">
-              <button 
-                onClick={() => setIsMuted(!isMuted)} 
-                className={`p-2 rounded-xl flex items-center gap-1 text-[10px] font-bold ${isMuted ? "bg-red-500/20 text-red-400" : "bg-zinc-800 text-zinc-300"}`}
-              >
-                {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                <span>Unmute</span>
-              </button>
-
-              <div className="flex items-center gap-1.5 border-2 border-orange-500 rounded-2xl bg-orange-500/10 p-1 relative">
-                {clips.map((c, i) => (
-                  <button 
-                    key={c.id} 
-                    onClick={() => setActiveClipIndex(i)}
-                    className={`w-12 h-10 rounded-lg font-black text-xs transition flex items-center justify-center ${
-                      activeClipIndex === i ? "bg-orange-500 text-black scale-105 shadow-md" : "bg-zinc-800 text-zinc-400"
-                    }`}
-                  >
-                    #{i + 1}
-                  </button>
-                ))}
-              </div>
-
-              {clips.length < 10 && (
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-9 h-9 rounded-full bg-white text-black font-black flex items-center justify-center shadow-lg active:scale-90 transition"
-                >
-                  <Plus size={20} />
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1 px-4">
-              <button 
-                onClick={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")} 
-                className="w-full py-2 bg-zinc-800/80 rounded-xl text-xs font-bold text-zinc-400 flex items-center justify-center gap-2 border border-zinc-700/50"
-              >
-                <Plus size={14} /> Add text overlay
-              </button>
-            </div>
-          </div>
+          <CapCutTimeline
+            clips={clips}
+            activeIndex={activeClipIndex}
+            onSelect={(i) => setActiveClipIndex(i)}
+            onTrim={(i, start, end) => {
+              setClips((prev) =>
+                prev.map((c, idx) => (idx === i ? { ...c, trimStart: start, trimEnd: end } : c)),
+              );
+            }}
+            onAdd={() => fileInputRef.current?.click()}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(!isMuted)}
+            onAddAudio={() => audioInputRef.current?.click()}
+            onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
+          />
 
           {/* BOTTOM MAIN NAV */}
           <div className="grid grid-cols-7 gap-1 p-2 bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
