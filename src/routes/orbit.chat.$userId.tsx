@@ -165,8 +165,8 @@ function OrbitChatPage() {
     : preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url }));
 
   return (
-    <main className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border glass px-3 py-2.5">
+    <main className="flex h-[100dvh] flex-col overflow-hidden">
+      <header className="flex shrink-0 items-center gap-2 border-b border-border glass px-3 py-2.5">
         <button
           type="button"
           onClick={() => navigate({ to: "/orbit/messages" })}
@@ -206,22 +206,6 @@ function OrbitChatPage() {
             disabled={!accepted}
           >
             <Video className="h-[18px] w-[18px]" strokeWidth={1.8} />
-          </button>
-          <button
-            type="button"
-            onClick={startRecording}
-            aria-label={recording ? "Stop screen recording" : "Record screen"}
-            aria-pressed={recording}
-            className={`grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90 disabled:opacity-40 ${
-              recording ? "bg-foreground text-background" : ""
-            }`}
-            disabled={!accepted}
-          >
-            {recording ? (
-              <Square className="h-4 w-4" strokeWidth={2.4} />
-            ) : (
-              <MonitorUp className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            )}
           </button>
         </div>
       </header>
