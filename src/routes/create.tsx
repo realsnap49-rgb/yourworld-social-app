@@ -619,6 +619,9 @@ export function CreateStudioPage() {
             isMuted={isMuted}
             onToggleMute={() => setIsMuted(!isMuted)}
             onAddAudio={() => audioInputRef.current?.click()}
+            audioTrack={audioTrack ? { title: audioTrack.title, start: audioTrack.start, duration: audioTrack.duration } : null}
+            totalDuration={currentClip?.duration || videoRef.current?.duration || 15}
+            onAudioMove={(start) => setAudioTrack((p) => (p ? { ...p, start } : p))}
             onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
           />
           </div>
