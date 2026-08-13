@@ -210,13 +210,17 @@ function OrbitChatPage() {
   }, [autoDelete]);
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
-  useCaptureDetect(accepted && orbit.privacy.screenshotAlerts, (kind) => {
+  useCaptureDetect(
+    accepted && orbit.privacy.screenshotAlerts && (screenshotAlert || recordingAlert),
+    (kind) => {
+      if (kind === "recording" ? !recordingAlert : !screenshotAlert) return;
     push({
       me: false,
       system: true,
       text: `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
     });
-  });
+    },
+  );
 
   const startRecording = async () => {
     if (!accepted) {
