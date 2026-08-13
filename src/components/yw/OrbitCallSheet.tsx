@@ -12,13 +12,6 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import {
-  ArMaskOverlay,
-  CaptureFxBar,
-  ScreenFlashOverlay,
-  maskClass,
-  useCaptureFx,
-} from "@/lib/capture-fx";
 
 export type OrbitCallMode = "voice" | "video";
 
@@ -40,41 +33,12 @@ export function OrbitCallSheet({
   const open = mode !== null;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const pipRef = useRef<HTMLVideoElement | null>(null);
-  const pipStreamRef = useRef<MediaStream | null>(null);
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
   const [blurFace, setBlurFace] = useState(true);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [status, setStatus] = useState("Connecting…");
   const [seconds, setSeconds] = useState(0);
-  const fx = useCaptureFx(() => streamRef.current);
-
-  // Dual-camera preview alongside the call.
-  useEffect(() => {
-    if (!open || mode !== "video" || !fx.dual) {
-      pipStreamRef.current?.getTracks().forEach((t) => t.stop());
-      pipStreamRef.current = null;
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing === "user" ? "environment" : "user" },
-          audio: false,
-        });
-        if (cancelled) return s.getTracks().forEach((t) => t.stop());
-        pipStreamRef.current = s;
-        if (pipRef.current) pipRef.current.srcObject = s;
-      } catch {
-        /* single-camera device */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, mode, fx.dual, facing]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,13 +46,32 @@ export function OrbitCallSheet({
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-          video:
-            mode === "video"
-              ? { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } }
-              : false,
-        });
+        const hiRes: MediaTrackConstraints = {
+          facingMode: facing,
+          width: { ideal: 3840, max: 3840 },
+          height: { ideal: 2160, max: 2160 },
+          frameRate: { ideal: 60, max: 60 },
+        };
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: mode === "video" ? hiRes : false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video:
+              mode === "video"
+                ? {
+                    facingMode: facing,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    frameRate: { ideal: 30 },
+                  }
+                : false,
+          });
+        }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
