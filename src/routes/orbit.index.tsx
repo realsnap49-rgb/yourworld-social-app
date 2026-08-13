@@ -189,59 +189,13 @@ function OrbitBrowse() {
         </div>
       )}
 
-      <OrbitFilterBar
-        filters={filters}
-        onChange={setFilters}
-        onOpen={() => setFiltersOpen(true)}
-        resultCount={ranked.length}
-      />
-
-      {orbit.hasProfile && (
-        <section className="pt-4" aria-label="Orbit Mood">
-          <div className="flex items-center justify-between px-4 pb-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Orbit Mood
-            </p>
-            {myMood && (
-              <button
-                type="button"
-                onClick={() => {
-                  orbit.setMood(null);
-                  toast.success("Orbit Mood cleared");
-                }}
-                className="text-[11px] font-medium text-muted-foreground transition-opacity active:opacity-60"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1">
-            {ORBIT_MOODS.map((m) => {
-              const active = myMood === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => {
-                    orbit.setMood(active ? null : m.id);
-                    toast.success(active ? "Orbit Mood cleared" : `Mood set to ${m.label}`);
-                  }}
-                  className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-all active:scale-95 ${
-                    active ? "bg-foreground text-background" : "chip text-muted-foreground"
-                  }`}
-                >
-                  <span aria-hidden className="mr-1">{m.emoji}</span>
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="px-4 pt-2 text-[11px] text-muted-foreground">
-            Optional and private — only used to order your feed
-            {orbit.privacy.showMood ? " and shown as a small badge on your profile." : "."}
-          </p>
-        </section>
+      {searchOpen && (
+        <OrbitFilterBar
+          filters={filters}
+          onChange={setFilters}
+          onOpen={() => setFiltersOpen(true)}
+          resultCount={ranked.length}
+        />
       )}
 
       <div
