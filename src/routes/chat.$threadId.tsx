@@ -192,7 +192,7 @@ export function ChatThreadPage() {
   };
 
   const handleSend = () => {
-    if (!message.trim()) return;
+    if (!message.trim() || blocked) return;
     const currentMsg = message;
     setMessages((prev) => [
       ...prev,
