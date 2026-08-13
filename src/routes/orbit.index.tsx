@@ -26,7 +26,7 @@ import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-da
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
 import { useNotifications } from "@/lib/notifications-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
-import { ORBIT_MOODS, moodById, moodMatchScore } from "@/lib/orbit-mood";
+import { moodById, moodMatchScore } from "@/lib/orbit-mood";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
 import { MeetupSheet } from "@/components/yw/MeetupSheet";
 import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
