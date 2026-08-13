@@ -8,6 +8,11 @@ import {
   Send,
   Phone,
   Video,
+  Plus,
+  Mic,
+  Square,
+  MapPin,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
@@ -19,6 +24,9 @@ import {
 } from "@/lib/orbit-store";
 import { OrbitChatGate } from "@/components/yw/OrbitChatGate";
 import { OrbitCallSheet, type OrbitCallMode } from "@/components/yw/OrbitCallSheet";
+import { InvitesDrawer } from "@/components/yw/InvitesDrawer";
+import { PlacePickerSheet } from "@/components/yw/PlacePickerSheet";
+import { buildInvite, inviteById, type InviteCard, type InviteKind } from "@/lib/orbit-invites";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -41,7 +49,14 @@ export const Route = createFileRoute("/orbit/chat/$userId")({
   component: OrbitChatPage,
 });
 
-type Msg = { id: string; me: boolean; text?: string; url?: string };
+type Msg = {
+  id: string;
+  me: boolean;
+  text?: string;
+  url?: string;
+  audio?: string;
+  invite?: InviteCard;
+};
 
 const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
 
@@ -68,6 +83,10 @@ function OrbitChatPage() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
   const [call, setCall] = useState<OrbitCallMode | null>(null);
+  const [invitesOpen, setInvitesOpen] = useState(false);
+  const [inviteKind, setInviteKind] = useState<InviteKind | null>(null);
+  const [recording, setRecording] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
@@ -93,9 +112,49 @@ function OrbitChatPage() {
   // Persist chat history (blob previews are session-only and are skipped).
   useEffect(() => {
     if (!accepted || typeof window === "undefined") return;
-    const durable = msgs.filter((m) => !m.url?.startsWith("blob:"));
+    const durable = msgs.filter(
+      (m) => !m.url?.startsWith("blob:") && !m.audio?.startsWith("blob:"),
+    );
     window.localStorage.setItem(historyKey(userId), JSON.stringify(durable));
   }, [msgs, accepted, userId]);
+
+  const push = (msg: Omit<Msg, "id">) => {
+    seq.current += 1;
+    const id = `m${seq.current}`;
+    setMsgs((m) => [...m, { id, ...msg }]);
+    return id;
+  };
+
+  const startRecording = async () => {
+    if (!accepted) {
+      toast.warning("Voice notes unlock once your Orbit request is accepted.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+      rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        push({ me: true, audio: URL.createObjectURL(blob) });
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+    } catch {
+      toast.error("Microphone permission is needed for voice notes.");
+    }
+  };
+
+  const stopRecording = () => {
+    recorderRef.current?.stop();
+    recorderRef.current = null;
+    setRecording(false);
+  };
+
+  useEffect(() => () => recorderRef.current?.stop(), []);
 
   const startCall = (mode: OrbitCallMode) => {
     if (!accepted) {
@@ -235,14 +294,18 @@ function OrbitChatPage() {
             <div
               key={m.id}
               className={`max-w-[75%] overflow-hidden rounded-2xl text-sm ${
-                m.url ? "" : "px-3.5 py-2"
+                m.url || m.invite ? "" : "px-3.5 py-2"
               } ${
                 m.me
                   ? "ml-auto bg-primary text-primary-foreground"
                   : "chip text-foreground"
               }`}
             >
-              {m.url ? (
+              {m.invite ? (
+                <InviteBubble invite={m.invite} />
+              ) : m.audio ? (
+                <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
+              ) : m.url ? (
                 viewOnce[m.id] ? (
                   <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
                 ) : (
@@ -298,6 +361,36 @@ function OrbitChatPage() {
           </button>
           <button
             type="button"
+            onClick={() => {
+              if (!accepted) {
+                toast.warning("Invites unlock once your Orbit request is accepted.");
+                return;
+              }
+              setInvitesOpen(true);
+            }}
+            disabled={incomingPending || declined}
+            aria-label="Open invites"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            onClick={() => (recording ? stopRecording() : void startRecording())}
+            disabled={incomingPending || declined}
+            aria-label={recording ? "Stop voice note" : "Record voice note"}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-transform active:scale-90 disabled:opacity-50 ${
+              recording ? "bg-destructive text-destructive-foreground" : "bg-secondary"
+            }`}
+          >
+            {recording ? (
+              <Square className="h-3.5 w-3.5" strokeWidth={2.2} />
+            ) : (
+              <Mic className="h-4 w-4" strokeWidth={1.8} />
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => cameraRef.current?.click()}
             disabled={photoDisabled}
             aria-label="Open camera"
@@ -338,7 +431,59 @@ function OrbitChatPage() {
         peerPhoto={p.photo}
         onClose={() => setCall(null)}
       />
+
+      <InvitesDrawer
+        open={invitesOpen}
+        onOpenChange={setInvitesOpen}
+        onPick={(kind) => setInviteKind(kind)}
+      />
+      <PlacePickerSheet
+        open={inviteKind !== null}
+        kind={inviteKind}
+        region={p.city}
+        onOpenChange={(o) => !o && setInviteKind(null)}
+        onSelect={(place) => {
+          if (!inviteKind) return;
+          push({ me: true, invite: buildInvite(inviteKind, place) });
+          setInviteKind(null);
+          toast.success(`Invite sent to ${p.name}`, { description: place.name });
+        }}
+      />
     </main>
+  );
+}
+
+function InviteBubble({ invite }: { invite: InviteCard }) {
+  const Icon = inviteById(invite.kind).icon;
+  return (
+    <div className="w-64 max-w-full space-y-1 p-3.5">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] opacity-80">
+        <Icon className="h-3.5 w-3.5" strokeWidth={1.9} /> {invite.title}
+      </p>
+      <p className="pt-1 text-sm font-semibold">{invite.place}</p>
+      <p className="flex items-start gap-1.5 text-xs opacity-85">
+        <MapPin className="mt-0.5 h-3 w-3 shrink-0" strokeWidth={1.8} />
+        {invite.address}
+      </p>
+      <p className="flex items-center gap-2 text-[11px] opacity-80">
+        {typeof invite.rating === "number" && (
+          <span className="flex items-center gap-1">
+            <Star className="h-3 w-3" strokeWidth={1.8} /> {invite.rating.toFixed(1)}
+          </span>
+        )}
+        {typeof invite.open === "boolean" && <span>{invite.open ? "Open now" : "Closed now"}</span>}
+      </p>
+      {invite.mapsUrl && (
+        <a
+          href={invite.mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 block rounded-full bg-background/20 py-2 text-center text-[11px] font-semibold underline-offset-2"
+        >
+          Open in Maps
+        </a>
+      )}
+    </div>
   );
 }
 
