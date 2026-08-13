@@ -706,6 +706,7 @@ export function CreateStudioPage() {
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}
               onSelect={(i) => setActiveClipIndex(i)}
+              onSeek={(t) => { if (videoRef.current) { videoRef.current.currentTime = t; setCurrentTime(t); } }}
               onTrim={(i, start, end) => {
                 setClips((prev) =>
                   prev.map((c, idx) => (idx === i ? { ...c, trimStart: start, trimEnd: end } : c)),
