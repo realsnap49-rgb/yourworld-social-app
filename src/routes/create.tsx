@@ -69,6 +69,7 @@ export function CreateStudioPage() {
   const audioElRef = useRef<HTMLAudioElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const scrubbingRef = useRef(false);
+  const loadedUrlRef = useRef<string | null>(null);
   const scrubTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragRafRef = useRef<number | null>(null);
   const seekRafRef = useRef<number | null>(null);
