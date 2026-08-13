@@ -42,6 +42,9 @@ interface ClipItem {
   trimEnd?: number;
   duration?: number;
   crop?: number;
+  textX?: number;
+  textY?: number;
+  cropBox?: { x: number; y: number; w: number; h: number };
 }
 
 export function CreateStudioPage() {
@@ -58,6 +61,7 @@ export function CreateStudioPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   // Push files into the Pro Edits Studio editor
   const addFiles = (files: File[]) => {
@@ -76,6 +80,8 @@ export function CreateStudioPage() {
       volume: 1,
       trimStart: 0,
       crop: 1,
+      textX: 50,
+      textY: 50,
     }));
     setClips((prev) => [...prev, ...newClips]);
     setActiveClipIndex(clips.length);
