@@ -4,10 +4,11 @@ import {
   ArrowLeft, Play, Pause, Scissors, Gauge, Volume2,
   Sparkles, Captions, Trash2, Copy, RotateCw,
   Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop,
+  PictureInPicture2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
-import { CapCutTimeline } from "@/components/yw/editor/CapCutTimeline";
+import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 
 export const Route = createFileRoute("/create")({
@@ -32,6 +33,38 @@ export const Route = createFileRoute("/create")({
 });
 
 interface ClipItem {
+  id: string;
+  url: string;
+  speed: number;
+  rotation: number;
+  filter: "none" | "vivid" | "noir" | "cyber" | "warm";
+  textOverlay: string;
+  volume: number;
+  trimStart?: number;
+  trimEnd?: number;
+  duration?: number;
+  crop?: number;
+  textX?: number;
+  textY?: number;
+  cropBox?: { x: number; y: number; w: number; h: number };
+}
+
+type ToolId =
+  | "TRIM" | "MUSIC" | "FILTER" | "EFFECT" | "TEXT" | "STICKER" | "PIP" | "SPEED" | "CROP";
+
+const TOOL_MENU: { id: ToolId; label: string; Icon: React.ComponentType<{ size?: number }> }[] = [
+  { id: "TRIM", label: "Trim", Icon: Scissors },
+  { id: "MUSIC", label: "Music", Icon: Music },
+  { id: "FILTER", label: "Filter", Icon: Sliders },
+  { id: "EFFECT", label: "Effect", Icon: Sparkles },
+  { id: "TEXT", label: "Text", Icon: Type },
+  { id: "STICKER", label: "Sticker", Icon: Smile },
+  { id: "PIP", label: "PIP", Icon: PictureInPicture2 },
+  { id: "SPEED", label: "Speed", Icon: Gauge },
+  { id: "CROP", label: "Crop", Icon: Crop },
+];
+
+interface UnusedClipItem {
   id: string;
   url: string;
   speed: number;
