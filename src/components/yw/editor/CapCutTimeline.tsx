@@ -13,6 +13,8 @@ export type TimelineClip = {
 };
 
 const THUMB_COUNT = 6;
+const CELL_WIDTH = 112;
+const CELL_GAP = 6;
 
 function useThumbnails(url: string) {
   const [thumbs, setThumbs] = useState<string[]>([]);
