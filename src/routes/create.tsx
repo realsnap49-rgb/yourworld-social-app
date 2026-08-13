@@ -637,6 +637,50 @@ export function CreateStudioPage() {
             <button onClick={() => { alert("Exported to phone gallery!"); navigate({ to: "/" }); }} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Download size={18} /> Save</button>
           </div>
 
+          {/* HIDDEN AUDIO ENGINE */}
+          <audio ref={audioElRef} src={audioTrack?.url} preload="auto" className="hidden" />
+
+          {/* MUSIC LIBRARY PICKER */}
+          {showMusicPicker && (
+            <div className="absolute inset-0 z-[60] bg-black/80 flex items-end" onClick={() => setShowMusicPicker(false)}>
+              <div className="w-full bg-zinc-950 border-t border-zinc-800 rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <p className="text-[11px] font-black uppercase tracking-wide text-zinc-400 mb-3">Music Library</p>
+                <div className="flex flex-col gap-2">
+                  {NO_COPYRIGHT_MUSIC.map((m) => {
+                    const [mm, ss] = m.duration.split(":").map(Number);
+                    const secs = (mm || 0) * 60 + (ss || 0);
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setAudioTrack({ id: m.id, title: m.title, url: m.url, start: 0, duration: secs });
+                          setShowMusicPicker(false);
+                          toast.success(`${m.title} added to audio track`);
+                        }}
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900 text-left active:scale-[0.99] transition"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center"><Music size={16} /></span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-xs font-bold truncate">{m.title}</span>
+                          <span className="block text-[10px] text-zinc-500 truncate">{m.artist} · {m.category}</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">{m.duration}</span>
+                      </button>
+                    );
+                  })}
+                  {audioTrack && (
+                    <button
+                      onClick={() => { setAudioTrack(null); setShowMusicPicker(false); }}
+                      className="p-3 rounded-2xl bg-red-500/10 text-red-400 text-xs font-bold"
+                    >
+                      Remove audio track
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
