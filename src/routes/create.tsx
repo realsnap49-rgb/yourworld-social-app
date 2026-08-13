@@ -104,6 +104,79 @@ export function CreateStudioPage() {
     );
   };
 
+  const clamp = (n: number, a = 0, b = 100) => Math.min(b, Math.max(a, n));
+
+  const stagePct = (e: { clientX: number; clientY: number }) => {
+    const r = stageRef.current?.getBoundingClientRect();
+    if (!r) return { x: 50, y: 50 };
+    return {
+      x: clamp(((e.clientX - r.left) / r.width) * 100),
+      y: clamp(((e.clientY - r.top) / r.height) * 100),
+    };
+  };
+
+  // Drag text overlay anywhere on the canvas
+  const startTextDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture?.(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const p = stagePct(ev);
+      setClips((prev) =>
+        prev.map((c, i) => (i === activeClipIndex ? { ...c, textX: p.x, textY: p.y } : c)),
+      );
+    };
+    const end = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+  };
+
+  // Freeform crop bounding box drag (move + corner resize)
+  const startCropDrag = (e: React.PointerEvent, mode: "move" | "nw" | "ne" | "sw" | "se") => {
+    e.preventDefault();
+    e.stopPropagation();
+    const box = currentClip?.cropBox ?? { x: 10, y: 10, w: 80, h: 80 };
+    const origin = stagePct(e);
+    const move = (ev: PointerEvent) => {
+      const p = stagePct(ev);
+      const dx = p.x - origin.x;
+      const dy = p.y - origin.y;
+      let next = { ...box };
+      if (mode === "move") {
+        next.x = clamp(box.x + dx, 0, 100 - box.w);
+        next.y = clamp(box.y + dy, 0, 100 - box.h);
+      } else {
+        const right = box.x + box.w;
+        const bottom = box.y + box.h;
+        if (mode === "nw" || mode === "sw") {
+          next.x = clamp(box.x + dx, 0, right - 10);
+          next.w = right - next.x;
+        } else {
+          next.w = clamp(box.w + dx, 10, 100 - box.x);
+        }
+        if (mode === "nw" || mode === "ne") {
+          next.y = clamp(box.y + dy, 0, bottom - 10);
+          next.h = bottom - next.y;
+        } else {
+          next.h = clamp(box.h + dy, 10, 100 - box.y);
+        }
+      }
+      setClips((prev) =>
+        prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: next } : c)),
+      );
+    };
+    const end = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+  };
+
   // Real-time Video Speed Sync
   useEffect(() => {
     if (videoRef.current && currentClip) {
