@@ -109,48 +109,6 @@ function OrbitChatPage() {
     setCall(mode);
   };
 
-  const stopRecording = useCallback(() => {
-    recorderRef.current?.stop();
-  }, []);
-
-  const startRecording = async () => {
-    if (recording) return stopRecording();
-    if (!accepted) {
-      toast.warning("Screen recording unlocks once you're connected.");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
-      const rec = new MediaRecorder(stream);
-      const chunks: BlobPart[] = [];
-      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        recorderRef.current = null;
-        setRecording(false);
-        const url = URL.createObjectURL(new Blob(chunks, { type: "video/webm" }));
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `orbit-${p?.id ?? "chat"}-${Date.now()}.webm`;
-        a.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 5000);
-        toast.success("Screen recording saved");
-      };
-      stream.getVideoTracks()[0]?.addEventListener("ended", () => rec.state !== "inactive" && rec.stop());
-      rec.start();
-      recorderRef.current = rec;
-      setRecording(true);
-      toast.success("Screen recording started");
-    } catch {
-      toast.error("Screen recording was not allowed");
-    }
-  };
-
-  useEffect(() => () => recorderRef.current?.stop(), []);
-
   if (!p) {
     return (
       <main className="grid min-h-screen place-items-center px-6 text-center">
