@@ -302,29 +302,24 @@ export function CreateStudioPage() {
         <div className="flex-1 min-h-0 flex flex-col bg-black relative">
           
           {/* HEADER BAR */}
-          <div className="flex-shrink-0 flex justify-between items-center px-4 py-3 bg-black z-30 border-b border-zinc-900">
+          <div className="flex-shrink-0 flex justify-between items-center px-4 py-2 bg-black z-30 border-b border-zinc-900">
             <button onClick={() => setClips([])} className="p-2 bg-zinc-900 rounded-full">
-              <ArrowLeft size={20} />
+              <ArrowLeft size={18} />
             </button>
-
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-4 py-1.5 rounded-2xl">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
-              <span className="font-bold text-xs">Try Edits</span>
-            </div>
 
             <button 
               onClick={() => {
                 alert("Real-Time Video Rendered & Saved to Phone Gallery!");
                 navigate({ to: "/" });
               }}
-              className="bg-orange-500 hover:bg-orange-600 text-black font-black px-6 py-2 rounded-xl text-xs uppercase shadow-lg shadow-orange-500/20 active:scale-95 transition"
+              className="bg-orange-500 hover:bg-orange-600 text-black font-black px-3.5 py-1.5 rounded-lg text-[10px] uppercase tracking-wide shadow-lg shadow-orange-500/20 active:scale-95 transition"
             >
               SAVE
             </button>
           </div>
 
           {/* MAIN PLAYER CANVAS (Real-Time Filter & Transform Sync) */}
-          <div className="flex-1 min-h-0 flex items-center justify-center p-2 relative bg-black overflow-hidden">
+          <div className="flex-1 min-h-0 flex items-center justify-center px-1 py-0 relative bg-black overflow-hidden">
             <div ref={stageRef} className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center touch-none">
               <video 
                 ref={videoRef}
