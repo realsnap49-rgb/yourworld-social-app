@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { 
-  ArrowLeft, Play, Pause, Scissors, Gauge, Volume2, 
-  Sparkles, Captions, Trash2, Copy, RotateCw, Plus, 
-  VolumeX, Music, Type, Smile, Sliders, Download, Undo2, Redo2, Snowflake, MoveHorizontal, Wand2
+import {
+  ArrowLeft, Play, Pause, Scissors, Gauge, Volume2,
+  Sparkles, Captions, Trash2, Copy, RotateCw,
+  Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
@@ -40,6 +40,8 @@ interface ClipItem {
   volume: number;
   trimStart?: number;
   trimEnd?: number;
+  duration?: number;
+  crop?: number;
 }
 
 export function CreateStudioPage() {
@@ -48,7 +50,9 @@ export function CreateStudioPage() {
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [activeToolPanel, setActiveToolPanel] = useState<"NONE" | "TEXT" | "FILTER" | "SPEED">("NONE");
+  const [activeToolPanel, setActiveToolPanel] = useState<
+    "NONE" | "TEXT" | "FILTER" | "SPEED" | "TRIM" | "VOLUME" | "CROP"
+  >("NONE");
   const [customTextInput, setCustomTextInput] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +75,7 @@ export function CreateStudioPage() {
       textOverlay: "",
       volume: 1,
       trimStart: 0,
+      crop: 1,
     }));
     setClips((prev) => [...prev, ...newClips]);
     setActiveClipIndex(clips.length);
@@ -85,6 +90,13 @@ export function CreateStudioPage() {
   };
 
   const currentClip = clips[activeClipIndex];
+
+  // Real-time Property Updation (selected clip only)
+  const updateCurrentClip = (key: keyof ClipItem, val: any) => {
+    setClips((prev) =>
+      prev.map((c, i) => (i === activeClipIndex ? { ...c, [key]: val } : c)),
+    );
+  };
 
   // Real-time Video Speed Sync
   useEffect(() => {
@@ -116,18 +128,39 @@ export function CreateStudioPage() {
     };
   }, [activeClipIndex, currentClip?.trimStart, currentClip?.trimEnd, currentClip?.url]);
 
-  // Real-time Property Updation
-  const updateCurrentClip = (key: keyof ClipItem, val: any) => {
-    if (!currentClip) return;
-    const updated = [...clips];
-    updated[activeClipIndex] = { ...updated[activeClipIndex], [key]: val };
-    setClips(updated);
+  // Split the SELECTED clip at the playhead into two trimmed clips
+  const handleSplit = () => {
+    const v = videoRef.current;
+    if (!currentClip || clips.length >= 10) {
+      toast.error("Maximum 10 clips limit reached!");
+      return;
+    }
+    const dur = currentClip.duration || v?.duration || 0;
+    const start = currentClip.trimStart ?? 0;
+    const end = currentClip.trimEnd ?? dur;
+    const at = v ? v.currentTime : (start + end) / 2;
+    if (!(at > start + 0.15 && at < end - 0.15)) {
+      toast.error("Move the playhead inside the clip to split");
+      return;
+    }
+    setClips((prev) => {
+      const next = [...prev];
+      next[activeClipIndex] = { ...currentClip, trimEnd: at };
+      next.splice(activeClipIndex + 1, 0, {
+        ...currentClip,
+        id: `c_${Date.now()}`,
+        trimStart: at,
+        trimEnd: end,
+      });
+      return next;
+    });
+    toast.success("Clip split");
   };
 
-  // Real-time Duplicate / Split
+  // Real-time Duplicate
   const handleDuplicate = () => {
     if (!currentClip || clips.length >= 10) {
-      alert("Maximum 10 clips limit reached!");
+      toast.error("Maximum 10 clips limit reached!");
       return;
     }
     const copy = { ...currentClip, id: `c_${Date.now()}` };
@@ -157,7 +190,7 @@ export function CreateStudioPage() {
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-black text-white font-sans flex flex-col justify-between overflow-hidden select-none">
+    <div className="fixed inset-0 z-[99999] bg-black text-white font-sans flex flex-col overflow-hidden select-none">
       
       {/* Hidden File Inputs */}
       <input 
@@ -187,10 +220,10 @@ export function CreateStudioPage() {
         />
       ) : (
         /* REAL-TIME PRO EDITOR ENGINE */
-        <div className="flex-1 flex flex-col justify-between bg-black relative">
+        <div className="flex-1 min-h-0 flex flex-col bg-black relative">
           
           {/* HEADER BAR */}
-          <div className="flex justify-between items-center px-4 py-3 bg-black z-30 border-b border-zinc-900">
+          <div className="flex-shrink-0 flex justify-between items-center px-4 py-3 bg-black z-30 border-b border-zinc-900">
             <button onClick={() => setClips([])} className="p-2 bg-zinc-900 rounded-full">
               <ArrowLeft size={20} />
             </button>
@@ -212,8 +245,8 @@ export function CreateStudioPage() {
           </div>
 
           {/* MAIN PLAYER CANVAS (Real-Time Filter & Transform Sync) */}
-          <div className="flex-1 flex items-center justify-center p-2 relative bg-black overflow-hidden">
-            <div className="relative max-h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center">
+          <div className="flex-1 min-h-0 flex items-center justify-center p-2 relative bg-black overflow-hidden">
+            <div className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center">
               <video 
                 ref={videoRef}
                 src={currentClip?.url} 
@@ -221,9 +254,13 @@ export function CreateStudioPage() {
                 loop 
                 playsInline
                 muted={isMuted}
-                className="max-h-[48vh] max-w-full object-contain transition-all duration-200"
+                onLoadedMetadata={(e) => {
+                  const d = e.currentTarget.duration;
+                  if (isFinite(d) && d > 0 && !currentClip?.duration) updateCurrentClip("duration", d);
+                }}
+                className="h-full max-h-full max-w-full object-contain will-change-transform"
                 style={{
-                  transform: `rotate(${currentClip?.rotation || 0}deg)`,
+                  transform: `translateZ(0) rotate(${currentClip?.rotation || 0}deg) scale(${currentClip?.crop ?? 1})`,
                   filter: 
                     currentClip?.filter === "vivid" ? "saturate(2) contrast(1.1)" : 
                     currentClip?.filter === "noir" ? "grayscale(1) contrast(1.2)" : 
@@ -242,7 +279,7 @@ export function CreateStudioPage() {
           </div>
 
           {/* PLAYER CONTROL RIBBON */}
-          <div className="flex items-center justify-between px-6 py-1 text-xs font-mono text-zinc-400">
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-1 text-xs font-mono text-zinc-400">
             <button onClick={togglePlay} className="p-2 bg-zinc-900 rounded-full text-white active:scale-90 transition">
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
@@ -255,7 +292,75 @@ export function CreateStudioPage() {
 
           {/* TOOL POPUP DRAWER (Real-time Options Selector) */}
           {activeToolPanel !== "NONE" && (
-            <div className="bg-zinc-900 border-t border-zinc-800 p-3 flex flex-col gap-2 animate-in slide-in-from-bottom">
+            <div className="flex-shrink-0 bg-zinc-900 border-t border-zinc-800 p-3 flex flex-col gap-2 animate-in slide-in-from-bottom">
+
+              {/* Trim Panel — selected clip only */}
+              {activeToolPanel === "TRIM" && currentClip && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] font-bold uppercase text-zinc-400">
+                    Trim clip {activeClipIndex + 1}
+                  </span>
+                  {(["trimStart", "trimEnd"] as const).map((k) => {
+                    const dur = currentClip.duration || 0;
+                    const val = k === "trimStart" ? currentClip.trimStart ?? 0 : currentClip.trimEnd ?? dur;
+                    return (
+                      <label key={k} className="flex items-center gap-3 text-[10px] font-bold text-zinc-300">
+                        <span className="w-10">{k === "trimStart" ? "Start" : "End"}</span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={dur || 1}
+                          step={0.05}
+                          value={val}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            const s = currentClip.trimStart ?? 0;
+                            const en = currentClip.trimEnd ?? dur;
+                            if (k === "trimStart") updateCurrentClip("trimStart", Math.min(n, en - 0.2));
+                            else updateCurrentClip("trimEnd", Math.max(n, s + 0.2));
+                          }}
+                          className="flex-1 accent-orange-500"
+                        />
+                        <span className="w-10 text-right font-mono">{val.toFixed(1)}s</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Volume Panel — selected clip only */}
+              {activeToolPanel === "VOLUME" && currentClip && (
+                <label className="flex items-center gap-3 text-[10px] font-bold text-zinc-300">
+                  <Volume2 size={14} className="text-orange-400" />
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={currentClip.volume}
+                    onChange={(e) => updateCurrentClip("volume", Number(e.target.value))}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="w-10 text-right font-mono">{Math.round(currentClip.volume * 100)}%</span>
+                </label>
+              )}
+
+              {/* Crop / Zoom Panel — selected clip only */}
+              {activeToolPanel === "CROP" && currentClip && (
+                <label className="flex items-center gap-3 text-[10px] font-bold text-zinc-300">
+                  <Crop size={14} className="text-orange-400" />
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.05}
+                    value={currentClip.crop ?? 1}
+                    onChange={(e) => updateCurrentClip("crop", Number(e.target.value))}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
+                </label>
+              )}
               
               {/* Filter Selector Panel */}
               {activeToolPanel === "FILTER" && (
@@ -316,18 +421,48 @@ export function CreateStudioPage() {
             </div>
           )}
 
-          {/* SECONDARY ACTION RIBBON (ORANGE ICONS) */}
-          <div className="bg-zinc-950 border-t border-zinc-900 py-2.5 px-3 flex items-center gap-5 overflow-x-auto text-[10px] text-orange-400 font-extrabold uppercase whitespace-nowrap scrollbar-none">
-            <button onClick={() => setActiveToolPanel(activeToolPanel === "SPEED" ? "NONE" : "SPEED")} className="flex flex-col items-center gap-1 hover:text-white"><Gauge size={18} /> Speed ({currentClip?.speed}x)</button>
-            <button onClick={handleDuplicate} className="flex flex-col items-center gap-1 hover:text-white"><Scissors size={18} /> Split</button>
-            <button onClick={handleDuplicate} className="flex flex-col items-center gap-1 hover:text-white"><Copy size={18} /> Copy</button>
-            <button onClick={handleDelete} className="flex flex-col items-center gap-1 text-red-400 hover:text-red-300"><Trash2 size={18} /> Delete</button>
-            <button onClick={() => updateCurrentClip("rotation", (currentClip?.rotation || 0) + 90)} className="flex flex-col items-center gap-1 hover:text-white"><RotateCw size={18} /> Rotate</button>
-            <button onClick={() => updateCurrentClip("filter", "vivid")} className="flex flex-col items-center gap-1 hover:text-white"><Sparkles size={18} /> Enhance</button>
-            <button onClick={() => updateCurrentClip("textOverlay", "AUTO CAPTION 🔥")} className="flex flex-col items-center gap-1 hover:text-white"><Captions size={18} /> Captions</button>
+          {/* CLIP TOOL ROW — applies to the selected clip only */}
+          <div className="flex-shrink-0 bg-zinc-950 border-t border-zinc-900 py-2 px-3 grid grid-cols-5 gap-2 text-[9px] font-extrabold uppercase">
+            {([
+              { id: "TRIM", label: "Trim", icon: <Scissors size={17} /> },
+              { id: "SPLIT", label: "Split", icon: <Sliders size={17} className="rotate-90" /> },
+              { id: "SPEED", label: "Speed", icon: <Gauge size={17} /> },
+              { id: "VOLUME", label: "Volume", icon: <Volume2 size={17} /> },
+              { id: "ENHANCE", label: "Enhance", icon: <Sparkles size={17} /> },
+            ] as const).map((t) => {
+              const active = activeToolPanel === t.id;
+              return (
+                <button
+                  key={t.id}
+                  disabled={!currentClip}
+                  onClick={() => {
+                    if (t.id === "SPLIT") return handleSplit();
+                    if (t.id === "ENHANCE")
+                      return updateCurrentClip("filter", currentClip?.filter === "vivid" ? "none" : "vivid");
+                    setActiveToolPanel(active ? "NONE" : (t.id as any));
+                  }}
+                  className={`flex flex-col items-center gap-1 py-2 rounded-2xl transition active:scale-95 ${
+                    active ? "bg-orange-500 text-black" : "bg-zinc-900 text-orange-400"
+                  }`}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* CLIP UTILITIES */}
+          <div className="flex-shrink-0 bg-zinc-950 px-3 pb-1 flex items-center gap-4 overflow-x-auto text-[10px] text-zinc-400 font-bold uppercase whitespace-nowrap scrollbar-none">
+            <button onClick={() => setActiveToolPanel(activeToolPanel === "CROP" ? "NONE" : "CROP")} className="flex items-center gap-1 hover:text-white"><Crop size={14} /> Crop</button>
+            <button onClick={handleDuplicate} className="flex items-center gap-1 hover:text-white"><Copy size={14} /> Copy</button>
+            <button onClick={() => updateCurrentClip("rotation", (currentClip?.rotation || 0) + 90)} className="flex items-center gap-1 hover:text-white"><RotateCw size={14} /> Rotate</button>
+            <button onClick={() => updateCurrentClip("textOverlay", "AUTO CAPTION 🔥")} className="flex items-center gap-1 hover:text-white"><Captions size={14} /> Captions</button>
+            <button onClick={handleDelete} className="flex items-center gap-1 text-red-400 hover:text-red-300"><Trash2 size={14} /> Delete</button>
           </div>
 
           {/* REAL-TIME TIMELINE TRACK */}
+          <div className="flex-shrink-0">
           <CapCutTimeline
             clips={clips}
             activeIndex={activeClipIndex}
@@ -343,9 +478,10 @@ export function CreateStudioPage() {
             onAddAudio={() => audioInputRef.current?.click()}
             onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
           />
+          </div>
 
           {/* BOTTOM MAIN NAV */}
-          <div className="grid grid-cols-7 gap-1 p-2 bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
+          <div className="flex-shrink-0 grid grid-cols-7 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
             <button onClick={() => audioInputRef.current?.click()} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Music size={18} /> Audio</button>
             <button onClick={() => setActiveToolPanel("TEXT")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Type size={18} /> Text</button>
             <button onClick={() => updateCurrentClip("textOverlay", "Voiceover Track 🎙️")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Voice</button>
