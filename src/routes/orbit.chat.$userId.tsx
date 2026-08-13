@@ -27,6 +27,9 @@ import { OrbitCallSheet, type OrbitCallMode } from "@/components/yw/OrbitCallShe
 import { InvitesDrawer } from "@/components/yw/InvitesDrawer";
 import { PlacePickerSheet } from "@/components/yw/PlacePickerSheet";
 import { buildInvite, inviteById, type InviteCard, type InviteKind } from "@/lib/orbit-invites";
+import { UserWatermark } from "@/components/yw/UserWatermark";
+import { useCaptureDetect } from "@/lib/capture-detect";
+import { currentUser } from "@/lib/yw-data";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -56,6 +59,7 @@ type Msg = {
   url?: string;
   audio?: string;
   invite?: InviteCard;
+  system?: boolean;
 };
 
 const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
@@ -124,6 +128,15 @@ function OrbitChatPage() {
     setMsgs((m) => [...m, { id, ...msg }]);
     return id;
   };
+
+  // Screenshot / recording detection posts an in-chat system note for both sides.
+  useCaptureDetect(accepted && orbit.privacy.screenshotAlerts, (kind) => {
+    push({
+      me: false,
+      system: true,
+      text: `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
+    });
+  });
 
   const startRecording = async () => {
     if (!accepted) {
@@ -269,7 +282,8 @@ function OrbitChatPage() {
         </div>
       </header>
 
-      <section className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <section className="relative flex-1 space-y-2 overflow-y-auto px-4 py-4">
+        <UserWatermark username={currentUser.username} className="fixed" />
         <OrbitChatGate
           profileId={p.id}
           name={p.name}
@@ -290,7 +304,15 @@ function OrbitChatPage() {
               : `Send up to ${ORBIT_REQUEST_TEXT_MAX} texts and ${ORBIT_REQUEST_PHOTO_MAX} photos to request a chat with ${p.name}.`}
           </p>
         ) : (
-          allMsgs.map((m) => (
+          allMsgs.map((m) =>
+            m.system ? (
+              <p
+                key={m.id}
+                className="mx-auto w-fit rounded-full bg-secondary/70 px-3 py-1 text-center text-[11px] text-muted-foreground"
+              >
+                {m.text}
+              </p>
+            ) : (
             <div
               key={m.id}
               className={`max-w-[75%] overflow-hidden rounded-2xl text-sm ${
@@ -315,7 +337,8 @@ function OrbitChatPage() {
                 m.text
               )}
             </div>
-          ))
+            ),
+          )
         )}
       </section>
 

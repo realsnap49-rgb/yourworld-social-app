@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Phone,
   VideoIcon,
@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
 import { OrbitCallSheet, type OrbitCallMode } from "@/components/yw/OrbitCallSheet";
-import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
+import { useOrbit } from "@/lib/orbit-store";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
 import type { OrbitProfile } from "@/lib/orbit-data";
 
@@ -31,15 +31,6 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
 
   const [call, setCall] = useState<OrbitCallMode | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
-
-  const captured = useScreenCaptureShield(orbit.privacy.screenshotAlerts && connected);
-  useEffect(() => {
-    if (captured) {
-      toast.warning("Possible screenshot or screen recording detected", {
-        description: `${profile.name} was notified too.`,
-      });
-    }
-  }, [captured, profile.name]);
 
   const gate = (action: () => void) => () => {
     if (blocked) {

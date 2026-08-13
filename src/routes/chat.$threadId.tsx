@@ -5,6 +5,9 @@ import {
   Mic, Send, Smile, Play, Pause, X, MicOff,
   Pencil, Lock, EyeOff, Clock, Camera, VideoOff, BellOff, UserX, Flag
 } from "lucide-react";
+import { UserWatermark } from "@/components/yw/UserWatermark";
+import { useCaptureDetect } from "@/lib/capture-detect";
+import { currentUser } from "@/lib/yw-data";
 
 export const Route = createFileRoute("/chat/$threadId")({
   component: ChatThreadPage,
@@ -16,6 +19,7 @@ type Message = {
   image?: string;
   audio?: string;
   sender: "me" | "them";
+  system?: boolean;
   time: string;
 };
 
@@ -46,6 +50,20 @@ export function ChatThreadPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isRecording]);
+
+  // Screenshot / recording detection posts an in-chat system note for both sides.
+  useCaptureDetect(true, (kind) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        system: true,
+        sender: "me",
+        text: `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+  });
 
   useEffect(() => {
     let timer: any;
@@ -246,8 +264,13 @@ export function ChatThreadPage() {
       </div>
 
       {/* MESSAGES AREA */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
-        {messages.map((m) => (
+      <div className="relative flex-1 overflow-y-auto p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
+        <UserWatermark username={currentUser.username} className="fixed text-white" />
+        {messages.map((m) => m.system ? (
+          <p key={m.id} className="mx-auto w-fit rounded-full bg-zinc-800/70 px-3 py-1 text-center text-[11px] text-zinc-400">
+            {m.text}
+          </p>
+        ) : (
           <div key={m.id} className={`flex flex-col ${m.sender === "me" ? "items-end" : "items-start"}`}>
             {m.text && (
               <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
