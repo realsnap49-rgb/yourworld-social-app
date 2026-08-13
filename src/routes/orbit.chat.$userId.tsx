@@ -475,7 +475,7 @@ function OrbitChatPage() {
                 </div>
               </div>
             );
-          },
+          })
         )}
       </section>
 
