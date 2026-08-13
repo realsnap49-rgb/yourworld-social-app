@@ -240,7 +240,37 @@ function OrbitChatPage() {
 
   const sendPhoto = (file: File) => pushPhoto(URL.createObjectURL(file));
 
-  const inputDisabled = incomingPending || declined || (!accepted && textsLeft <= 0);
+  // Only messages from the local accepted-chat history are deletable.
+  // Request preview messages (preMessages) are managed by the orbit store.
+  const localIds = useMemo(() => new Set(msgs.map((m) => m.id)), [msgs]);
+  const isDeletable = (id: string) => localIds.has(id);
+
+  const startLongPress = (id: string) => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = setTimeout(() => setActionSheetId(id), 450);
+  };
+  const cancelLongPress = () => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = null;
+  };
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const deleteIds = (ids: string[]) => {
+    setMsgs((m) => m.filter((x) => !ids.includes(x.id)));
+    setSelectedIds([]);
+  };
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds([]);
+  };
+  const clearChat = () => {
+    setMsgs([]);
+    exitSelectMode();
+    setMenuOpen(false);
+    toast.success("Chat cleared");
+  };
+
+  const inputDisabled = incomingPending || declined || (!accepted && textsLeft <= 0) || selectMode;
   const photoDisabled = incomingPending || declined || (!accepted && photosLeft <= 0);
   const allMsgs: Msg[] = accepted
     ? [...preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url })), ...msgs]
