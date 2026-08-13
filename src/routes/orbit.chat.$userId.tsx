@@ -340,8 +340,12 @@ function OrbitChatPage() {
     toast.success("Chat cleared");
   };
 
-  const inputDisabled = incomingPending || declined || (!accepted && textsLeft <= 0) || selectMode;
-  const photoDisabled = incomingPending || declined || (!accepted && photosLeft <= 0);
+  const blocked = orbit.privacy.blocked.includes(userId);
+  const name = displayName ?? p.name;
+
+  const inputDisabled =
+    incomingPending || declined || blocked || (!accepted && textsLeft <= 0) || selectMode;
+  const photoDisabled = incomingPending || declined || blocked || (!accepted && photosLeft <= 0);
   const allMsgs: Msg[] = accepted
     ? [...preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url })), ...msgs]
     : preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url }));
@@ -364,9 +368,19 @@ function OrbitChatPage() {
         >
           <img src={p.photo} alt={p.name} className="h-9 w-9 rounded-full object-cover" />
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{p.name}</span>
+            <span className="flex items-center gap-1 truncate text-sm font-semibold">
+              {name}
+              {secretLock && <Lock className="h-3 w-3 text-primary" strokeWidth={2} />}
+              {muted && <BellOff className="h-3 w-3 text-muted-foreground" strokeWidth={2} />}
+            </span>
             <span className="block truncate text-[11px] text-muted-foreground">
-              {p.city} · {approxDistance(p.distanceKm)}
+              {blocked ? (
+                <span className="text-destructive">Blocked</span>
+              ) : (
+                <>
+                  {p.city} · {approxDistance(p.distanceKm)}
+                </>
+              )}
             </span>
           </span>
         </Link>
@@ -401,28 +415,132 @@ function OrbitChatPage() {
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-[70]" onClick={() => setMenuOpen(false)} />
-            <div className="absolute right-3 top-14 z-[80] w-56 rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
-              <button
-                type="button"
+            <div className="absolute right-3 top-14 z-[80] w-64 rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
+              <MenuItem
+                icon={<Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Change Display Name"
+                onClick={() => {
+                  const next = window.prompt("Enter new display name:", name);
+                  if (next?.trim()) {
+                    setDisplayName(next.trim());
+                    pushSystem(`Display name changed to ${next.trim()}`);
+                  }
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Lock className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Secret Lock Chat"
+                state={secretLock}
+                onClick={() => {
+                  setSecretLock((v) => {
+                    pushSystem(`Secret lock ${!v ? "enabled" : "disabled"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<EyeOff className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="View Once Mode"
+                state={viewOnceMode}
+                onClick={() => {
+                  setViewOnceMode((v) => {
+                    pushSystem(`View once mode ${!v ? "on" : "off"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Clock className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label={autoDelete ? `Auto Delete: ${autoDelete}s` : "Auto Delete Messages"}
+                state={autoDelete > 0}
+                onClick={() => {
+                  const next =
+                    autoDelete === 0 ? 60 : autoDelete === 60 ? 300 : autoDelete === 300 ? 3600 : 0;
+                  setAutoDelete(next);
+                  pushSystem(
+                    next ? `Messages will auto delete after ${next}s` : "Auto delete turned off",
+                  );
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Camera className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Screenshot Alert"
+                state={screenshotAlert}
+                onClick={() => {
+                  setScreenshotAlert((v) => {
+                    pushSystem(`Screenshot alerts ${!v ? "on" : "off"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<VideoOff className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Screen Recording Alert"
+                state={recordingAlert}
+                onClick={() => {
+                  setRecordingAlert((v) => {
+                    pushSystem(`Recording alerts ${!v ? "on" : "off"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<BellOff className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Mute Notifications"
+                state={muted}
+                onClick={() => {
+                  setMuted((v) => {
+                    pushSystem(`Notifications ${!v ? "muted" : "unmuted"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Trash2 className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Clear Chat"
                 onClick={clearChat}
-                disabled={allMsgs.length === 0}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
-              >
-                <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Clear Chat
-              </button>
-              <button
-                type="button"
+              />
+              <MenuItem
+                icon={<CheckCheck className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Select Multiple"
                 onClick={() => {
                   exitSelectMode();
                   setSelectMode(true);
                   setMenuOpen(false);
                   toast.info("Tap messages to select multiple for deletion");
                 }}
-                disabled={allMsgs.length === 0}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
-              >
-                <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
-              </button>
+              />
+              <MenuItem
+                danger
+                icon={<UserX className="h-4 w-4 text-destructive" strokeWidth={1.8} />}
+                label={blocked ? "Unblock User" : "Block User"}
+                state={blocked}
+                onClick={() => {
+                  orbit.toggleBlocked(userId);
+                  pushSystem(`${name} ${!blocked ? "blocked" : "unblocked"}`);
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                danger
+                icon={<Flag className="h-4 w-4 text-destructive" strokeWidth={1.8} />}
+                label={reported ? "Reported" : "Report User"}
+                state={reported}
+                onClick={() => {
+                  if (!reported) {
+                    setReported(true);
+                    pushSystem(`${name} reported. Our team will review.`);
+                  }
+                  setMenuOpen(false);
+                }}
+              />
             </div>
           </>
         )}
