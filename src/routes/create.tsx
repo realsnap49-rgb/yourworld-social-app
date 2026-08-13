@@ -69,6 +69,7 @@ export function CreateStudioPage() {
   const audioElRef = useRef<HTMLAudioElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const scrubbingRef = useRef(false);
+  const loadedUrlRef = useRef<string | null>(null);
   const scrubTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragRafRef = useRef<number | null>(null);
   const seekRafRef = useRef<number | null>(null);
@@ -228,6 +229,27 @@ export function CreateStudioPage() {
     }
   }, [currentClip, activeClipIndex]);
 
+  // Reload the <video> source whenever the active clip's URL changes
+  useEffect(() => {
+    const v = videoRef.current;
+    const url = currentClip?.url;
+    if (!v || !url) return;
+    if (loadedUrlRef.current === url) return;
+    loadedUrlRef.current = url;
+    v.src = url;
+    v.load();
+    const onReady = () => {
+      const start = currentClip?.trimStart ?? 0;
+      if (isFinite(start) && Math.abs(v.currentTime - start) > 0.05) {
+        try { v.currentTime = start; } catch { /* ignore */ }
+      }
+      if (isPlaying) void v.play().catch(() => {});
+    };
+    if (v.readyState >= 2) onReady();
+    else v.addEventListener("loadeddata", onReady, { once: true });
+    return () => v.removeEventListener("loadeddata", onReady);
+  }, [currentClip?.url, currentClip?.trimStart, isPlaying]);
+
   // Sync canvas playback to the selected clip's trim range
   useEffect(() => {
     const v = videoRef.current;
@@ -238,7 +260,7 @@ export function CreateStudioPage() {
       if (scrubbingRef.current) return;
       if (Math.abs(v.currentTime - start) > 0.05) v.currentTime = start;
     };
-    if (v.readyState >= 1) seek();
+    if (v.readyState >= 1 && loadedUrlRef.current === currentClip.url) seek();
     else v.addEventListener("loadedmetadata", seek, { once: true });
     const onTime = () => {
       if (scrubbingRef.current) return;
@@ -396,7 +418,6 @@ export function CreateStudioPage() {
             <div ref={stageRef} className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center touch-none">
               <video 
                 ref={videoRef}
-                src={currentClip?.url} 
                 autoPlay 
                 loop 
                 playsInline
@@ -405,6 +426,7 @@ export function CreateStudioPage() {
                   const d = e.currentTarget.duration;
                   if (isFinite(d) && d > 0 && !currentClip?.duration) updateCurrentClip("duration", d);
                 }}
+                onEmptied={() => { loadedUrlRef.current = null; }}
                 className="h-full max-h-full max-w-full object-contain will-change-transform"
                 style={{
                   transform: `translateZ(0) rotate(${currentClip?.rotation || 0}deg) scale(${currentClip?.crop ?? 1})`,
