@@ -206,9 +206,32 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   const startRecording = () => {
     const stream = streamRef.current;
     if (!stream) return;
-    const types = ["video/mp4;codecs=h264", "video/webm;codecs=vp9", "video/webm"];
+    // Hardware-encoder friendly order: H.264/HEVC (native encoders) first,
+    // then VP9/VP8. Bitrate scales with the negotiated resolution + fps.
+    const types = [
+      "video/mp4;codecs=h264,aac",
+      "video/mp4;codecs=avc1.640029",
+      "video/mp4",
+      "video/webm;codecs=h264,opus",
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ];
     const mimeType = types.find((t) => MediaRecorder.isTypeSupported(t));
-    const rec = new MediaRecorder(stream, mimeType ? { mimeType, videoBitsPerSecond: 12_000_000 } : undefined);
+
+    const s = stream.getVideoTracks()[0]?.getSettings() ?? {};
+    const pixels = (s.width ?? 1920) * (s.height ?? 1080);
+    const fpsFactor = (s.frameRate ?? 30) / 30;
+    const videoBitsPerSecond = Math.round(
+      Math.min(24_000_000, Math.max(4_000_000, pixels * 0.12 * fpsFactor)),
+    );
+
+    const rec = new MediaRecorder(
+      stream,
+      mimeType
+        ? { mimeType, videoBitsPerSecond, audioBitsPerSecond: 128_000 }
+        : { videoBitsPerSecond },
+    );
     chunksRef.current = [];
     rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
     rec.onstop = () => {
@@ -217,7 +240,8 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
       const ext = type.includes("mp4") ? "mp4" : "webm";
       onCapture([new File([blob], `yw_${Date.now()}.${ext}`, { type })]);
     };
-    rec.start();
+    // Chunked timeslice keeps memory flat and avoids hitches on long takes.
+    rec.start(1000);
     recorderRef.current = rec;
     setElapsed(0);
     setRecording(true);
