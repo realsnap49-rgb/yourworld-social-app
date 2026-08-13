@@ -68,6 +68,8 @@ export function CreateStudioPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const scrubbingRef = useRef(false);
+  const scrubTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Push files into the Pro Edits Studio editor
   const addFiles = (files: File[]) => {
@@ -198,11 +200,13 @@ export function CreateStudioPage() {
     const start = currentClip.trimStart ?? 0;
     const end = currentClip.trimEnd;
     const seek = () => {
+      if (scrubbingRef.current) return;
       if (Math.abs(v.currentTime - start) > 0.05) v.currentTime = start;
     };
     if (v.readyState >= 1) seek();
     else v.addEventListener("loadedmetadata", seek, { once: true });
     const onTime = () => {
+      if (scrubbingRef.current) return;
       if (end && v.currentTime >= end) v.currentTime = start;
       else if (v.currentTime < start - 0.1) v.currentTime = start;
     };
@@ -622,6 +626,26 @@ export function CreateStudioPage() {
             audioTrack={audioTrack ? { title: audioTrack.title, start: audioTrack.start, duration: audioTrack.duration } : null}
             totalDuration={currentClip?.duration || videoRef.current?.duration || 15}
             onAudioMove={(start) => setAudioTrack((p) => (p ? { ...p, start } : p))}
+            onScrub={(i, frac) => {
+              const v = videoRef.current;
+              scrubbingRef.current = true;
+              if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
+              scrubTimerRef.current = setTimeout(() => {
+                scrubbingRef.current = false;
+              }, 300);
+              if (i !== activeClipIndex) setActiveClipIndex(i);
+              const clip = clips[i];
+              if (!v || !clip) return;
+              const dur = clip.duration || v.duration || 0;
+              if (!dur || !isFinite(dur)) return;
+              const start = clip.trimStart ?? 0;
+              const end = clip.trimEnd ?? dur;
+              if (!v.paused) {
+                v.pause();
+                setIsPlaying(false);
+              }
+              v.currentTime = Math.min(end, Math.max(start, start + frac * (end - start)));
+            }}
             onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
           />
           </div>
