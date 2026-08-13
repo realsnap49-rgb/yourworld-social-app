@@ -739,7 +739,23 @@ export function CreateStudioPage() {
               onAddAudio={() => setShowMusicPicker(true)}
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}
-              onSelect={(i) => setActiveClipIndex(i)}
+              onSelect={(i) => {
+                const v = videoRef.current;
+                const clip = clips[i];
+                setActiveClipIndex(i);
+                if (!v || !clip) return;
+                // pause and park the preview on the selected clip's first frame
+                if (!v.paused) v.pause();
+                setIsPlaying(false);
+                scrubbingRef.current = false;
+                if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
+                const start = clip.trimStart ?? 0;
+                const applySeek = () => {
+                  try { v.currentTime = start; } catch { /* ignore */ }
+                };
+                if (loadedUrlRef.current === clip.url && v.readyState >= 1) applySeek();
+                else v.addEventListener("loadeddata", applySeek, { once: true });
+              }}
               onTrim={(i, start, end) => {
                 setClips((prev) =>
                   prev.map((c, idx) => (idx === i ? { ...c, trimStart: start, trimEnd: end } : c)),
