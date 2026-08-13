@@ -140,6 +140,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { pathname } = useLocation();
+  const hideNav = pathname.startsWith("/orbit") || pathname.startsWith("/auth") || pathname.startsWith("/create") || pathname.startsWith("/moment/create") || pathname.startsWith("/channel/create");
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -151,10 +153,10 @@ function RootComponent() {
                 <ChannelProvider>
                 {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                 <AuthGate>
-                  <div className="mx-auto min-h-screen w-full max-w-lg pb-20">
+                  <div className={cn("mx-auto min-h-screen w-full max-w-lg", hideNav ? "" : "pb-20")}>
                     <Outlet />
                   </div>
-                  <BottomNav onOpenCreate={() => { window.location.href = '/create'; }} />
+                  {!hideNav && <BottomNav onOpenCreate={() => { window.location.href = '/create'; }} />}
                 </AuthGate>
                 <Toaster position="top-center" />
                 </ChannelProvider>
