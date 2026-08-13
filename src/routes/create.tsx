@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
+import { CapCutTimeline } from "@/components/yw/editor/CapCutTimeline";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -37,6 +38,8 @@ interface ClipItem {
   filter: "none" | "vivid" | "noir" | "cyber" | "warm";
   textOverlay: string;
   volume: number;
+  trimStart?: number;
+  trimEnd?: number;
 }
 
 export function CreateStudioPage() {
@@ -67,6 +70,7 @@ export function CreateStudioPage() {
       filter: "none",
       textOverlay: "",
       volume: 1,
+      trimStart: 0,
     }));
     setClips((prev) => [...prev, ...newClips]);
     setActiveClipIndex(clips.length);
@@ -89,6 +93,28 @@ export function CreateStudioPage() {
       videoRef.current.volume = currentClip.volume;
     }
   }, [currentClip, activeClipIndex]);
+
+  // Sync canvas playback to the selected clip's trim range
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !currentClip) return;
+    const start = currentClip.trimStart ?? 0;
+    const end = currentClip.trimEnd;
+    const seek = () => {
+      if (Math.abs(v.currentTime - start) > 0.05) v.currentTime = start;
+    };
+    if (v.readyState >= 1) seek();
+    else v.addEventListener("loadedmetadata", seek, { once: true });
+    const onTime = () => {
+      if (end && v.currentTime >= end) v.currentTime = start;
+      else if (v.currentTime < start - 0.1) v.currentTime = start;
+    };
+    v.addEventListener("timeupdate", onTime);
+    return () => {
+      v.removeEventListener("timeupdate", onTime);
+      v.removeEventListener("loadedmetadata", seek);
+    };
+  }, [activeClipIndex, currentClip?.trimStart, currentClip?.trimEnd, currentClip?.url]);
 
   // Real-time Property Updation
   const updateCurrentClip = (key: keyof ClipItem, val: any) => {
