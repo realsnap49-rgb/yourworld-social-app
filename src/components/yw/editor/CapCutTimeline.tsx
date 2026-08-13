@@ -74,7 +74,7 @@ function useThumbnails(url: string) {
   return { thumbs, duration };
 }
 
-function ClipCell({
+const ClipCell = React.memo(function ClipCell({
   clip,
   index,
   active,
@@ -164,9 +164,11 @@ function ClipCell({
       )}
     </div>
   );
-}
+}, (a, b) =>
+  a.clip === b.clip && a.index === b.index && a.active === b.active,
+);
 
-export function CapCutTimeline({
+function CapCutTimelineBase({
   clips,
   activeIndex,
   onSelect,
@@ -407,3 +409,5 @@ export function CapCutTimeline({
     </div>
   );
 }
+
+export const CapCutTimeline = React.memo(CapCutTimelineBase);
