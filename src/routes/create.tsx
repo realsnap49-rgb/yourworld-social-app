@@ -229,6 +229,27 @@ export function CreateStudioPage() {
     }
   }, [currentClip, activeClipIndex]);
 
+  // Reload the <video> source whenever the active clip's URL changes
+  useEffect(() => {
+    const v = videoRef.current;
+    const url = currentClip?.url;
+    if (!v || !url) return;
+    if (loadedUrlRef.current === url) return;
+    loadedUrlRef.current = url;
+    v.src = url;
+    v.load();
+    const onReady = () => {
+      const start = currentClip?.trimStart ?? 0;
+      if (isFinite(start) && Math.abs(v.currentTime - start) > 0.05) {
+        try { v.currentTime = start; } catch { /* ignore */ }
+      }
+      if (isPlaying) void v.play().catch(() => {});
+    };
+    if (v.readyState >= 2) onReady();
+    else v.addEventListener("loadeddata", onReady, { once: true });
+    return () => v.removeEventListener("loadeddata", onReady);
+  }, [currentClip?.url, currentClip?.trimStart, isPlaying]);
+
   // Sync canvas playback to the selected clip's trim range
   useEffect(() => {
     const v = videoRef.current;
@@ -239,7 +260,7 @@ export function CreateStudioPage() {
       if (scrubbingRef.current) return;
       if (Math.abs(v.currentTime - start) > 0.05) v.currentTime = start;
     };
-    if (v.readyState >= 1) seek();
+    if (v.readyState >= 1 && loadedUrlRef.current === currentClip.url) seek();
     else v.addEventListener("loadedmetadata", seek, { once: true });
     const onTime = () => {
       if (scrubbingRef.current) return;
