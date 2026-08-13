@@ -9,6 +9,23 @@ import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
 
 export const Route = createFileRoute("/create")({
+  head: () => ({
+    meta: [
+      { title: "Camera & Pro Edits Studio — YourWorld" },
+      {
+        name: "description",
+        content:
+          "Shoot in 4K/60fps with flip camera, pinch zoom and one-tap record, then jump straight into the YourWorld Pro Edits Studio.",
+      },
+      { property: "og:title", content: "Camera & Pro Edits Studio — YourWorld" },
+      {
+        property: "og:description",
+        content: "Capture posts, reels and live moments in ultra HD, then edit them instantly.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CreateStudioPage,
 });
 
