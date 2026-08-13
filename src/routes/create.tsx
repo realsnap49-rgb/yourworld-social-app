@@ -42,6 +42,9 @@ interface ClipItem {
   trimEnd?: number;
   duration?: number;
   crop?: number;
+  textX?: number;
+  textY?: number;
+  cropBox?: { x: number; y: number; w: number; h: number };
 }
 
 export function CreateStudioPage() {
@@ -58,6 +61,7 @@ export function CreateStudioPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   // Push files into the Pro Edits Studio editor
   const addFiles = (files: File[]) => {
@@ -76,6 +80,8 @@ export function CreateStudioPage() {
       volume: 1,
       trimStart: 0,
       crop: 1,
+      textX: 50,
+      textY: 50,
     }));
     setClips((prev) => [...prev, ...newClips]);
     setActiveClipIndex(clips.length);
@@ -96,6 +102,79 @@ export function CreateStudioPage() {
     setClips((prev) =>
       prev.map((c, i) => (i === activeClipIndex ? { ...c, [key]: val } : c)),
     );
+  };
+
+  const clamp = (n: number, a = 0, b = 100) => Math.min(b, Math.max(a, n));
+
+  const stagePct = (e: { clientX: number; clientY: number }) => {
+    const r = stageRef.current?.getBoundingClientRect();
+    if (!r) return { x: 50, y: 50 };
+    return {
+      x: clamp(((e.clientX - r.left) / r.width) * 100),
+      y: clamp(((e.clientY - r.top) / r.height) * 100),
+    };
+  };
+
+  // Drag text overlay anywhere on the canvas
+  const startTextDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture?.(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const p = stagePct(ev);
+      setClips((prev) =>
+        prev.map((c, i) => (i === activeClipIndex ? { ...c, textX: p.x, textY: p.y } : c)),
+      );
+    };
+    const end = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+  };
+
+  // Freeform crop bounding box drag (move + corner resize)
+  const startCropDrag = (e: React.PointerEvent, mode: "move" | "nw" | "ne" | "sw" | "se") => {
+    e.preventDefault();
+    e.stopPropagation();
+    const box = currentClip?.cropBox ?? { x: 10, y: 10, w: 80, h: 80 };
+    const origin = stagePct(e);
+    const move = (ev: PointerEvent) => {
+      const p = stagePct(ev);
+      const dx = p.x - origin.x;
+      const dy = p.y - origin.y;
+      let next = { ...box };
+      if (mode === "move") {
+        next.x = clamp(box.x + dx, 0, 100 - box.w);
+        next.y = clamp(box.y + dy, 0, 100 - box.h);
+      } else {
+        const right = box.x + box.w;
+        const bottom = box.y + box.h;
+        if (mode === "nw" || mode === "sw") {
+          next.x = clamp(box.x + dx, 0, right - 10);
+          next.w = right - next.x;
+        } else {
+          next.w = clamp(box.w + dx, 10, 100 - box.x);
+        }
+        if (mode === "nw" || mode === "ne") {
+          next.y = clamp(box.y + dy, 0, bottom - 10);
+          next.h = bottom - next.y;
+        } else {
+          next.h = clamp(box.h + dy, 10, 100 - box.y);
+        }
+      }
+      setClips((prev) =>
+        prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: next } : c)),
+      );
+    };
+    const end = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
   };
 
   // Real-time Video Speed Sync
@@ -246,7 +325,7 @@ export function CreateStudioPage() {
 
           {/* MAIN PLAYER CANVAS (Real-Time Filter & Transform Sync) */}
           <div className="flex-1 min-h-0 flex items-center justify-center p-2 relative bg-black overflow-hidden">
-            <div className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center">
+            <div ref={stageRef} className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center touch-none">
               <video 
                 ref={videoRef}
                 src={currentClip?.url} 
@@ -261,6 +340,9 @@ export function CreateStudioPage() {
                 className="h-full max-h-full max-w-full object-contain will-change-transform"
                 style={{
                   transform: `translateZ(0) rotate(${currentClip?.rotation || 0}deg) scale(${currentClip?.crop ?? 1})`,
+                  clipPath: currentClip?.cropBox
+                    ? `inset(${currentClip.cropBox.y}% ${100 - (currentClip.cropBox.x + currentClip.cropBox.w)}% ${100 - (currentClip.cropBox.y + currentClip.cropBox.h)}% ${currentClip.cropBox.x}%)`
+                    : undefined,
                   filter: 
                     currentClip?.filter === "vivid" ? "saturate(2) contrast(1.1)" : 
                     currentClip?.filter === "noir" ? "grayscale(1) contrast(1.2)" : 
@@ -269,9 +351,41 @@ export function CreateStudioPage() {
                 }}
               />
 
+              {/* Freeform Crop Bounding Box */}
+              {activeToolPanel === "CROP" && currentClip && (
+                <div
+                  onPointerDown={(e) => startCropDrag(e, "move")}
+                  className="absolute border-2 border-orange-400 bg-orange-400/10 cursor-move touch-none"
+                  style={{
+                    left: `${currentClip.cropBox?.x ?? 10}%`,
+                    top: `${currentClip.cropBox?.y ?? 10}%`,
+                    width: `${currentClip.cropBox?.w ?? 80}%`,
+                    height: `${currentClip.cropBox?.h ?? 80}%`,
+                  }}
+                >
+                  {(["nw", "ne", "sw", "se"] as const).map((h) => (
+                    <div
+                      key={h}
+                      onPointerDown={(e) => startCropDrag(e, h)}
+                      className="absolute w-5 h-5 bg-orange-500 rounded-full border-2 border-black touch-none"
+                      style={{
+                        left: h.includes("w") ? -10 : undefined,
+                        right: h.includes("e") ? -10 : undefined,
+                        top: h.startsWith("n") ? -10 : undefined,
+                        bottom: h.startsWith("s") ? -10 : undefined,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
               {/* Real-time Draggable Text Overlay */}
               {currentClip?.textOverlay && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/70 text-orange-400 font-black px-4 py-2 rounded-xl text-lg border border-orange-500/50 backdrop-blur-md shadow-2xl">
+                <div
+                  onPointerDown={startTextDrag}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 bg-black/70 text-orange-400 font-black px-4 py-2 rounded-xl text-lg border border-orange-500/50 backdrop-blur-md shadow-2xl cursor-move touch-none select-none"
+                  style={{ left: `${currentClip.textX ?? 50}%`, top: `${currentClip.textY ?? 50}%` }}
+                >
                   {currentClip.textOverlay}
                 </div>
               )}
