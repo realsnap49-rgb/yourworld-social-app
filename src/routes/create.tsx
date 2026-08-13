@@ -618,7 +618,7 @@ export function CreateStudioPage() {
             onAdd={() => fileInputRef.current?.click()}
             isMuted={isMuted}
             onToggleMute={() => setIsMuted(!isMuted)}
-            onAddAudio={() => audioInputRef.current?.click()}
+            onAddAudio={() => setShowMusicPicker(true)}
             audioTrack={audioTrack ? { title: audioTrack.title, start: audioTrack.start, duration: audioTrack.duration } : null}
             totalDuration={currentClip?.duration || videoRef.current?.duration || 15}
             onAudioMove={(start) => setAudioTrack((p) => (p ? { ...p, start } : p))}
