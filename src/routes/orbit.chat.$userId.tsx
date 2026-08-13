@@ -68,8 +68,6 @@ function OrbitChatPage() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
   const [call, setCall] = useState<OrbitCallMode | null>(null);
-  const [recording, setRecording] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
