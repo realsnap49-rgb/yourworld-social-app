@@ -214,6 +214,34 @@ export function CreateStudioPage() {
   }, [activeClipIndex, currentClip?.trimStart, currentClip?.trimEnd, currentClip?.url]);
 
   // Split the SELECTED clip at the playhead into two trimmed clips
+  // Keep the library music block playing in sync with the video playhead
+  useEffect(() => {
+    const v = videoRef.current;
+    const a = audioElRef.current;
+    if (!v || !a || !audioTrack) return;
+    const sync = () => {
+      const t = v.currentTime - audioTrack.start;
+      if (t >= 0 && t <= audioTrack.duration && !v.paused) {
+        if (Math.abs(a.currentTime - t) > 0.25) a.currentTime = t;
+        if (a.paused) void a.play().catch(() => {});
+      } else if (!a.paused) {
+        a.pause();
+      }
+    };
+    const onPause = () => a.pause();
+    v.addEventListener("timeupdate", sync);
+    v.addEventListener("seeking", sync);
+    v.addEventListener("play", sync);
+    v.addEventListener("pause", onPause);
+    return () => {
+      v.removeEventListener("timeupdate", sync);
+      v.removeEventListener("seeking", sync);
+      v.removeEventListener("play", sync);
+      v.removeEventListener("pause", onPause);
+      a.pause();
+    };
+  }, [audioTrack?.url, audioTrack?.start, audioTrack?.duration, activeClipIndex]);
+
   const handleSplit = () => {
     const v = videoRef.current;
     if (!currentClip || clips.length >= 10) {
