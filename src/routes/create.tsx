@@ -5,6 +5,8 @@ import {
   Sparkles, Captions, Trash2, Copy, RotateCw, Plus, 
   VolumeX, Music, Type, Smile, Sliders, Download, Undo2, Redo2, Snowflake, MoveHorizontal, Wand2
 } from "lucide-react";
+import { toast } from "sonner";
+import { CameraCapture } from "@/components/yw/CameraCapture";
 
 export const Route = createFileRoute("/create")({
   component: CreateStudioPage,
@@ -33,28 +35,32 @@ export function CreateStudioPage() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Smooth Multi-Select Import (Up to 10 clips)
-  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
+  // Push files into the Pro Edits Studio editor
+  const addFiles = (files: File[]) => {
     const remaining = 10 - clips.length;
     if (remaining <= 0) {
-      alert("Maximum 10 clips limit reached!");
+      toast.error("Maximum 10 clips limit reached!");
       return;
     }
-
-    const newClips: ClipItem[] = Array.from(files).slice(0, remaining).map((f, i) => ({
+    const newClips: ClipItem[] = files.slice(0, remaining).map((f, i) => ({
       id: `c_${Date.now()}_${i}`,
       url: URL.createObjectURL(f),
       speed: 1,
       rotation: 0,
       filter: "none",
       textOverlay: "",
-      volume: 1
+      volume: 1,
     }));
-
     setClips((prev) => [...prev, ...newClips]);
+    setActiveClipIndex(clips.length);
+  };
+
+  // Smooth Multi-Select Import (Up to 10 clips)
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    addFiles(Array.from(files));
+    e.target.value = "";
   };
 
   const currentClip = clips[activeClipIndex];
