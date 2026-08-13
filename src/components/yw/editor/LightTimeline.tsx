@@ -10,6 +10,9 @@ interface LightTimelineProps {
   activeIndex: number;
   currentTime?: number;
   totalDuration?: number;
+  /** progress (0-1) inside the active clip, used to auto-scroll the strip */
+  playFraction?: number;
+  isPlaying?: boolean;
   audioLabel?: string;
   isMuted?: boolean;
   onToggleMute?: () => void;
@@ -30,6 +33,8 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
   activeIndex,
   currentTime = 0,
   totalDuration = 0,
+  playFraction = 0,
+  isPlaying = false,
   audioLabel,
   isMuted,
   onToggleMute,
@@ -42,6 +47,8 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
   const [pad, setPad] = useState(0);
   const rafRef = useRef<number | null>(null);
   const movedRef = useRef(false);
+  const userScrollRef = useRef(false);
+  const userTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -65,6 +72,7 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
   };
 
   const onTrackScroll = () => {
+    if (!userScrollRef.current) return;
     if (rafRef.current) return;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
@@ -72,18 +80,33 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
     });
   };
 
+  // Auto-scroll the strip so the playhead (fixed center line) tracks playback
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el || userScrollRef.current || clips.length === 0) return;
+    const step = CELL_WIDTH + CELL_GAP;
+    const target = activeIndex * step + Math.min(1, Math.max(0, playFraction)) * CELL_WIDTH;
+    if (Math.abs(el.scrollLeft - target) > 0.5) el.scrollLeft = target;
+  }, [activeIndex, playFraction, clips.length, isPlaying, pad]);
+
   const dragTrack = (e: React.PointerEvent) => {
     const el = trackRef.current;
     if (!el) return;
     const startX = e.clientX;
     const startScroll = el.scrollLeft;
     movedRef.current = false;
+    userScrollRef.current = true;
+    if (userTimerRef.current) clearTimeout(userTimerRef.current);
     const move = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
       if (Math.abs(dx) > 3) movedRef.current = true;
       el.scrollLeft = startScroll - dx;
     };
     const up = () => {
+      if (userTimerRef.current) clearTimeout(userTimerRef.current);
+      userTimerRef.current = setTimeout(() => {
+        userScrollRef.current = false;
+      }, 250);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
     };
