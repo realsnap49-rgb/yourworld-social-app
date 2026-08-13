@@ -18,6 +18,13 @@ import {
   CheckCheck,
   Check,
   X,
+  Pencil,
+  Lock,
+  Clock,
+  VideoOff,
+  BellOff,
+  UserX,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
@@ -65,9 +72,50 @@ type Msg = {
   audio?: string;
   invite?: InviteCard;
   system?: boolean;
+  at?: number;
 };
 
 const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
+
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  state,
+  danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  state?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
+        danger ? "text-destructive hover:bg-destructive/10" : "text-foreground hover:bg-secondary"
+      }`}
+    >
+      {icon}
+      <span className="flex-1">{label}</span>
+      {state !== undefined && (
+        <span
+          className={`relative h-4 w-7 rounded-full transition-colors ${
+            state ? "bg-primary" : "bg-muted"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-3 w-3 rounded-full bg-background transition-all ${
+              state ? "left-3.5" : "left-0.5"
+            }`}
+          />
+        </span>
+      )}
+    </button>
+  );
+}
 
 function loadHistory(userId: string): Msg[] {
   if (typeof window === "undefined") return [];
@@ -102,6 +150,16 @@ function OrbitChatPage() {
   const [actionSheetId, setActionSheetId] = useState<string | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Chat options (mirrors the Social chat 3-dot menu)
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [secretLock, setSecretLock] = useState(false);
+  const [viewOnceMode, setViewOnceMode] = useState(false);
+  const [autoDelete, setAutoDelete] = useState(0);
+  const [screenshotAlert, setScreenshotAlert] = useState(true);
+  const [recordingAlert, setRecordingAlert] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [reported, setReported] = useState(false);
+
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
   const incomingPending = request?.direction === "incoming" && request.status === "pending";
@@ -135,18 +193,34 @@ function OrbitChatPage() {
   const push = (msg: Omit<Msg, "id">) => {
     seq.current += 1;
     const id = `m${seq.current}`;
-    setMsgs((m) => [...m, { id, ...msg }]);
+    setMsgs((m) => [...m, { id, at: Date.now(), ...msg }]);
     return id;
   };
 
+  const pushSystem = (text: string) => push({ me: false, system: true, text });
+
+  // Auto delete messages after the configured window
+  useEffect(() => {
+    if (!autoDelete) return;
+    const t = setInterval(() => {
+      const cutoff = Date.now() - autoDelete * 1000;
+      setMsgs((prev) => prev.filter((m) => (m.at ? m.at >= cutoff : true)));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [autoDelete]);
+
   // Screenshot / recording detection posts an in-chat system note for both sides.
-  useCaptureDetect(accepted && orbit.privacy.screenshotAlerts, (kind) => {
+  useCaptureDetect(
+    accepted && orbit.privacy.screenshotAlerts && (screenshotAlert || recordingAlert),
+    (kind) => {
+      if (kind === "recording" ? !recordingAlert : !screenshotAlert) return;
     push({
       me: false,
       system: true,
       text: `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
     });
-  });
+    },
+  );
 
   const startRecording = async () => {
     if (!accepted) {
@@ -270,8 +344,12 @@ function OrbitChatPage() {
     toast.success("Chat cleared");
   };
 
-  const inputDisabled = incomingPending || declined || (!accepted && textsLeft <= 0) || selectMode;
-  const photoDisabled = incomingPending || declined || (!accepted && photosLeft <= 0);
+  const blocked = orbit.privacy.blocked.includes(userId);
+  const name = displayName ?? p.name;
+
+  const inputDisabled =
+    incomingPending || declined || blocked || (!accepted && textsLeft <= 0) || selectMode;
+  const photoDisabled = incomingPending || declined || blocked || (!accepted && photosLeft <= 0);
   const allMsgs: Msg[] = accepted
     ? [...preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url })), ...msgs]
     : preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url }));
@@ -294,9 +372,19 @@ function OrbitChatPage() {
         >
           <img src={p.photo} alt={p.name} className="h-9 w-9 rounded-full object-cover" />
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{p.name}</span>
+            <span className="flex items-center gap-1 truncate text-sm font-semibold">
+              {name}
+              {secretLock && <Lock className="h-3 w-3 text-primary" strokeWidth={2} />}
+              {muted && <BellOff className="h-3 w-3 text-muted-foreground" strokeWidth={2} />}
+            </span>
             <span className="block truncate text-[11px] text-muted-foreground">
-              {p.city} · {approxDistance(p.distanceKm)}
+              {blocked ? (
+                <span className="text-destructive">Blocked</span>
+              ) : (
+                <>
+                  {p.city} · {approxDistance(p.distanceKm)}
+                </>
+              )}
             </span>
           </span>
         </Link>
@@ -331,28 +419,132 @@ function OrbitChatPage() {
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-[70]" onClick={() => setMenuOpen(false)} />
-            <div className="absolute right-3 top-14 z-[80] w-56 rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
-              <button
-                type="button"
+            <div className="absolute right-3 top-14 z-[80] w-64 rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
+              <MenuItem
+                icon={<Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Change Display Name"
+                onClick={() => {
+                  const next = window.prompt("Enter new display name:", name);
+                  if (next?.trim()) {
+                    setDisplayName(next.trim());
+                    pushSystem(`Display name changed to ${next.trim()}`);
+                  }
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Lock className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Secret Lock Chat"
+                state={secretLock}
+                onClick={() => {
+                  setSecretLock((v) => {
+                    pushSystem(`Secret lock ${!v ? "enabled" : "disabled"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<EyeOff className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="View Once Mode"
+                state={viewOnceMode}
+                onClick={() => {
+                  setViewOnceMode((v) => {
+                    pushSystem(`View once mode ${!v ? "on" : "off"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Clock className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label={autoDelete ? `Auto Delete: ${autoDelete}s` : "Auto Delete Messages"}
+                state={autoDelete > 0}
+                onClick={() => {
+                  const next =
+                    autoDelete === 0 ? 60 : autoDelete === 60 ? 300 : autoDelete === 300 ? 3600 : 0;
+                  setAutoDelete(next);
+                  pushSystem(
+                    next ? `Messages will auto delete after ${next}s` : "Auto delete turned off",
+                  );
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Camera className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Screenshot Alert"
+                state={screenshotAlert}
+                onClick={() => {
+                  setScreenshotAlert((v) => {
+                    pushSystem(`Screenshot alerts ${!v ? "on" : "off"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<VideoOff className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Screen Recording Alert"
+                state={recordingAlert}
+                onClick={() => {
+                  setRecordingAlert((v) => {
+                    pushSystem(`Recording alerts ${!v ? "on" : "off"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<BellOff className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Mute Notifications"
+                state={muted}
+                onClick={() => {
+                  setMuted((v) => {
+                    pushSystem(`Notifications ${!v ? "muted" : "unmuted"}`);
+                    return !v;
+                  });
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                icon={<Trash2 className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Clear Chat"
                 onClick={clearChat}
-                disabled={allMsgs.length === 0}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
-              >
-                <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Clear Chat
-              </button>
-              <button
-                type="button"
+              />
+              <MenuItem
+                icon={<CheckCheck className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
+                label="Select Multiple"
                 onClick={() => {
                   exitSelectMode();
                   setSelectMode(true);
                   setMenuOpen(false);
                   toast.info("Tap messages to select multiple for deletion");
                 }}
-                disabled={allMsgs.length === 0}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
-              >
-                <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
-              </button>
+              />
+              <MenuItem
+                danger
+                icon={<UserX className="h-4 w-4 text-destructive" strokeWidth={1.8} />}
+                label={blocked ? "Unblock User" : "Block User"}
+                state={blocked}
+                onClick={() => {
+                  orbit.toggleBlocked(userId);
+                  pushSystem(`${name} ${!blocked ? "blocked" : "unblocked"}`);
+                  setMenuOpen(false);
+                }}
+              />
+              <MenuItem
+                danger
+                icon={<Flag className="h-4 w-4 text-destructive" strokeWidth={1.8} />}
+                label={reported ? "Reported" : "Report User"}
+                state={reported}
+                onClick={() => {
+                  if (!reported) {
+                    setReported(true);
+                    pushSystem(`${name} reported. Our team will review.`);
+                  }
+                  setMenuOpen(false);
+                }}
+              />
             </div>
           </>
         )}
