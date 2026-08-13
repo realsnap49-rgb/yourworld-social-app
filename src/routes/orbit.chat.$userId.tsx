@@ -149,6 +149,16 @@ function OrbitChatPage() {
   const [actionSheetId, setActionSheetId] = useState<string | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Chat options (mirrors the Social chat 3-dot menu)
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [secretLock, setSecretLock] = useState(false);
+  const [viewOnceMode, setViewOnceMode] = useState(false);
+  const [autoDelete, setAutoDelete] = useState(0);
+  const [screenshotAlert, setScreenshotAlert] = useState(true);
+  const [recordingAlert, setRecordingAlert] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [reported, setReported] = useState(false);
+
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
   const incomingPending = request?.direction === "incoming" && request.status === "pending";
