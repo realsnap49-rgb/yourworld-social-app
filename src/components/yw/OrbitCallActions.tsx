@@ -3,11 +3,6 @@ import {
   Phone,
   VideoIcon,
   Navigation,
-  Coffee,
-  UtensilsCrossed,
-  MapPin,
-  Clapperboard,
-  Pizza,
   Ban,
   Flag,
   Camera,
@@ -15,16 +10,15 @@ import {
   Square,
 } from "lucide-react";
 import { toast } from "sonner";
-import { MeetupSheet } from "@/components/yw/MeetupSheet";
 import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
 import { OrbitCallSheet, type OrbitCallMode } from "@/components/yw/OrbitCallSheet";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
-import type { MeetupCategoryId } from "@/lib/meetup-data";
 import type { OrbitProfile } from "@/lib/orbit-data";
 
 /**
- * Calls, invites and safety actions for one Orbit person.
+ * Calls, live location and safety actions for one Orbit person.
+ * Invites now live in the Orbit chat input bar.
  * Every action stays locked until there is a match/connection, and calling can
  * be switched off entirely from Orbit privacy settings.
  */
@@ -36,7 +30,6 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
   const callsOn = orbit.privacy.callsEnabled;
 
   const [call, setCall] = useState<OrbitCallMode | null>(null);
-  const [meetup, setMeetup] = useState<MeetupCategoryId | null>(null);
   const [locationOpen, setLocationOpen] = useState(false);
 
   const captured = useScreenCaptureShield(orbit.privacy.screenshotAlerts && connected);
@@ -55,7 +48,7 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
     }
     if (!connected) {
       toast.warning("Available after you match or connect", {
-        description: "Calls and invites unlock once you're connected on Orbit.",
+        description: "Calls unlock once you're connected on Orbit.",
       });
       return;
     }
@@ -79,14 +72,6 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
     setLocationOpen(true);
   });
 
-  const sendFood = gate(() => {
-    const url = `https://www.zomato.com/search?q=${encodeURIComponent(profile.city)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-    toast.success(`Food invite sent to ${profile.name}`, {
-      description: "Zomato opened in a new tab — no address is ever shared.",
-    });
-  });
-
   const report = () =>
     toast.success(`Report submitted for ${profile.name}`, {
       description: "Our safety team reviews every report.",
@@ -101,7 +86,7 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
     <section className="pt-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Calls &amp; invites
+          Calls &amp; safety
         </h3>
         {!connected && (
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -110,7 +95,7 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-2 pt-3">
+      <div className="grid grid-cols-3 gap-2 pt-3">
         <Tile
           icon={Phone}
           label="Voice"
@@ -130,26 +115,6 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
           active={live.session.active}
           onClick={shareLocation}
         />
-        <Tile icon={Coffee} label="Café" locked={!connected} onClick={gate(() => setMeetup("cafes"))} />
-        <Tile
-          icon={UtensilsCrossed}
-          label="Restaurant"
-          locked={!connected}
-          onClick={gate(() => setMeetup("restaurants"))}
-        />
-        <Tile
-          icon={MapPin}
-          label="Meet place"
-          locked={!connected}
-          onClick={gate(() => setMeetup("parks"))}
-        />
-        <Tile
-          icon={Clapperboard}
-          label="Movie"
-          locked={!connected}
-          onClick={gate(() => setMeetup("cinemas"))}
-        />
-        <Tile icon={Pizza} label="Send food" locked={!connected} onClick={sendFood} />
       </div>
 
       {live.session.active && (
@@ -199,16 +164,6 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
         peerName={profile.name}
         peerPhoto={profile.photo}
         onClose={() => setCall(null)}
-      />
-      <MeetupSheet
-        open={meetup !== null}
-        onOpenChange={(o) => !o && setMeetup(null)}
-        initialCategory={meetup ?? "cafes"}
-        title={`Invite ${profile.name}`}
-        onSend={(body) => {
-          toast.success(`Invite sent to ${profile.name}`, { description: body.split("\n")[0] });
-          setMeetup(null);
-        }}
       />
       <LiveLocationSheet
         open={locationOpen}
