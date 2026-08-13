@@ -118,25 +118,34 @@ function OrbitBrowse() {
 
   return (
     <main className="min-h-screen pb-12">
-      <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border glass px-3 py-3">
+      <header className="sticky top-0 z-40 flex items-center gap-1.5 border-b border-border glass px-3 py-2.5">
         <Link
           to="/settings"
           aria-label="Back to settings"
-          className="grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90"
+          className="grid h-8 w-8 place-items-center rounded-full transition-transform active:scale-90"
         >
-          <ChevronLeft className="h-5 w-5" strokeWidth={1.8} />
+          <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </Link>
-        <h1 className="font-display text-lg font-bold">Orbit</h1>
+        <h1 className="font-display text-base font-bold">Orbit</h1>
+        <button
+          type="button"
+          onClick={() => setSearchOpen((v) => !v)}
+          aria-label={searchOpen ? "Close search" : "Open search"}
+          aria-pressed={searchOpen}
+          className="grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
+        >
+          <Search className="h-[15px] w-[15px]" strokeWidth={1.7} />
+        </button>
         <Link
           to="/orbit/notifications"
           aria-label={
             orbitUnread > 0 ? `Orbit notifications, ${orbitUnread} unread` : "Orbit notifications"
           }
-          className="relative ml-auto grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+          className="relative ml-auto grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
         >
-          <Bell className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          <Bell className="h-[15px] w-[15px]" strokeWidth={1.6} />
           {orbitUnread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background">
+            <span className="absolute -right-0.5 -top-0.5 grid h-[14px] min-w-[14px] place-items-center rounded-full bg-primary px-1 text-[8px] font-bold leading-none text-primary-foreground ring-2 ring-background">
               {orbitUnread > 99 ? "99+" : orbitUnread}
             </span>
           )}
@@ -144,16 +153,16 @@ function OrbitBrowse() {
         <Link
           to="/orbit/messages"
           aria-label="Orbit messages"
-          className="grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+          className="grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
         >
-          <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          <MessageCircle className="h-[15px] w-[15px]" strokeWidth={1.6} />
         </Link>
         <Link
           to="/orbit/privacy"
           aria-label="Orbit privacy & safety"
-          className="grid h-9 w-9 place-items-center rounded-full chip transition-transform active:scale-90"
+          className="grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
         >
-          <Settings2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          <Settings2 className="h-[15px] w-[15px]" strokeWidth={1.6} />
         </Link>
       </header>
 
