@@ -388,6 +388,21 @@ export function CreateStudioPage() {
     setIsPlaying(!isPlaying);
   };
 
+  // Horizontal tool menu actions
+  const handleToolMenu = (id: ToolId) => {
+    if (id === "MUSIC") return setShowMusicPicker(true);
+    if (id === "EFFECT")
+      return updateCurrentClip("filter", currentClip?.filter === "vivid" ? "none" : "vivid");
+    if (id === "PIP") {
+      const v = videoRef.current as any;
+      if (document.pictureInPictureElement) void document.exitPictureInPicture();
+      else if (v?.requestPictureInPicture) void v.requestPictureInPicture().catch(() => toast.error("Picture-in-picture unavailable"));
+      else toast.error("Picture-in-picture unavailable");
+      return;
+    }
+    setActiveToolPanel(activeToolPanel === id ? "NONE" : id);
+  };
+
   return (
     <div className="fixed inset-0 z-[99999] bg-background text-foreground font-sans flex flex-col overflow-hidden select-none">
       
