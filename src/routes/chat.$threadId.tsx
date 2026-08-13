@@ -24,6 +24,33 @@ type Message = {
   time: string;
 };
 
+function MenuItem({
+  icon, label, onClick, state, danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  state?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-3 py-2.5 text-xs font-semibold rounded-xl flex items-center gap-3 ${
+        danger ? "text-red-400 hover:bg-red-950/40" : "text-zinc-200 hover:bg-zinc-800/80"
+      }`}
+    >
+      {icon}
+      <span className="flex-1">{label}</span>
+      {state !== undefined && (
+        <span className={`h-4 w-7 rounded-full transition-colors ${state ? "bg-purple-600" : "bg-zinc-700"} relative`}>
+          <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${state ? "left-3.5" : "left-0.5"}`} />
+        </span>
+      )}
+    </button>
+  );
+}
+
 export function ChatThreadPage() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
