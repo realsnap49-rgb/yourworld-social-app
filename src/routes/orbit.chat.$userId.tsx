@@ -18,6 +18,13 @@ import {
   CheckCheck,
   Check,
   X,
+  Pencil,
+  Lock,
+  Clock,
+  VideoOff,
+  BellOff,
+  UserX,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
@@ -68,6 +75,46 @@ type Msg = {
 };
 
 const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
+
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  state,
+  danger,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  state?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-colors ${
+        danger ? "text-destructive hover:bg-destructive/10" : "text-foreground hover:bg-secondary"
+      }`}
+    >
+      {icon}
+      <span className="flex-1">{label}</span>
+      {state !== undefined && (
+        <span
+          className={`relative h-4 w-7 rounded-full transition-colors ${
+            state ? "bg-primary" : "bg-muted"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-3 w-3 rounded-full bg-background transition-all ${
+              state ? "left-3.5" : "left-0.5"
+            }`}
+          />
+        </span>
+      )}
+    </button>
+  );
+}
 
 function loadHistory(userId: string): Msg[] {
   if (typeof window === "undefined") return [];
