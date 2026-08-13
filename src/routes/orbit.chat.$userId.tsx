@@ -72,6 +72,7 @@ type Msg = {
   audio?: string;
   invite?: InviteCard;
   system?: boolean;
+  at?: number;
 };
 
 const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
@@ -192,9 +193,21 @@ function OrbitChatPage() {
   const push = (msg: Omit<Msg, "id">) => {
     seq.current += 1;
     const id = `m${seq.current}`;
-    setMsgs((m) => [...m, { id, ...msg }]);
+    setMsgs((m) => [...m, { id, at: Date.now(), ...msg }]);
     return id;
   };
+
+  const pushSystem = (text: string) => push({ me: false, system: true, text });
+
+  // Auto delete messages after the configured window
+  useEffect(() => {
+    if (!autoDelete) return;
+    const t = setInterval(() => {
+      const cutoff = Date.now() - autoDelete * 1000;
+      setMsgs((prev) => prev.filter((m) => (m.at ? m.at >= cutoff : true)));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [autoDelete]);
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
   useCaptureDetect(accepted && orbit.privacy.screenshotAlerts, (kind) => {
