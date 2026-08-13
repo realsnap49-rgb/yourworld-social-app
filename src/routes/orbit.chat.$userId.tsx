@@ -361,6 +361,36 @@ function OrbitChatPage() {
           </button>
           <button
             type="button"
+            onClick={() => {
+              if (!accepted) {
+                toast.warning("Invites unlock once your Orbit request is accepted.");
+                return;
+              }
+              setInvitesOpen(true);
+            }}
+            disabled={incomingPending || declined}
+            aria-label="Open invites"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary transition-transform active:scale-90 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.8} />
+          </button>
+          <button
+            type="button"
+            onClick={() => (recording ? stopRecording() : void startRecording())}
+            disabled={incomingPending || declined}
+            aria-label={recording ? "Stop voice note" : "Record voice note"}
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-transform active:scale-90 disabled:opacity-50 ${
+              recording ? "bg-destructive text-destructive-foreground" : "bg-secondary"
+            }`}
+          >
+            {recording ? (
+              <Square className="h-3.5 w-3.5" strokeWidth={2.2} />
+            ) : (
+              <Mic className="h-4 w-4" strokeWidth={1.8} />
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => cameraRef.current?.click()}
             disabled={photoDisabled}
             aria-label="Open camera"
