@@ -175,6 +175,9 @@ export function CapCutTimeline({
   onAddAudio,
   onAddText,
   audioLabel,
+  audioTrack,
+  totalDuration,
+  onAudioMove,
 }: {
   clips: TimelineClip[];
   activeIndex: number;
@@ -186,11 +189,38 @@ export function CapCutTimeline({
   onAddAudio: () => void;
   onAddText: () => void;
   audioLabel?: string;
+  audioTrack?: { title: string; start: number; duration: number } | null;
+  totalDuration?: number;
+  onAudioMove?: (start: number) => void;
 }) {
   const textClips = useMemo(
     () => clips.map((c, i) => ({ i, text: c.textOverlay })).filter((c) => c.text),
     [clips],
   );
+
+  const audioRowRef = useRef<HTMLDivElement>(null);
+  const total = Math.max(totalDuration || 0, 0.1);
+
+  const dragAudio = (e: React.PointerEvent) => {
+    if (!audioTrack || !onAudioMove) return;
+    e.preventDefault();
+    const el = audioRowRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const startX = e.clientX;
+    const startVal = audioTrack.start;
+    const move = (ev: PointerEvent) => {
+      const deltaSec = ((ev.clientX - startX) / rect.width) * total;
+      const next = Math.min(Math.max(0, startVal + deltaSec), Math.max(0, total - 0.2));
+      onAudioMove(next);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   return (
     <div className="bg-zinc-900 border-t border-zinc-800 px-3 py-2 flex flex-col gap-2 relative">
@@ -235,18 +265,35 @@ export function CapCutTimeline({
         <div className="w-9 h-7 flex-shrink-0 rounded-lg bg-zinc-800 text-emerald-400 flex items-center justify-center">
           <Music size={14} />
         </div>
-        <button
-          onClick={onAddAudio}
-          className="flex-1 h-7 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-[10px] font-bold text-emerald-300 flex items-center gap-2 px-3 overflow-hidden"
-        >
-          {audioLabel ? (
-            <span className="truncate">{audioLabel}</span>
-          ) : (
-            <>
-              <Plus size={12} /> Add audio track
-            </>
-          )}
-        </button>
+        {audioTrack ? (
+          <div ref={audioRowRef} className="flex-1 h-7 relative rounded-lg bg-zinc-800/60 overflow-hidden">
+            <div
+              onPointerDown={dragAudio}
+              onClick={onAddAudio}
+              className="absolute inset-y-0 rounded-lg bg-emerald-500 text-black text-[10px] font-black flex items-center gap-1 px-2 cursor-ew-resize touch-none overflow-hidden"
+              style={{
+                left: `${Math.min(100, (audioTrack.start / total) * 100)}%`,
+                width: `${Math.max(8, Math.min(100, (audioTrack.duration / total) * 100))}%`,
+              }}
+            >
+              <Music size={11} className="flex-shrink-0" />
+              <span className="truncate">{audioTrack.title}</span>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onAddAudio}
+            className="flex-1 h-7 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-[10px] font-bold text-emerald-300 flex items-center gap-2 px-3 overflow-hidden"
+          >
+            {audioLabel ? (
+              <span className="truncate">{audioLabel}</span>
+            ) : (
+              <>
+                <Plus size={12} /> Add audio track
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* TEXT TRACK */}

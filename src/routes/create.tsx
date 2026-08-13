@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
 import { CapCutTimeline } from "@/components/yw/editor/CapCutTimeline";
+import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -57,10 +58,15 @@ export function CreateStudioPage() {
     "NONE" | "TEXT" | "FILTER" | "SPEED" | "TRIM" | "VOLUME" | "CROP"
   >("NONE");
   const [customTextInput, setCustomTextInput] = useState("");
+  const [showMusicPicker, setShowMusicPicker] = useState(false);
+  const [audioTrack, setAudioTrack] = useState<
+    { id: string; title: string; url: string; start: number; duration: number } | null
+  >(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioElRef = useRef<HTMLAudioElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   // Push files into the Pro Edits Studio editor
@@ -208,6 +214,34 @@ export function CreateStudioPage() {
   }, [activeClipIndex, currentClip?.trimStart, currentClip?.trimEnd, currentClip?.url]);
 
   // Split the SELECTED clip at the playhead into two trimmed clips
+  // Keep the library music block playing in sync with the video playhead
+  useEffect(() => {
+    const v = videoRef.current;
+    const a = audioElRef.current;
+    if (!v || !a || !audioTrack) return;
+    const sync = () => {
+      const t = v.currentTime - audioTrack.start;
+      if (t >= 0 && t <= audioTrack.duration && !v.paused) {
+        if (Math.abs(a.currentTime - t) > 0.25) a.currentTime = t;
+        if (a.paused) void a.play().catch(() => {});
+      } else if (!a.paused) {
+        a.pause();
+      }
+    };
+    const onPause = () => a.pause();
+    v.addEventListener("timeupdate", sync);
+    v.addEventListener("seeking", sync);
+    v.addEventListener("play", sync);
+    v.addEventListener("pause", onPause);
+    return () => {
+      v.removeEventListener("timeupdate", sync);
+      v.removeEventListener("seeking", sync);
+      v.removeEventListener("play", sync);
+      v.removeEventListener("pause", onPause);
+      a.pause();
+    };
+  }, [audioTrack?.url, audioTrack?.start, audioTrack?.duration, activeClipIndex]);
+
   const handleSplit = () => {
     const v = videoRef.current;
     if (!currentClip || clips.length >= 10) {
@@ -584,14 +618,17 @@ export function CreateStudioPage() {
             onAdd={() => fileInputRef.current?.click()}
             isMuted={isMuted}
             onToggleMute={() => setIsMuted(!isMuted)}
-            onAddAudio={() => audioInputRef.current?.click()}
+            onAddAudio={() => setShowMusicPicker(true)}
+            audioTrack={audioTrack ? { title: audioTrack.title, start: audioTrack.start, duration: audioTrack.duration } : null}
+            totalDuration={currentClip?.duration || videoRef.current?.duration || 15}
+            onAudioMove={(start) => setAudioTrack((p) => (p ? { ...p, start } : p))}
             onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
           />
           </div>
 
           {/* BOTTOM MAIN NAV */}
           <div className="flex-shrink-0 grid grid-cols-7 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
-            <button onClick={() => audioInputRef.current?.click()} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Music size={18} /> Audio</button>
+            <button onClick={() => setShowMusicPicker(true)} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Music size={18} /> Audio</button>
             <button onClick={() => setActiveToolPanel("TEXT")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Type size={18} /> Text</button>
             <button onClick={() => updateCurrentClip("textOverlay", "Voiceover Track 🎙️")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Voice</button>
             <button onClick={() => updateCurrentClip("textOverlay", "Live Auto Subtitles 🪟")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Captions size={18} /> Captions</button>
@@ -599,6 +636,50 @@ export function CreateStudioPage() {
             <button onClick={() => setActiveToolPanel(activeToolPanel === "FILTER" ? "NONE" : "FILTER")} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Sliders size={18} /> Filters</button>
             <button onClick={() => { alert("Exported to phone gallery!"); navigate({ to: "/" }); }} className="flex flex-col items-center gap-1 p-2 bg-zinc-900 rounded-2xl text-zinc-300"><Download size={18} /> Save</button>
           </div>
+
+          {/* HIDDEN AUDIO ENGINE */}
+          <audio ref={audioElRef} src={audioTrack?.url} preload="auto" className="hidden" />
+
+          {/* MUSIC LIBRARY PICKER */}
+          {showMusicPicker && (
+            <div className="absolute inset-0 z-[60] bg-black/80 flex items-end" onClick={() => setShowMusicPicker(false)}>
+              <div className="w-full bg-zinc-950 border-t border-zinc-800 rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <p className="text-[11px] font-black uppercase tracking-wide text-zinc-400 mb-3">Music Library</p>
+                <div className="flex flex-col gap-2">
+                  {NO_COPYRIGHT_MUSIC.map((m) => {
+                    const [mm, ss] = m.duration.split(":").map(Number);
+                    const secs = (mm || 0) * 60 + (ss || 0);
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setAudioTrack({ id: m.id, title: m.title, url: m.url, start: 0, duration: secs });
+                          setShowMusicPicker(false);
+                          toast.success(`${m.title} added to audio track`);
+                        }}
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900 text-left active:scale-[0.99] transition"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center"><Music size={16} /></span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-xs font-bold truncate">{m.title}</span>
+                          <span className="block text-[10px] text-zinc-500 truncate">{m.artist} · {m.category}</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500">{m.duration}</span>
+                      </button>
+                    );
+                  })}
+                  {audioTrack && (
+                    <button
+                      onClick={() => { setAudioTrack(null); setShowMusicPicker(false); }}
+                      className="p-3 rounded-2xl bg-red-500/10 text-red-400 text-xs font-bold"
+                    >
+                      Remove audio track
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       )}
