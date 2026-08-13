@@ -50,6 +50,29 @@ export function ChatThreadPage() {
   const [actionSheetId, setActionSheetId] = useState<number | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Chat option states
+  const [displayName, setDisplayName] = useState("Active User");
+  const [secretLock, setSecretLock] = useState(false);
+  const [viewOnce, setViewOnce] = useState(false);
+  const [autoDelete, setAutoDelete] = useState(0); // seconds, 0 = off
+  const [screenshotAlert, setScreenshotAlert] = useState(true);
+  const [recordingAlert, setRecordingAlert] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [reported, setReported] = useState(false);
+
+  const pushSystem = (text: string) =>
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        system: true,
+        sender: "me",
+        text,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+
   const startLongPress = (id: number) => {
     if (longPressRef.current) clearTimeout(longPressRef.current);
     longPressRef.current = setTimeout(() => setActionSheetId(id), 450);
@@ -79,6 +102,7 @@ export function ChatThreadPage() {
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
   useCaptureDetect(true, (kind) => {
+    if (kind === "recording" ? !recordingAlert : !screenshotAlert) return;
     setMessages((prev) => [
       ...prev,
       {
@@ -90,6 +114,16 @@ export function ChatThreadPage() {
       },
     ]);
   });
+
+  // Auto delete messages after the configured window
+  useEffect(() => {
+    if (!autoDelete) return;
+    const t = setInterval(() => {
+      const cutoff = Date.now() - autoDelete * 1000;
+      setMessages((prev) => prev.filter((m) => m.id > 1e12 ? m.id >= cutoff : true));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [autoDelete]);
 
   useEffect(() => {
     let timer: any;
