@@ -200,11 +200,13 @@ export function CreateStudioPage() {
     const start = currentClip.trimStart ?? 0;
     const end = currentClip.trimEnd;
     const seek = () => {
+      if (scrubbingRef.current) return;
       if (Math.abs(v.currentTime - start) > 0.05) v.currentTime = start;
     };
     if (v.readyState >= 1) seek();
     else v.addEventListener("loadedmetadata", seek, { once: true });
     const onTime = () => {
+      if (scrubbingRef.current) return;
       if (end && v.currentTime >= end) v.currentTime = start;
       else if (v.currentTime < start - 0.1) v.currentTime = start;
     };
