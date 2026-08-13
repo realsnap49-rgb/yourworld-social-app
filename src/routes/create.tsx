@@ -475,7 +475,6 @@ export function CreateStudioPage() {
               <video
                 ref={videoRef}
                 autoPlay
-                loop
                 playsInline
                 muted={isMuted}
                 onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
