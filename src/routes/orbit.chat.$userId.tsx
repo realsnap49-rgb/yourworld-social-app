@@ -609,6 +609,48 @@ function OrbitChatPage() {
           toast.success(`Invite sent to ${p.name}`, { description: place.name });
         }}
       />
+
+      {actionSheetId !== null && (
+        <div
+          className="fixed inset-0 z-[90] flex items-end bg-black/60 backdrop-blur-sm"
+          onClick={() => setActionSheetId(null)}
+        >
+          <div
+            className="w-full rounded-t-3xl border-t border-border bg-popover p-3 pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/40" />
+            <button
+              type="button"
+              onClick={() => {
+                deleteIds([actionSheetId]);
+                setActionSheetId(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Delete Message
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectMode(true);
+                setSelectedIds([actionSheetId]);
+                setActionSheetId(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+            >
+              <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
+            </button>
+            <button
+              type="button"
+              onClick={() => setActionSheetId(null)}
+              className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary"
+            >
+              <X className="h-4 w-4" strokeWidth={1.8} /> Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
