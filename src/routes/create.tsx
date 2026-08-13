@@ -418,7 +418,6 @@ export function CreateStudioPage() {
             <div ref={stageRef} className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center touch-none">
               <video 
                 ref={videoRef}
-                src={currentClip?.url} 
                 autoPlay 
                 loop 
                 playsInline
@@ -427,6 +426,7 @@ export function CreateStudioPage() {
                   const d = e.currentTarget.duration;
                   if (isFinite(d) && d > 0 && !currentClip?.duration) updateCurrentClip("duration", d);
                 }}
+                onEmptied={() => { loadedUrlRef.current = null; }}
                 className="h-full max-h-full max-w-full object-contain will-change-transform"
                 style={{
                   transform: `translateZ(0) rotate(${currentClip?.rotation || 0}deg) scale(${currentClip?.crop ?? 1})`,
