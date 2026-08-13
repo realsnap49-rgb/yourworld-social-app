@@ -319,7 +319,43 @@ function OrbitChatPage() {
           >
             <Video className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </button>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Chat options"
+            className="grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90"
+          >
+            <MoreVertical className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
         </div>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-[70]" onClick={() => setMenuOpen(false)} />
+            <div className="absolute right-3 top-14 z-[80] w-56 rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
+              <button
+                type="button"
+                onClick={clearChat}
+                disabled={allMsgs.length === 0}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Clear Chat
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  exitSelectMode();
+                  setSelectMode(true);
+                  setMenuOpen(false);
+                  toast.info("Tap messages to select multiple for deletion");
+                }}
+                disabled={allMsgs.length === 0}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
+              >
+                <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       <section className="relative flex-1 space-y-2 overflow-y-auto px-4 py-4">
