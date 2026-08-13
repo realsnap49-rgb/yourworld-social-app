@@ -68,6 +68,8 @@ export function CreateStudioPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const scrubbingRef = useRef(false);
+  const scrubTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Push files into the Pro Edits Studio editor
   const addFiles = (files: File[]) => {
