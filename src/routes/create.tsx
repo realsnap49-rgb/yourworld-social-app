@@ -275,6 +275,20 @@ export function CreateStudioPage() {
     return () => v.removeEventListener("loadeddata", onReady);
   }, [currentClip?.url, currentClip?.trimStart, isPlaying]);
 
+  // Advance to the next clip (loops back to the first)
+  const advanceClip = React.useCallback(() => {
+    const v = videoRef.current;
+    if (!clips.length) return;
+    const next = (activeClipIndex + 1) % clips.length;
+    const nextClip = clips[next];
+    setIsPlaying(true);
+    if (v && nextClip && nextClip.url === currentClip?.url) {
+      try { v.currentTime = nextClip.trimStart ?? 0; } catch { /* ignore */ }
+      void v.play().catch(() => {});
+    }
+    setActiveClipIndex(next);
+  }, [clips, activeClipIndex, currentClip?.url]);
+
   // Sync canvas playback to the selected clip's trim range
   useEffect(() => {
     const v = videoRef.current;
@@ -289,15 +303,17 @@ export function CreateStudioPage() {
     else v.addEventListener("loadedmetadata", seek, { once: true });
     const onTime = () => {
       if (scrubbingRef.current) return;
-      if (end && v.currentTime >= end) v.currentTime = start;
+      if (end && v.currentTime >= end) advanceClip();
       else if (v.currentTime < start - 0.1) v.currentTime = start;
     };
     v.addEventListener("timeupdate", onTime);
+    v.addEventListener("ended", advanceClip);
     return () => {
       v.removeEventListener("timeupdate", onTime);
+      v.removeEventListener("ended", advanceClip);
       v.removeEventListener("loadedmetadata", seek);
     };
-  }, [activeClipIndex, currentClip?.trimStart, currentClip?.trimEnd, currentClip?.url]);
+  }, [activeClipIndex, currentClip?.trimStart, currentClip?.trimEnd, currentClip?.url, advanceClip]);
 
   // Split the SELECTED clip at the playhead into two trimmed clips
   // Keep the library music block playing in sync with the video playhead
