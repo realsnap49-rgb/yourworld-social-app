@@ -358,6 +358,34 @@ function OrbitChatPage() {
         )}
       </header>
 
+      {selectMode && (
+        <div className="flex shrink-0 items-center justify-between border-b border-border bg-secondary/60 px-4 py-2">
+          <button
+            type="button"
+            onClick={exitSelectMode}
+            className="text-xs font-semibold text-muted-foreground"
+          >
+            Cancel
+          </button>
+          <span className="text-xs font-bold text-foreground">
+            {selectedIds.length} selected
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              deleteIds(selectedIds);
+              setSelectMode(false);
+            }}
+            disabled={selectedIds.length === 0}
+            className={`flex items-center gap-1 text-xs font-bold transition-colors ${
+              selectedIds.length ? "text-destructive" : "text-muted-foreground/50"
+            }`}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} /> Delete
+          </button>
+        </div>
+      )}
+
       <section className="relative flex-1 space-y-2 overflow-y-auto px-4 py-4">
         <UserWatermark username={currentUser.username} className="fixed" />
         <OrbitChatGate
