@@ -247,7 +247,7 @@ export function ChatThreadPage() {
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
 
       {/* TOP HEADER */}
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-950/90 border-b border-zinc-800/80 backdrop-blur-md shrink-0 relative">
+      <div className="relative z-[70] flex items-center justify-between px-4 py-3 bg-zinc-950/90 border-b border-zinc-800/80 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate({ to: ".." })} className="p-1 text-zinc-300 hover:text-white">
             <ArrowLeft size={22} />
@@ -261,8 +261,14 @@ export function ChatThreadPage() {
           </div>
 
           <div className="flex flex-col">
-            <span className="font-bold text-sm leading-tight text-white">Active User</span>
-            <span className="text-[11px] text-emerald-400 font-medium">Online</span>
+            <span className="font-bold text-sm leading-tight text-white flex items-center gap-1">
+              {displayName}
+              {secretLock && <Lock size={12} className="text-purple-400" />}
+              {muted && <BellOff size={12} className="text-zinc-500" />}
+            </span>
+            <span className="text-[11px] text-emerald-400 font-medium">
+              {blocked ? <span className="text-red-400">Blocked</span> : "Online"}
+            </span>
           </div>
         </div>
 
@@ -274,57 +280,53 @@ export function ChatThreadPage() {
 
         {/* 3-DOTS OPTIONS DROPDOWN WITH ALL 9 EXACT OPTIONS */}
         {showOptionsMenu && (
-          <div className="absolute right-4 top-14 w-60 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-            <button onClick={() => { const name = prompt("Enter new display name:"); if(name) alert(`Display name changed to ${name}`); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <Pencil size={16} className="text-zinc-400" />
-              <span>Change Display Name</span>
-            </button>
-
-            <button onClick={() => { alert("Secret Lock Activated!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <Lock size={16} className="text-zinc-400" />
-              <span>Secret Lock Chat</span>
-            </button>
-
-            <button onClick={() => { alert("View Once Mode Toggled!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <EyeOff size={16} className="text-zinc-400" />
-              <span>View Once Mode</span>
-            </button>
-
-            <button onClick={() => { alert("Auto Delete Messages Set!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <Clock size={16} className="text-zinc-400" />
-              <span>Auto Delete Messages</span>
-            </button>
-
-            <button onClick={() => { alert("Screenshot Alert Toggled!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <Camera size={16} className="text-zinc-400" />
-              <span>Screenshot Alert</span>
-            </button>
-
-            <button onClick={() => { alert("Screen Recording Alert Toggled!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <VideoOff size={16} className="text-zinc-400" />
-              <span>Screen Recording Alert</span>
-            </button>
-
-            <button onClick={() => { alert("Notifications Muted!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <BellOff size={16} className="text-zinc-400" />
-              <span>Mute Notifications</span>
-            </button>
-
-            <button onClick={() => { setMessages([]); exitSelectMode(); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/80 rounded-xl flex items-center gap-3">
-              <Trash2 size={16} className="text-zinc-400" />
-              <span>Clear Chat</span>
-            </button>
-
-            <button onClick={() => { alert("User Blocked!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-3">
-              <UserX size={16} className="text-red-400" />
-              <span>Block User</span>
-            </button>
-
-            <button onClick={() => { alert("User Reported!"); setShowOptionsMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-3">
-              <Flag size={16} className="text-red-400" />
-              <span>Report User</span>
-            </button>
-          </div>
+          <>
+            <div className="fixed inset-0 z-[75]" onClick={() => setShowOptionsMenu(false)} />
+            <div className="absolute right-4 top-14 w-64 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-[80] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+              <MenuItem icon={<Pencil size={16} className="text-zinc-400" />} label="Change Display Name" onClick={() => {
+                const name = window.prompt("Enter new display name:", displayName);
+                if (name?.trim()) { setDisplayName(name.trim()); pushSystem(`Display name changed to ${name.trim()}`); }
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem icon={<Lock size={16} className="text-zinc-400" />} label="Secret Lock Chat" state={secretLock} onClick={() => {
+                setSecretLock((v) => { pushSystem(`Secret lock ${!v ? "enabled" : "disabled"}`); return !v; });
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem icon={<EyeOff size={16} className="text-zinc-400" />} label="View Once Mode" state={viewOnce} onClick={() => {
+                setViewOnce((v) => { pushSystem(`View once mode ${!v ? "on" : "off"}`); return !v; });
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem icon={<Clock size={16} className="text-zinc-400" />} label={autoDelete ? `Auto Delete: ${autoDelete}s` : "Auto Delete Messages"} state={autoDelete > 0} onClick={() => {
+                const next = autoDelete === 0 ? 60 : autoDelete === 60 ? 300 : autoDelete === 300 ? 3600 : 0;
+                setAutoDelete(next);
+                pushSystem(next ? `Messages will auto delete after ${next}s` : "Auto delete turned off");
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem icon={<Camera size={16} className="text-zinc-400" />} label="Screenshot Alert" state={screenshotAlert} onClick={() => {
+                setScreenshotAlert((v) => { pushSystem(`Screenshot alerts ${!v ? "on" : "off"}`); return !v; });
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem icon={<VideoOff size={16} className="text-zinc-400" />} label="Screen Recording Alert" state={recordingAlert} onClick={() => {
+                setRecordingAlert((v) => { pushSystem(`Recording alerts ${!v ? "on" : "off"}`); return !v; });
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem icon={<BellOff size={16} className="text-zinc-400" />} label="Mute Notifications" state={muted} onClick={() => {
+                setMuted((v) => { pushSystem(`Notifications ${!v ? "muted" : "unmuted"}`); return !v; });
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem icon={<Trash2 size={16} className="text-zinc-400" />} label="Clear Chat" onClick={() => {
+                setMessages([]); exitSelectMode(); setShowOptionsMenu(false);
+              }} />
+              <MenuItem danger icon={<UserX size={16} className="text-red-400" />} label={blocked ? "Unblock User" : "Block User"} state={blocked} onClick={() => {
+                setBlocked((v) => { pushSystem(`${displayName} ${!v ? "blocked" : "unblocked"}`); return !v; });
+                setShowOptionsMenu(false);
+              }} />
+              <MenuItem danger icon={<Flag size={16} className="text-red-400" />} label={reported ? "Reported" : "Report User"} state={reported} onClick={() => {
+                if (!reported) { setReported(true); pushSystem(`${displayName} reported. Our team will review.`); }
+                setShowOptionsMenu(false);
+              }} />
+            </div>
+          </>
         )}
       </div>
 
