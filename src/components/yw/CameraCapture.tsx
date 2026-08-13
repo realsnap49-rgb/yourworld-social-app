@@ -40,24 +40,54 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   const start = useCallback(async (mode: "user" | "environment") => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
 
+    // Probe what the device can actually deliver, then ask for exactly that.
+    // Over-asking (fixed 4K/60) is the main cause of dropped frames + stutter.
+    let maxW = 1920;
+    let maxFps = 60;
+    try {
+      const probe = navigator.mediaDevices.getSupportedConstraints?.() ?? {};
+      if (probe.width && probe.frameRate) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cam = devices.find((d) => d.kind === "videoinput");
+        const caps = (cam as InputDeviceInfo | undefined)?.getCapabilities?.() as
+          | { width?: { max: number }; frameRate?: { max: number } }
+          | undefined;
+        if (caps?.width?.max) maxW = Math.min(caps.width.max, 3840);
+        if (caps?.frameRate?.max) maxFps = Math.min(caps.frameRate.max, 60);
+      }
+    } catch {
+      /* capabilities unavailable — use defaults */
+    }
+
+    const audio = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    } as MediaTrackConstraints;
+
     const tiers: MediaStreamConstraints[] = [
       {
         video: {
           facingMode: { ideal: mode },
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
-          frameRate: { ideal: 60, min: 30 },
-        },
-        audio: true,
+          width: { ideal: maxW },
+          height: { ideal: Math.round((maxW * 9) / 16) },
+          frameRate: { ideal: maxFps, min: 24 },
+          resizeMode: "none",
+        } as MediaTrackConstraints,
+        audio,
       },
       {
         video: {
           facingMode: { ideal: mode },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          frameRate: { ideal: 60 },
+          frameRate: { ideal: Math.min(maxFps, 60), min: 24 },
         },
-        audio: true,
+        audio,
+      },
+      {
+        video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+        audio,
       },
       { video: { facingMode: mode }, audio: true },
       { video: true, audio: false },
