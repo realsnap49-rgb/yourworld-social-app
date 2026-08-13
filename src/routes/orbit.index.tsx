@@ -19,6 +19,7 @@ import {
   CalendarHeart,
   Navigation,
   Bell,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
