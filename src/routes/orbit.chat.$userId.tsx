@@ -210,7 +210,7 @@ function OrbitChatPage() {
         </div>
       </header>
 
-      <section className="flex-1 space-y-2 px-4 py-4">
+      <section className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
         <OrbitChatGate
           profileId={p.id}
           name={p.name}
