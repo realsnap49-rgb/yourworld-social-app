@@ -96,6 +96,11 @@ function OrbitChatPage() {
   const [inviteKind, setInviteKind] = useState<InviteKind | null>(null);
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [actionSheetId, setActionSheetId] = useState<string | null>(null);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
