@@ -69,6 +69,7 @@ function OrbitBrowse() {
   const [liveFor, setLiveFor] = useState<OrbitProfile | null>(null);
   const [filters, setFilters] = useState<OrbitFilterState>(emptyOrbitFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const live = useLiveLocation();
   const obscured = useScreenCaptureShield(orbit.privacy.screenshotProtection);
 
