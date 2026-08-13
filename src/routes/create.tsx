@@ -462,6 +462,7 @@ export function CreateStudioPage() {
           </div>
 
           {/* REAL-TIME TIMELINE TRACK */}
+          <div className="flex-shrink-0">
           <CapCutTimeline
             clips={clips}
             activeIndex={activeClipIndex}
@@ -477,6 +478,7 @@ export function CreateStudioPage() {
             onAddAudio={() => audioInputRef.current?.click()}
             onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
           />
+          </div>
 
           {/* BOTTOM MAIN NAV */}
           <div className="flex-shrink-0 grid grid-cols-7 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-black text-[10px] text-center font-extrabold border-t border-zinc-900 z-30">
