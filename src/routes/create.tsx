@@ -319,7 +319,7 @@ export function CreateStudioPage() {
           </div>
 
           {/* MAIN PLAYER CANVAS (Real-Time Filter & Transform Sync) */}
-          <div className="flex-1 min-h-0 flex items-center justify-center p-2 relative bg-black overflow-hidden">
+          <div className="flex-1 min-h-0 flex items-center justify-center px-1 py-0 relative bg-black overflow-hidden">
             <div ref={stageRef} className="relative h-full max-w-full rounded-2xl overflow-hidden border-2 border-orange-500 shadow-2xl flex items-center justify-center touch-none">
               <video 
                 ref={videoRef}
