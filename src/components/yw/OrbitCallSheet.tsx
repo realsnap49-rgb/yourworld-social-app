@@ -123,7 +123,6 @@ export function OrbitCallSheet({
         side="bottom"
         className="h-[92dvh] rounded-t-3xl border-border/60 p-0 [&>button]:hidden"
       >
-        <ScreenFlashOverlay active={fx.flashing} />
         <div className="relative flex h-full flex-col items-center justify-between overflow-hidden px-5 pb-8 pt-8">
           {mode === "video" && (
             <video
@@ -133,20 +132,20 @@ export function OrbitCallSheet({
               muted
               className={cn(
                 "absolute inset-0 h-full w-full object-cover opacity-90",
-                blurFace && "blur-2xl scale-110",
-                !blurFace && maskClass(fx.mask),
                 camOff && "hidden",
               )}
             />
           )}
-          {mode === "video" && !blurFace && !camOff && <ArMaskOverlay mask={fx.mask} />}
-          {mode === "video" && fx.dual && !camOff && (
-            <video
-              ref={pipRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute right-4 top-16 z-10 h-32 w-[5.5rem] rounded-2xl border border-border/60 object-cover shadow-2xl"
+          {mode === "video" && blurFace && !camOff && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-[38%] z-[5] h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full backdrop-blur-2xl"
+              style={{
+                WebkitMaskImage:
+                  "radial-gradient(circle, black 60%, rgba(0,0,0,0.55) 80%, transparent 100%)",
+                maskImage:
+                  "radial-gradient(circle, black 60%, rgba(0,0,0,0.55) 80%, transparent 100%)",
+              }}
             />
           )}
 
@@ -173,12 +172,6 @@ export function OrbitCallSheet({
           </div>
 
           <div className="relative z-10 flex w-full flex-col items-center gap-4">
-            <CaptureFxBar fx={fx} className="justify-center" />
-            {fx.viewOnce > 0 && (
-              <span className="rounded-full bg-background/70 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur">
-                View once · {fx.viewOnce}s
-              </span>
-            )}
             <div className="flex items-center gap-3">
             <CallBtn onClick={toggleMute} label={muted ? "Unmute" : "Mute"}>
               {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
