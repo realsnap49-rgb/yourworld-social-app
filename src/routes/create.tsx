@@ -626,6 +626,26 @@ export function CreateStudioPage() {
             audioTrack={audioTrack ? { title: audioTrack.title, start: audioTrack.start, duration: audioTrack.duration } : null}
             totalDuration={currentClip?.duration || videoRef.current?.duration || 15}
             onAudioMove={(start) => setAudioTrack((p) => (p ? { ...p, start } : p))}
+            onScrub={(i, frac) => {
+              const v = videoRef.current;
+              scrubbingRef.current = true;
+              if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
+              scrubTimerRef.current = setTimeout(() => {
+                scrubbingRef.current = false;
+              }, 300);
+              if (i !== activeClipIndex) setActiveClipIndex(i);
+              const clip = clips[i];
+              if (!v || !clip) return;
+              const dur = clip.duration || v.duration || 0;
+              if (!dur || !isFinite(dur)) return;
+              const start = clip.trimStart ?? 0;
+              const end = clip.trimEnd ?? dur;
+              if (!v.paused) {
+                v.pause();
+                setIsPlaying(false);
+              }
+              v.currentTime = Math.min(end, Math.max(start, start + frac * (end - start)));
+            }}
             onAddText={() => setActiveToolPanel(activeToolPanel === "TEXT" ? "NONE" : "TEXT")}
           />
           </div>
