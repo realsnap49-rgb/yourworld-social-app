@@ -40,24 +40,54 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   const start = useCallback(async (mode: "user" | "environment") => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
 
+    // Probe what the device can actually deliver, then ask for exactly that.
+    // Over-asking (fixed 4K/60) is the main cause of dropped frames + stutter.
+    let maxW = 1920;
+    let maxFps = 60;
+    try {
+      const probe = navigator.mediaDevices.getSupportedConstraints?.() ?? {};
+      if (probe.width && probe.frameRate) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cam = devices.find((d) => d.kind === "videoinput");
+        const caps = (cam as InputDeviceInfo | undefined)?.getCapabilities?.() as
+          | { width?: { max: number }; frameRate?: { max: number } }
+          | undefined;
+        if (caps?.width?.max) maxW = Math.min(caps.width.max, 3840);
+        if (caps?.frameRate?.max) maxFps = Math.min(caps.frameRate.max, 60);
+      }
+    } catch {
+      /* capabilities unavailable — use defaults */
+    }
+
+    const audio = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    } as MediaTrackConstraints;
+
     const tiers: MediaStreamConstraints[] = [
       {
         video: {
           facingMode: { ideal: mode },
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
-          frameRate: { ideal: 60, min: 30 },
-        },
-        audio: true,
+          width: { ideal: maxW },
+          height: { ideal: Math.round((maxW * 9) / 16) },
+          frameRate: { ideal: maxFps, min: 24 },
+          resizeMode: "none",
+        } as MediaTrackConstraints,
+        audio,
       },
       {
         video: {
           facingMode: { ideal: mode },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          frameRate: { ideal: 60 },
+          frameRate: { ideal: Math.min(maxFps, 60), min: 24 },
         },
-        audio: true,
+        audio,
+      },
+      {
+        video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+        audio,
       },
       { video: { facingMode: mode }, audio: true },
       { video: true, audio: false },
@@ -176,9 +206,32 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   const startRecording = () => {
     const stream = streamRef.current;
     if (!stream) return;
-    const types = ["video/mp4;codecs=h264", "video/webm;codecs=vp9", "video/webm"];
+    // Hardware-encoder friendly order: H.264/HEVC (native encoders) first,
+    // then VP9/VP8. Bitrate scales with the negotiated resolution + fps.
+    const types = [
+      "video/mp4;codecs=h264,aac",
+      "video/mp4;codecs=avc1.640029",
+      "video/mp4",
+      "video/webm;codecs=h264,opus",
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ];
     const mimeType = types.find((t) => MediaRecorder.isTypeSupported(t));
-    const rec = new MediaRecorder(stream, mimeType ? { mimeType, videoBitsPerSecond: 12_000_000 } : undefined);
+
+    const s = stream.getVideoTracks()[0]?.getSettings() ?? {};
+    const pixels = (s.width ?? 1920) * (s.height ?? 1080);
+    const fpsFactor = (s.frameRate ?? 30) / 30;
+    const videoBitsPerSecond = Math.round(
+      Math.min(24_000_000, Math.max(4_000_000, pixels * 0.12 * fpsFactor)),
+    );
+
+    const rec = new MediaRecorder(
+      stream,
+      mimeType
+        ? { mimeType, videoBitsPerSecond, audioBitsPerSecond: 128_000 }
+        : { videoBitsPerSecond },
+    );
     chunksRef.current = [];
     rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
     rec.onstop = () => {
@@ -187,7 +240,8 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
       const ext = type.includes("mp4") ? "mp4" : "webm";
       onCapture([new File([blob], `yw_${Date.now()}.${ext}`, { type })]);
     };
-    rec.start();
+    // Chunked timeslice keeps memory flat and avoids hitches on long takes.
+    rec.start(1000);
     recorderRef.current = rec;
     setElapsed(0);
     setRecording(true);
@@ -211,6 +265,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-black text-white select-none">
       <div
         className="absolute inset-0 touch-none"
+        style={{ transform: "translateZ(0)", backfaceVisibility: "hidden", contain: "strict" }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -220,9 +275,14 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
           autoPlay
           playsInline
           muted
-          className="h-full w-full object-cover transition-transform duration-100"
+          disablePictureInPicture
+          className="h-full w-full object-cover"
           style={{
-            transform: `${facing === "user" ? "scaleX(-1) " : ""}scale(${zoomRange.native ? 1 : zoom})`,
+            transform: `translateZ(0) ${facing === "user" ? "scaleX(-1) " : ""}scale(${zoomRange.native ? 1 : zoom})`,
+            willChange: "transform",
+            backfaceVisibility: "hidden",
+            perspective: 1000,
+            imageRendering: "auto",
           }}
         />
       </div>
