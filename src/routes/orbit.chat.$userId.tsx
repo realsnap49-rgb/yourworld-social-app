@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -8,8 +8,6 @@ import {
   Send,
   Phone,
   Video,
-  MonitorUp,
-  Square,
 } from "lucide-react";
 import { toast } from "sonner";
 import { orbitById, approxDistance } from "@/lib/orbit-data";
@@ -70,8 +68,6 @@ function OrbitChatPage() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
   const [call, setCall] = useState<OrbitCallMode | null>(null);
-  const [recording, setRecording] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
@@ -112,48 +108,6 @@ function OrbitChatPage() {
     }
     setCall(mode);
   };
-
-  const stopRecording = useCallback(() => {
-    recorderRef.current?.stop();
-  }, []);
-
-  const startRecording = async () => {
-    if (recording) return stopRecording();
-    if (!accepted) {
-      toast.warning("Screen recording unlocks once you're connected.");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
-      const rec = new MediaRecorder(stream);
-      const chunks: BlobPart[] = [];
-      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        recorderRef.current = null;
-        setRecording(false);
-        const url = URL.createObjectURL(new Blob(chunks, { type: "video/webm" }));
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `orbit-${p?.id ?? "chat"}-${Date.now()}.webm`;
-        a.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 5000);
-        toast.success("Screen recording saved");
-      };
-      stream.getVideoTracks()[0]?.addEventListener("ended", () => rec.state !== "inactive" && rec.stop());
-      rec.start();
-      recorderRef.current = rec;
-      setRecording(true);
-      toast.success("Screen recording started");
-    } catch {
-      toast.error("Screen recording was not allowed");
-    }
-  };
-
-  useEffect(() => () => recorderRef.current?.stop(), []);
 
   if (!p) {
     return (
@@ -211,8 +165,8 @@ function OrbitChatPage() {
     : preMessages.map((m) => ({ id: m.id, me: m.me, text: m.text, url: m.url }));
 
   return (
-    <main className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border glass px-3 py-2.5">
+    <main className="flex h-[100dvh] flex-col overflow-hidden">
+      <header className="flex shrink-0 items-center gap-2 border-b border-border glass px-3 py-2.5">
         <button
           type="button"
           onClick={() => navigate({ to: "/orbit/messages" })}
@@ -253,26 +207,10 @@ function OrbitChatPage() {
           >
             <Video className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </button>
-          <button
-            type="button"
-            onClick={startRecording}
-            aria-label={recording ? "Stop screen recording" : "Record screen"}
-            aria-pressed={recording}
-            className={`grid h-9 w-9 place-items-center rounded-full transition-transform active:scale-90 disabled:opacity-40 ${
-              recording ? "bg-foreground text-background" : ""
-            }`}
-            disabled={!accepted}
-          >
-            {recording ? (
-              <Square className="h-4 w-4" strokeWidth={2.4} />
-            ) : (
-              <MonitorUp className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            )}
-          </button>
         </div>
       </header>
 
-      <section className="flex-1 space-y-2 px-4 py-4">
+      <section className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
         <OrbitChatGate
           profileId={p.id}
           name={p.name}
@@ -323,7 +261,7 @@ function OrbitChatPage() {
           e.preventDefault();
           send();
         }}
-        className="sticky bottom-0 border-t border-border glass px-3 py-3"
+        className="shrink-0 border-t border-border glass px-3 py-3"
       >
         <div className="flex items-center gap-2">
           <input
