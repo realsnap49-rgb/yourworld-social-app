@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Plus, Volume2, VolumeX, Music } from "lucide-react";
 
 const CELL_WIDTH = 96;
-const CELL_GAP = 6;
+const DIVIDER = 2;
+const CELL_GAP = DIVIDER;
 
 interface LightTimelineProps {
   clips: any[];
@@ -92,10 +93,11 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
 
   return (
     <div className="w-full bg-card border-t border-border px-3 py-2 flex flex-col gap-2 relative">
-      {/* ruler */}
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground px-1">
-        <span>{fmt(currentTime)}</span>
-        <span>{fmt(totalDuration)}</span>
+      {/* unified playhead time */}
+      <div className="flex items-center justify-center gap-1 text-[11px] font-mono px-1">
+        <span className="font-bold text-foreground tabular-nums">{fmt(currentTime)}</span>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-muted-foreground tabular-nums">{fmt(totalDuration)}</span>
       </div>
 
       {/* playhead */}
@@ -116,21 +118,26 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
           ref={trackRef}
           onScroll={onTrackScroll}
           onPointerDown={dragTrack}
-          className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 cursor-ew-resize touch-pan-x overscroll-x-contain"
+          className="flex-1 flex items-center overflow-x-auto scrollbar-none py-0.5 cursor-ew-resize touch-pan-x overscroll-x-contain"
           style={{ paddingLeft: pad, paddingRight: pad }}
         >
           {clips.map((clip, idx) => (
             <React.Fragment key={clip.id || idx}>
               {idx > 0 && (
-                <span className="flex-shrink-0 w-2 h-2 rotate-45 bg-orange-400/70 rounded-[2px]" />
+                <span
+                  className="flex-shrink-0 h-14 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
+                  style={{ width: DIVIDER }}
+                />
               )}
               <div
                 onClick={() => {
                   if (!movedRef.current) onSelect(idx);
                 }}
                 style={{ width: CELL_WIDTH }}
-                className={`relative h-14 rounded-lg border-2 cursor-pointer overflow-hidden flex-shrink-0 bg-muted ${
-                  idx === activeIndex ? "border-orange-500" : "border-border opacity-70"
+                className={`relative h-14 cursor-pointer overflow-hidden flex-shrink-0 bg-muted ${
+                  idx === activeIndex
+                    ? "ring-2 ring-inset ring-orange-500"
+                    : "opacity-80"
                 }`}
               >
                 <video
@@ -148,7 +155,7 @@ export const LightTimeline: React.FC<LightTimelineProps> = ({
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-8 h-8 flex-shrink-0 rounded-full bg-foreground text-background flex items-center justify-center active:scale-90 transition"
+              className="ml-2 w-8 h-8 flex-shrink-0 rounded-full bg-foreground text-background flex items-center justify-center active:scale-90 transition"
               aria-label="Add clip"
             >
               <Plus size={16} />
