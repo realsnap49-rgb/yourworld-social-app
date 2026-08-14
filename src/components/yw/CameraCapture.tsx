@@ -384,13 +384,34 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
           </div>
         )}
 
-        <button
-          onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-          aria-label="Flip camera"
-          className="rounded-full bg-black/40 p-2 backdrop-blur-md active:scale-90"
-        >
-          <SwitchCamera size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFlash((f) => (f === "off" ? "on" : f === "on" ? "auto" : "off"))}
+            aria-label={`Flashlight ${flash}`}
+            title={
+              facing === "environment" && !torchable && flash !== "off"
+                ? "No LED detected — screen flash will be used"
+                : `Flashlight ${flash}`
+            }
+            className={`relative rounded-full p-2 backdrop-blur-md active:scale-90 ${
+              flash === "off" ? "bg-black/40 text-white" : "bg-yellow-400 text-black"
+            }`}
+          >
+            {flash === "off" ? <ZapOff size={20} /> : <Zap size={20} />}
+            {flash === "auto" && (
+              <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-black px-1 text-[8px] font-black leading-[12px] text-yellow-400">
+                A
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+            aria-label="Flip camera"
+            className="rounded-full bg-black/40 p-2 backdrop-blur-md active:scale-90"
+          >
+            <SwitchCamera size={20} />
+          </button>
+        </div>
       </div>
 
       {/* VERTICAL ZOOM SLIDER */}
