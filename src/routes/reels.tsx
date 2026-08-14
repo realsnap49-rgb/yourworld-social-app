@@ -18,7 +18,8 @@ import {
 import { YwAvatar } from "@/components/yw/Avatar";
 import { ShareSheet } from "@/components/yw/ShareSheet";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
-import { byId, formatCount, posts, reels, type Reel } from "@/lib/yw-data";
+import { byId, formatCount, posts, reels, type Reel, type User } from "@/lib/yw-data";
+import { useSocialPosts } from "@/lib/social-data";
 import { useDoubleTapLike, useYw } from "@/lib/yw-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,29 @@ function ReelsPage() {
 function ReelsList() {
   const [active, setActive] = useState(0);
   const nodes = useRef<(HTMLElement | null)[]>([]);
+  const { posts: dbReels, toggleLike: toggleDbLike } = useSocialPosts("reel");
+
+  const live = dbReels.map((p) => ({
+    reel: {
+      id: p.id,
+      userId: p.user_id,
+      poster: p.media_url,
+      caption: p.caption,
+      hashtags: p.hashtags ?? [],
+      audio: p.audio ?? "original audio",
+      likes: p.likeCount,
+      commentCount: p.commentCount,
+      shares: 0,
+      allowDownload: p.allow_download,
+    } satisfies Reel,
+    author: p.author,
+    likedByMe: p.likedByMe,
+  }));
+
+  const items = live.length
+    ? live
+    : reels.map((reel) => ({ reel, author: undefined as User | undefined, likedByMe: undefined }));
+  const usingLive = live.length > 0;
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -73,11 +97,11 @@ function ReelsList() {
     );
     nodes.current.forEach((n) => n && io.observe(n));
     return () => io.disconnect();
-  }, []);
+  }, [items.length]);
 
   return (
     <>
-      {reels.map((reel, i) => (
+      {items.map(({ reel, author, likedByMe }, i) => (
         <section
           key={reel.id}
           data-index={i}
@@ -87,7 +111,15 @@ function ReelsList() {
           className="relative h-[calc(100dvh-4.75rem)] w-full snap-start snap-always overflow-hidden [contain:layout_paint_size] [content-visibility:auto]"
         >
           {/* window: only current, 1 previous and 1 next are mounted */}
-          {Math.abs(i - active) <= 1 ? <ReelItem reel={reel} active={i === active} /> : null}
+          {Math.abs(i - active) <= 1 ? (
+            <ReelItem
+              reel={reel}
+              active={i === active}
+              author={author}
+              likedByMe={likedByMe}
+              onDbLike={usingLive ? () => void toggleDbLike(reel.id) : undefined}
+            />
+          ) : null}
         </section>
       ))}
     </>
@@ -96,14 +128,26 @@ function ReelsList() {
 
 const REEL_DURATION = 15; // seconds per reel (image-backed demo media)
 
-function ReelItem({ reel, active }: { reel: Reel; active: boolean }) {
-  const user = byId(reel.userId);
+function ReelItem({
+  reel,
+  active,
+  author,
+  likedByMe,
+  onDbLike,
+}: {
+  reel: Reel;
+  active: boolean;
+  author?: User;
+  likedByMe?: boolean;
+  onDbLike?: () => void;
+}) {
+  const user = author ?? byId(reel.userId);
   const { liked, saved, following, toggleLike, toggleSave, toggleFollow } = useYw();
   const { burst, onDoubleTap } = useDoubleTapLike(reel.id);
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const lastTap = useRef(0);
-  const isLiked = !!liked[reel.id];
+  const isLiked = onDbLike ? !!likedByMe : !!liked[reel.id];
   const isSaved = !!saved[reel.id];
   const commentSeed = posts[0].comments;
 
@@ -278,8 +322,8 @@ function ReelItem({ reel, active }: { reel: Reel; active: boolean }) {
 
       <div className="absolute bottom-14 right-2 flex flex-col items-center gap-4">
         <Action
-          onClick={() => toggleLike(reel.id)}
-          label={formatCount(reel.likes + (isLiked ? 1 : 0))}
+          onClick={() => (onDbLike ? onDbLike() : toggleLike(reel.id))}
+          label={formatCount(onDbLike ? reel.likes : reel.likes + (isLiked ? 1 : 0))}
           active={isLiked}
         >
           <Heart
