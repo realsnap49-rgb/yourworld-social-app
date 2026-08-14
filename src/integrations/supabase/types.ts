@@ -50,6 +50,115 @@ export type Database = {
         }
         Relationships: []
       }
+      post_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          allow_download: boolean
+          audio: string | null
+          caption: string
+          created_at: string
+          hashtags: string[]
+          id: string
+          kind: string
+          location: string | null
+          media_type: string
+          media_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_download?: boolean
+          audio?: string | null
+          caption?: string
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          kind?: string
+          location?: string | null
+          media_type?: string
+          media_url?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_download?: boolean
+          audio?: string | null
+          caption?: string
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          kind?: string
+          location?: string | null
+          media_type?: string
+          media_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

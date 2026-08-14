@@ -50,6 +50,18 @@ function ChatListPage() {
     }
 
     loadThreads();
+
+    const channel = supabase
+      .channel("chat-list")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "direct_messages" },
+        () => void loadThreads(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   const filteredThreads = threads.filter((t) =>
