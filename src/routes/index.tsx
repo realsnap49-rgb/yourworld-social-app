@@ -1,6 +1,8 @@
 import React, { memo, useCallback, useState } from "react";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useSocialPosts, timeAgo } from "@/lib/social-data";
+import { formatCount } from "@/lib/yw-data";
 import {
   Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus
 } from "lucide-react";
@@ -20,7 +22,7 @@ export const Route = createFileRoute("/")({
 });
 
 type Post = {
-  id: number;
+  id: string;
   user: { name: string; handle: string; location: string; avatarColor: string; letter: string };
   image: string;
   caption: string;
@@ -64,10 +66,11 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
 
 export function HomePage() {
   const navigate = useNavigate();
+  const { posts: dbPosts, toggleLike: toggleDbLike } = useSocialPosts("post");
 
-  const [posts, setPosts] = useState<Post[]>([
+  const [fallback, setFallback] = useState<Post[]>([
     {
-      id: 101,
+      id: "demo-101",
       user: {
         name: "Riko Tan",
         handle: "@riko.night",
@@ -85,17 +88,44 @@ export function HomePage() {
     }
   ]);
 
-  const toggleLike = useCallback((postId: number) => {
-    setPosts(prev => prev.map(p => {
+  const live: Post[] = dbPosts.map((p) => ({
+    id: p.id,
+    user: {
+      name: p.author.name,
+      handle: `@${p.author.username}`,
+      location: p.location ?? "",
+      avatarColor: "bg-[#8b2fc9]",
+      letter: (p.author.name || p.author.username).charAt(0).toUpperCase(),
+    },
+    image: p.media_url,
+    caption: p.caption,
+    likes: p.likeCount,
+    commentsCount: p.commentCount,
+    timeAgo: timeAgo(p.created_at),
+    isLiked: p.likedByMe,
+    isSaved: false,
+  }));
+
+  const usingLive = live.length > 0;
+  const posts = usingLive ? live : fallback;
+
+  const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
+
+  const toggleLike = useCallback((postId: string) => {
+    if (usingLive) {
+      void toggleDbLike(postId);
+      return;
+    }
+    setFallback(prev => prev.map(p => {
       if (p.id === postId) {
         return { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 };
       }
       return p;
     }));
-  }, []);
+  }, [usingLive, toggleDbLike]);
 
-  const toggleSave = useCallback((postId: number) => {
-    setPosts(prev => prev.map(p => (p.id === postId ? { ...p, isSaved: !p.isSaved } : p)));
+  const toggleSave = useCallback((postId: string) => {
+    setSavedIds((prev) => ({ ...prev, [postId]: !prev[postId] }));
   }, []);
 
   return (
@@ -202,11 +232,11 @@ export function HomePage() {
                 </div>
 
                 <button onClick={() => toggleSave(post.id)} className="text-zinc-300 active:scale-75 transition-transform">
-                  <Bookmark size={22} className={post.isSaved ? "fill-white text-white" : "text-zinc-300"} />
+                  <Bookmark size={22} className={savedIds[post.id] || post.isSaved ? "fill-white text-white" : "text-zinc-300"} />
                 </button>
               </div>
 
-              <div className="text-xs font-bold text-white">12.8K likes</div>
+              <div className="text-xs font-bold text-white">{formatCount(post.likes)} likes</div>
               <p className="text-xs text-zinc-300 leading-relaxed">
                 <span className="font-bold mr-1.5 text-white">{post.user.handle}</span>
                 {post.caption}
