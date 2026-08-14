@@ -6,9 +6,12 @@ import {
   FolderClock,
   ZoomIn,
   ZoomOut,
+  Zap,
+  ZapOff,
 } from "lucide-react";
 
 type Mode = "POST" | "REEL" | "LIVE";
+type Flash = "off" | "on" | "auto";
 
 interface CameraCaptureProps {
   onClose: () => void;
@@ -35,6 +38,9 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     native: false,
   });
   const [error, setError] = useState<string | null>(null);
+  const [flash, setFlash] = useState<Flash>("off");
+  const [torchable, setTorchable] = useState(false);
+  const [screenFlash, setScreenFlash] = useState(false);
 
   /* ---------- camera boot: force highest native res + fps ---------- */
   const start = useCallback(async (mode: "user" | "environment") => {
@@ -116,7 +122,9 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     const track = stream.getVideoTracks()[0];
     const caps = (track?.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
       zoom?: { min: number; max: number };
+      torch?: boolean;
     };
+    setTorchable(Boolean(caps.torch));
     if (caps.zoom && caps.zoom.max > caps.zoom.min) {
       setZoomRange({ min: caps.zoom.min, max: caps.zoom.max, native: true });
       setZoom(caps.zoom.min);
@@ -126,6 +134,51 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     }
     setError(null);
   }, []);
+
+  /* ---------- flashlight: hardware LED (rear) / screen flash (front) ---------- */
+  const setTorch = useCallback(async (on: boolean) => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: on } as unknown as MediaTrackConstraintSet],
+      });
+    } catch {
+      /* device has no controllable LED */
+    }
+  }, []);
+
+  /** Rough ambient-light read from the live preview, used by Auto mode. */
+  const isDarkScene = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return false;
+    const c = document.createElement("canvas");
+    c.width = 32;
+    c.height = 32;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return false;
+    ctx.drawImage(v, 0, 0, 32, 32);
+    const { data } = ctx.getImageData(0, 0, 32, 32);
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+    return sum / (data.length / 4) < 70;
+  }, []);
+
+  const flashWanted = useCallback(
+    () => (flash === "on" ? true : flash === "auto" ? isDarkScene() : false),
+    [flash, isDarkScene],
+  );
+
+  // Keep the LED in sync when the user toggles or flips while recording.
+  useEffect(() => {
+    if (facing !== "environment") return;
+    void setTorch(flash === "on" && recording);
+    return () => {
+      void setTorch(false);
+    };
+  }, [facing, flash, recording, setTorch]);
 
   useEffect(() => {
     void start(facing);
@@ -182,7 +235,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     return () => window.clearInterval(id);
   }, [recording]);
 
-  const shootPhoto = () => {
+  const grabPhoto = () => {
     const v = videoRef.current;
     if (!v) return;
     const canvas = document.createElement("canvas");
@@ -201,6 +254,21 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
       if (!blob) return;
       onCapture([new File([blob], `yw_${Date.now()}.jpg`, { type: "image/jpeg" })]);
     }, "image/jpeg", 0.95);
+  };
+
+  const shootPhoto = async () => {
+    if (!flashWanted()) return grabPhoto();
+    if (facing === "user" || !torchable) {
+      setScreenFlash(true);
+      await new Promise((r) => window.setTimeout(r, 220));
+      grabPhoto();
+      window.setTimeout(() => setScreenFlash(false), 140);
+    } else {
+      await setTorch(true);
+      await new Promise((r) => window.setTimeout(r, 260));
+      grabPhoto();
+      window.setTimeout(() => void setTorch(false), 200);
+    }
   };
 
   const startRecording = () => {
@@ -245,16 +313,22 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     recorderRef.current = rec;
     setElapsed(0);
     setRecording(true);
+    if (flashWanted()) {
+      if (facing === "user" || !torchable) setScreenFlash(true);
+      else void setTorch(true);
+    }
   };
 
   const stopRecording = () => {
     recorderRef.current?.stop();
     recorderRef.current = null;
     setRecording(false);
+    setScreenFlash(false);
+    void setTorch(false);
   };
 
   const onShutter = () => {
-    if (mode === "POST") return shootPhoto();
+    if (mode === "POST") return void shootPhoto();
     if (recording) return stopRecording();
     startRecording();
   };
@@ -287,6 +361,14 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
         />
       </div>
 
+      {screenFlash && (
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 z-40 bg-white transition-opacity duration-150 ${
+            recording ? "opacity-40" : "opacity-95"
+          }`}
+        />
+      )}
       {error && (
         <div className="absolute inset-x-6 top-1/2 z-30 -translate-y-1/2 rounded-2xl bg-zinc-900/90 p-4 text-center text-xs font-semibold">
           {error}
@@ -310,13 +392,34 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
           </div>
         )}
 
-        <button
-          onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-          aria-label="Flip camera"
-          className="rounded-full bg-black/40 p-2 backdrop-blur-md active:scale-90"
-        >
-          <SwitchCamera size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFlash((f) => (f === "off" ? "on" : f === "on" ? "auto" : "off"))}
+            aria-label={`Flashlight ${flash}`}
+            title={
+              facing === "environment" && !torchable && flash !== "off"
+                ? "No LED detected — screen flash will be used"
+                : `Flashlight ${flash}`
+            }
+            className={`relative rounded-full p-2 backdrop-blur-md active:scale-90 ${
+              flash === "off" ? "bg-black/40 text-white" : "bg-yellow-400 text-black"
+            }`}
+          >
+            {flash === "off" ? <ZapOff size={20} /> : <Zap size={20} />}
+            {flash === "auto" && (
+              <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-black px-1 text-[8px] font-black leading-[12px] text-yellow-400">
+                A
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+            aria-label="Flip camera"
+            className="rounded-full bg-black/40 p-2 backdrop-blur-md active:scale-90"
+          >
+            <SwitchCamera size={20} />
+          </button>
+        </div>
       </div>
 
       {/* VERTICAL ZOOM SLIDER */}
