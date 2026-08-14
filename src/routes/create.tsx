@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Play, Pause, Scissors, Gauge, Volume2,
   Sparkles, Captions, Trash2, Copy, RotateCw,
-  Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop,
+  Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop, SplitSquareHorizontal,
   PictureInPicture2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -572,6 +572,7 @@ export function CreateStudioPage() {
             <div className="flex items-center gap-3 text-muted-foreground">
               <button onClick={() => updateCurrentClip("rotation", 0)} className="active:scale-90 transition" aria-label="Reset rotation"><Undo2 size={16} /></button>
               <button onClick={() => updateCurrentClip("filter", "none")} className="active:scale-90 transition" aria-label="Reset filter"><Redo2 size={16} /></button>
+              <button onClick={handleSplit} className="active:scale-90 transition" aria-label="Split clip at playhead"><SplitSquareHorizontal size={16} /></button>
               <button onClick={handleDuplicate} className="active:scale-90 transition" aria-label="Duplicate clip"><Copy size={16} /></button>
               <button onClick={handleDelete} className="text-destructive active:scale-90 transition" aria-label="Delete clip"><Trash2 size={16} /></button>
             </div>
@@ -770,6 +771,16 @@ export function CreateStudioPage() {
                 );
               }}
               onAdd={() => fileInputRef.current?.click()}
+              onReorder={(from, to) => {
+                setClips((prev) => {
+                  const next = [...prev];
+                  const [moved] = next.splice(from, 1);
+                  next.splice(to, 0, moved);
+                  return next;
+                });
+                setActiveClipIndex(to);
+                toast.success("Clip moved");
+              }}
               onScrub={(i, frac) => {
                 const v = videoRef.current;
                 scrubbingRef.current = true;
