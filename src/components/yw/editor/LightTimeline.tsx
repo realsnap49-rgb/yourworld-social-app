@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Music2, Plus, Volume2, VolumeX } from "lucide-react";
 
 export interface TimelineClip {
@@ -40,6 +40,74 @@ const clipLen = (c: TimelineClip) => {
   return Math.max(0.1, end - start);
 };
 
+// ---- thumbnail extraction (cached per url+time) ----
+const thumbCache = new Map<string, string>();
+
+function grabFrame(url: string, time: number): Promise<string> {
+  const key = `${url}@${time.toFixed(2)}`;
+  const hit = thumbCache.get(key);
+  if (hit) return Promise.resolve(hit);
+  return new Promise((resolve, reject) => {
+    const v = document.createElement("video");
+    v.crossOrigin = "anonymous";
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = "auto";
+    v.src = url;
+    const cleanup = () => {
+      v.removeAttribute("src");
+      try { v.load(); } catch { /* ignore */ }
+    };
+    const onSeeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const w = 160;
+        const ratio = v.videoHeight ? v.videoHeight / v.videoWidth : 16 / 9;
+        canvas.width = w;
+        canvas.height = Math.max(1, Math.round(w * ratio));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no ctx");
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        const data = canvas.toDataURL("image/jpeg", 0.6);
+        thumbCache.set(key, data);
+        cleanup();
+        resolve(data);
+      } catch (e) {
+        cleanup();
+        reject(e);
+      }
+    };
+    v.addEventListener("loadeddata", () => {
+      const t = Math.min(Math.max(0.05, time), Math.max(0.05, (v.duration || 1) - 0.05));
+      v.addEventListener("seeked", onSeeked, { once: true });
+      try { v.currentTime = t; } catch { onSeeked(); }
+    }, { once: true });
+    v.addEventListener("error", () => { cleanup(); reject(new Error("thumb load failed")); }, { once: true });
+  });
+}
+
+function useThumbnails(clips: TimelineClip[]) {
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const sig = clips.map((c) => `${c.id}:${c.url ?? ""}:${(c.trimStart ?? 0).toFixed(2)}`).join("|");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const c of clips) {
+        if (!c.url) continue;
+        const at = (c.trimStart ?? 0) + 0.1;
+        try {
+          const data = await grabFrame(c.url, at);
+          if (cancelled) return;
+          setThumbs((prev) => (prev[c.id] === data ? prev : { ...prev, [c.id]: data }));
+        } catch { /* ignore */ }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
+  return thumbs;
+}
+
 export function LightTimeline({
   clips,
   activeIndex,
@@ -61,6 +129,7 @@ export function LightTimeline({
   const padRef = useRef(0);
 
   const lens = useMemo(() => clips.map(clipLen), [clips]);
+  const thumbs = useThumbnails(clips);
 
   // keep half-container padding so the first/last frame can reach the center line
   useEffect(() => {
@@ -152,8 +221,16 @@ export function LightTimeline({
                     selected ? "opacity-100 ring-2 ring-inset ring-orange-500 z-10" : "opacity-50"
                   }`}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[10px] font-black text-foreground/70">
+                  {thumbs[clip.id] && (
+                    <img
+                      src={thumbs[clip.id]}
+                      alt=""
+                      draggable={false}
+                      className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                    />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
+                    <span className="text-[9px] font-black text-foreground/80">
                       #{i + 1} · {clipLen(clip).toFixed(1)}s
                     </span>
                   </div>
