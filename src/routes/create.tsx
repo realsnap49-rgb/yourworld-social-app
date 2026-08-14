@@ -746,12 +746,13 @@ export function CreateStudioPage() {
                 if (!v || !clip) return;
                 scrubbingRef.current = false;
                 if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
+                // Pause at the selected clip's starting frame for easy editing
                 const start = clip.trimStart ?? 0;
                 const applySeek = () => {
                   try { v.currentTime = start; } catch { /* ignore */ }
-                  void v.play().catch(() => {});
+                  v.pause();
+                  setIsPlaying(false);
                 };
-                setIsPlaying(true);
                 if (clip.url && loadedUrlRef.current !== clip.url) {
                   loadedUrlRef.current = clip.url;
                   v.src = clip.url;
