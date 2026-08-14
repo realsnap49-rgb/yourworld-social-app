@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
@@ -9,19 +9,22 @@ import {
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
+import { useThreadMessages } from "@/lib/social-data";
 
 export const Route = createFileRoute("/chat/$threadId")({
   component: ChatThreadPage,
 });
 
 type Message = {
-  id: number;
+  id: string;
   text?: string;
   image?: string;
   audio?: string;
   sender: "me" | "them";
   system?: boolean;
   time: string;
+  ts: number;
+  local?: boolean;
 };
 
 function MenuItem({
@@ -53,17 +56,42 @@ function MenuItem({
 
 export function ChatThreadPage() {
   const navigate = useNavigate();
+  const { threadId } = Route.useParams();
+  const {
+    messages: dbMessages,
+    currentUserId,
+    send: sendToDb,
+    remove: removeFromDb,
+  } = useThreadMessages(threadId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const callVideoRef = useRef<HTMLVideoElement>(null);
 
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Hey! How's it going?", sender: "them", time: "8:20 PM" },
-    { id: 2, text: "All good bro! Working on the app layout.", sender: "me", time: "8:22 PM" },
-    { id: 3, text: "Awesome! Let me know when it's live.", sender: "them", time: "8:25 PM" },
-  ]);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+
+  const setMessages = setLocalMessages;
+
+  const fmtTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const messages = useMemo<Message[]>(() => {
+    const fromDb: Message[] = dbMessages.map((m) => ({
+      id: m.id,
+      text: m.media_type === "text" ? m.content : m.content || undefined,
+      image: m.media_type === "image" ? m.media_url ?? undefined : undefined,
+      audio: m.media_type === "audio" ? m.media_url ?? undefined : undefined,
+      sender: m.sender_id === currentUserId ? "me" : "them",
+      system: m.media_type === "system",
+      time: fmtTime(m.created_at),
+      ts: new Date(m.created_at).getTime(),
+    }));
+    return [...fromDb, ...localMessages]
+      .filter((m) => !hiddenIds.includes(m.id))
+      .sort((a, b) => a.ts - b.ts);
+  }, [dbMessages, localMessages, hiddenIds, currentUserId]);
 
   const [showEmojis, setShowEmojis] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -73,8 +101,8 @@ export function ChatThreadPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [actionSheetId, setActionSheetId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [actionSheetId, setActionSheetId] = useState<string | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Chat option states
@@ -89,18 +117,20 @@ export function ChatThreadPage() {
   const [reported, setReported] = useState(false);
 
   const pushSystem = (text: string) =>
-    setMessages((prev) => [
+    setLocalMessages((prev) => [
       ...prev,
       {
-        id: Date.now() + Math.random(),
+        id: `local-${Date.now()}-${Math.random()}`,
         system: true,
-        sender: "me",
+        sender: "me" as const,
         text,
+        ts: Date.now(),
+        local: true,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
 
-  const startLongPress = (id: number) => {
+  const startLongPress = (id: string) => {
     if (longPressRef.current) clearTimeout(longPressRef.current);
     longPressRef.current = setTimeout(() => setActionSheetId(id), 450);
   };
@@ -108,10 +138,12 @@ export function ChatThreadPage() {
     if (longPressRef.current) clearTimeout(longPressRef.current);
     longPressRef.current = null;
   };
-  const toggleSelect = (id: number) =>
+  const toggleSelect = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  const deleteIds = (ids: number[]) => {
-    setMessages((prev) => prev.filter((m) => !ids.includes(m.id)));
+  const deleteIds = (ids: string[]) => {
+    setLocalMessages((prev) => prev.filter((m) => !ids.includes(m.id)));
+    setHiddenIds((prev) => [...prev, ...ids]);
+    void removeFromDb(ids.filter((id) => !id.startsWith("local-")));
     setSelectedIds([]);
   };
   const exitSelectMode = () => {
