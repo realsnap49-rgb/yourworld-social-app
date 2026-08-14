@@ -258,7 +258,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
 
   const shootPhoto = async () => {
     if (!flashWanted()) return grabPhoto();
-    if (facing === "user") {
+    if (facing === "user" || !torchable) {
       setScreenFlash(true);
       await new Promise((r) => window.setTimeout(r, 220));
       grabPhoto();
@@ -314,7 +314,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     setElapsed(0);
     setRecording(true);
     if (flashWanted()) {
-      if (facing === "user") setScreenFlash(true);
+      if (facing === "user" || !torchable) setScreenFlash(true);
       else void setTorch(true);
     }
   };
@@ -361,6 +361,17 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
         />
       </div>
 
+      {error && (
+        <div />
+      )}
+      {screenFlash && (
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 z-40 bg-white transition-opacity duration-150 ${
+            recording ? "opacity-40" : "opacity-95"
+          }`}
+        />
+      )}
       {error && (
         <div className="absolute inset-x-6 top-1/2 z-30 -translate-y-1/2 rounded-2xl bg-zinc-900/90 p-4 text-center text-xs font-semibold">
           {error}
