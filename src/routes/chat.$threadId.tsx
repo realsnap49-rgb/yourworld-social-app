@@ -162,16 +162,7 @@ export function ChatThreadPage() {
   // Screenshot / recording detection posts an in-chat system note for both sides.
   useCaptureDetect(true, (kind) => {
     if (kind === "recording" ? !recordingAlert : !screenshotAlert) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        system: true,
-        sender: "me",
-        text: `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
+    pushSystem(`${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`);
   });
 
   // Auto delete messages after the configured window
@@ -179,7 +170,7 @@ export function ChatThreadPage() {
     if (!autoDelete) return;
     const t = setInterval(() => {
       const cutoff = Date.now() - autoDelete * 1000;
-      setMessages((prev) => prev.filter((m) => m.id > 1e12 ? m.id >= cutoff : true));
+      setLocalMessages((prev) => prev.filter((m) => m.ts >= cutoff));
     }, 1000);
     return () => clearInterval(t);
   }, [autoDelete]);
@@ -207,37 +198,28 @@ export function ChatThreadPage() {
     return () => stream?.getTracks().forEach((t) => t.stop());
   }, [activeCall]);
 
-  const triggerAutoReply = () => {
-    setTimeout(() => {
-      const replies = ["Sahi hai bhai!", "Mast chal raha hai 🔥", "Got it, bro!", "Bilkul perfect lag raha hai 👌"];
-      const randomReply = replies[Math.floor(Math.random() * replies.length)];
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          text: randomReply,
-          sender: "them",
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    }, 1500);
-  };
+  const pushLocal = (partial: Omit<Message, "id" | "time" | "ts" | "local">) =>
+    setLocalMessages((prev) => [
+      ...prev,
+      {
+        ...partial,
+        id: `local-${Date.now()}-${Math.random()}`,
+        ts: Date.now(),
+        local: true,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
 
   const handleSend = () => {
     if (!message.trim() || blocked) return;
     const currentMsg = message;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        text: currentMsg,
-        sender: "me",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
+    if (currentUserId) {
+      void sendToDb({ content: currentMsg, media_type: "text" });
+    } else {
+      pushLocal({ text: currentMsg, sender: "me" });
+    }
     setMessage("");
     setShowEmojis(false);
-    triggerAutoReply();
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,16 +228,12 @@ export function ChatThreadPage() {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: Date.now(),
-              image: event.target?.result as string,
-              sender: "me",
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-          ]);
-          triggerAutoReply();
+          const src = event.target.result as string;
+          if (currentUserId) {
+            void sendToDb({ media_url: src, media_type: "image" });
+          } else {
+            pushLocal({ image: src, sender: "me" });
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -273,17 +251,8 @@ export function ChatThreadPage() {
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/webm" });
         const audioUrl = URL.createObjectURL(blob);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            audio: audioUrl,
-            sender: "me",
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }
-        ]);
+        pushLocal({ audio: audioUrl, sender: "me" });
         stream.getTracks().forEach((t) => t.stop());
-        triggerAutoReply();
       };
 
       recorder.start();
