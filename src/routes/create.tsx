@@ -82,6 +82,37 @@ export function CreateStudioPage() {
   const [exportRes, setExportRes] = useState<"8K" | "4K" | "2K" | "HD">("4K");
   const [exportStage, setExportStage] = useState<"choose" | "saving" | "done">("choose");
   const [exportProgress, setExportProgress] = useState(0);
+
+  const startExport = () => {
+    setExportStage("saving");
+    setExportProgress(0);
+    const step = () => {
+      setExportProgress((p) => {
+        if (p >= 100) return 100;
+        const next = Math.min(100, p + Math.random() * 9 + 3);
+        if (next >= 100) {
+          window.setTimeout(() => setExportStage("done"), 300);
+          return 100;
+        }
+        window.setTimeout(step, 120);
+        return next;
+      });
+    };
+    window.setTimeout(step, 150);
+  };
+
+  const saveToGallery = () => {
+    const url = clips[activeClipIndex]?.url || clips[0]?.url;
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `yourworld-${exportRes}-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast.success(`Saved ${exportRes} video to your gallery`);
+    setShowExport(false);
+  };
   const [audioTrack, setAudioTrack] = useState<
     { id: string; title: string; url: string; start: number; duration: number } | null
   >(null);
