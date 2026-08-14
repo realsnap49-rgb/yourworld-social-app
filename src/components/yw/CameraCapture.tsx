@@ -361,9 +361,6 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
         />
       </div>
 
-      {error && (
-        <div />
-      )}
       {screenFlash && (
         <div
           aria-hidden
