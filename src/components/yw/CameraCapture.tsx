@@ -330,6 +330,16 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   };
 
   const onShutter = () => {
+    if (mode === "LIVE") {
+      if (isLive) {
+        setIsLive(false);
+        toast.success("Live ended");
+        return;
+      }
+      setIsLive(true);
+      toast.success(liveTitle ? `Going live: ${liveTitle}` : "You are live!");
+      return;
+    }
     if (mode === "POST") return void shootPhoto();
     if (recording) return stopRecording();
     startRecording();
