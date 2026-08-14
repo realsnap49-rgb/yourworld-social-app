@@ -389,6 +389,34 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
         </div>
       )}
 
+      {/* LIVE TITLE OVERLAY */}
+      {mode === "LIVE" && !isLive && (
+        <div className="absolute inset-x-0 top-20 z-30 flex justify-center px-6">
+          <div className="w-full max-w-sm rounded-2xl border border-red-500/40 bg-black/70 p-3 backdrop-blur-md">
+            <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-red-400">
+              <Radio size={12} /> Live Title
+            </label>
+            <input
+              type="text"
+              value={liveTitle}
+              onChange={(e) => setLiveTitle(e.target.value)}
+              maxLength={80}
+              placeholder="Give your live a title..."
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white placeholder-white/40 focus:border-red-500 focus:outline-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* LIVE BADGE */}
+      {isLive && (
+        <div className="absolute left-1/2 top-20 z-30 -translate-x-1/2 flex items-center gap-2 rounded-full bg-red-500/90 px-4 py-1.5 text-[11px] font-black uppercase tracking-wide shadow-lg">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+          LIVE
+          {liveTitle && <span className="ml-1 font-bold normal-case opacity-90">· {liveTitle}</span>}
+        </div>
+      )}
+
       {/* TOP BAR */}
       <div className="relative z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent p-4">
         <button
