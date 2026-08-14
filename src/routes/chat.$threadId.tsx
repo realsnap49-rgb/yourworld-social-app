@@ -343,7 +343,7 @@ export function ChatThreadPage() {
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<Trash2 size={16} className="text-zinc-400" />} label="Clear Chat" onClick={() => {
-                setMessages([]); exitSelectMode(); setShowOptionsMenu(false);
+                deleteIds(messages.map((m) => m.id)); exitSelectMode(); setShowOptionsMenu(false);
               }} />
               <MenuItem danger icon={<UserX size={16} className="text-red-400" />} label={blocked ? "Unblock User" : "Block User"} state={blocked} onClick={() => {
                 setBlocked((v) => { pushSystem(`${displayName} ${!v ? "blocked" : "unblocked"}`); return !v; });
