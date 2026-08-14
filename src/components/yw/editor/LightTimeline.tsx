@@ -1,203 +1,150 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Plus, Volume2, VolumeX, Music } from "lucide-react";
+import React, { useState, useRef } from "react";
+import {
+  Scissors, Gauge, Volume2, Sparkles, Type, Sliders, Crop, 
+  Copy, Trash2, RotateCw, Play, Pause, Plus, ZoomIn
+} from "lucide-react";
+import { toast } from "sonner";
 
-const CELL_WIDTH = 96;
-const DIVIDER = 2;
-const CELL_GAP = DIVIDER;
-
-interface LightTimelineProps {
-  clips: any[];
-  activeIndex: number;
-  currentTime?: number;
-  totalDuration?: number;
-  /** progress (0-1) inside the active clip, used to auto-scroll the strip */
-  playFraction?: number;
-  isPlaying?: boolean;
-  audioLabel?: string;
-  isMuted?: boolean;
-  onToggleMute?: () => void;
-  onAddAudio?: () => void;
-  onSelect: (index: number) => void;
-  onTrim?: (index: number, start: number, end: number) => void;
-  onAdd?: () => void;
-  onScrub?: (index: number, fraction: number) => void;
+interface Clip {
+  id: string;
+  title: string;
+  duration: number;
+  thumbnailUrl?: string;
 }
 
-const fmt = (s: number) => {
-  const t = Math.max(0, Math.round(s || 0));
-  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-};
+interface EditorProps {
+  clips?: Clip[];
+  onClipSelect?: (index: number) => void;
+}
 
-export const LightTimeline: React.FC<LightTimelineProps> = ({
-  clips,
-  activeIndex,
-  currentTime = 0,
-  totalDuration = 0,
-  playFraction = 0,
-  isPlaying = false,
-  audioLabel,
-  isMuted,
-  onToggleMute,
-  onAddAudio,
-  onSelect,
-  onAdd,
-  onScrub,
-}) => {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [pad, setPad] = useState(0);
-  const rafRef = useRef<number | null>(null);
-  const movedRef = useRef(false);
-  const userScrollRef = useRef(false);
-  const userTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export default function CapCutProTimeline({ clips: initialClips, onClipSelect }: EditorProps) {
+  const [selectedClipIndex, setSelectedClipIndex] = useState(0);
+  const [activeTool, setActiveTool] = useState<string | null>("trim");
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const update = () => setPad(el.clientWidth / 2);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  // Mock clips if none provided from parent
+  const clips = initialClips || [
+    { id: "1", title: "Clip 1", duration: 4 },
+    { id: "2", title: "Clip 2", duration: 5 },
+    { id: "3", title: "Clip 3", duration: 3 },
+  ];
 
-  const emitScrub = () => {
-    const el = trackRef.current;
-    if (!el || !onScrub || clips.length === 0) return;
-    const x = el.scrollLeft;
-    const step = CELL_WIDTH + CELL_GAP;
-    let idx = Math.floor(x / step);
-    idx = Math.min(clips.length - 1, Math.max(0, idx));
-    const frac = Math.min(1, Math.max(0, (x - idx * step) / CELL_WIDTH));
-    onScrub(idx, frac);
-  };
-
-  const onTrackScroll = () => {
-    if (!userScrollRef.current) return;
-    if (rafRef.current) return;
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      emitScrub();
-    });
-  };
-
-  // Auto-scroll the strip so the playhead (fixed center line) tracks playback
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el || userScrollRef.current || clips.length === 0) return;
-    const step = CELL_WIDTH + CELL_GAP;
-    const target = activeIndex * step + Math.min(1, Math.max(0, playFraction)) * CELL_WIDTH;
-    if (Math.abs(el.scrollLeft - target) > 0.5) el.scrollLeft = target;
-  }, [activeIndex, playFraction, clips.length, isPlaying, pad]);
-
-  const dragTrack = (e: React.PointerEvent) => {
-    const el = trackRef.current;
-    if (!el) return;
-    const startX = e.clientX;
-    const startScroll = el.scrollLeft;
-    movedRef.current = false;
-    userScrollRef.current = true;
-    if (userTimerRef.current) clearTimeout(userTimerRef.current);
-    const move = (ev: PointerEvent) => {
-      const dx = ev.clientX - startX;
-      if (Math.abs(dx) > 3) movedRef.current = true;
-      el.scrollLeft = startScroll - dx;
-    };
-    const up = () => {
-      if (userTimerRef.current) clearTimeout(userTimerRef.current);
-      userTimerRef.current = setTimeout(() => {
-        userScrollRef.current = false;
-      }, 250);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-    window.addEventListener("pointermove", move, { passive: true });
-    window.addEventListener("pointerup", up);
+  // CapCut Style Single-Tap Selection Handler
+  const handleClipTap = (index: number, e: React.PointerEvent) => {
+    e.stopPropagation(); // Stop timeline drag from blocking clip tap
+    setSelectedClipIndex(index);
+    if (onClipSelect) onClipSelect(index);
+    toast.success(`Clip #${index + 1} Selected`);
   };
 
   return (
-    <div className="w-full bg-card border-t border-border px-3 py-2 flex flex-col gap-2 relative">
-      {/* unified playhead time */}
-      <div className="flex items-center justify-center gap-1 text-[11px] font-mono px-1">
-        <span className="font-bold text-foreground tabular-nums">{fmt(currentTime)}</span>
-        <span className="text-muted-foreground">/</span>
-        <span className="text-muted-foreground tabular-nums">{fmt(totalDuration)}</span>
-      </div>
+    <div className="w-full bg-zinc-950 text-white flex flex-col border-t border-zinc-800 select-none">
+      
+      {/* 1. Quick Editing Controls Header */}
+      <div className="flex items-center justify-between px-4 py-2 bg-zinc-900/80 border-b border-zinc-800 text-xs">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="p-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition"
+          >
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+          </button>
+          <span className="font-mono text-gray-300">
+            Clip {selectedClipIndex + 1} / {clips.length}
+          </span>
+        </div>
 
-      {/* playhead */}
-      <div className="absolute top-6 bottom-2 left-1/2 w-0.5 bg-orange-500 z-20 pointer-events-none" />
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onToggleMute}
-          className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${
-            isMuted ? "bg-red-500/15 text-red-500" : "bg-muted text-foreground"
-          }`}
-          aria-label={isMuted ? "Unmute" : "Mute"}
-        >
-          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-        </button>
-
-        <div
-          ref={trackRef}
-          onScroll={onTrackScroll}
-          onPointerDown={dragTrack}
-          className="flex-1 flex items-center overflow-x-auto scrollbar-none py-0.5 cursor-ew-resize touch-pan-x overscroll-x-contain"
-          style={{ paddingLeft: pad, paddingRight: pad }}
-        >
-          {clips.map((clip, idx) => (
-            <React.Fragment key={clip.id || idx}>
-              {idx > 0 && (
-                <span
-                  className="flex-shrink-0 h-14 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-                  style={{ width: DIVIDER }}
-                />
-              )}
-              <div
-                onClick={() => {
-                  if (!movedRef.current) onSelect(idx);
-                }}
-                style={{ width: CELL_WIDTH }}
-                className={`relative h-14 cursor-pointer overflow-hidden flex-shrink-0 bg-muted ${
-                  idx === activeIndex
-                    ? "ring-2 ring-inset ring-orange-500 z-10"
-                    : "opacity-50"
-                }`}
-              >
-                <video
-                  src={clip.url}
-                  muted
-                  preload="metadata"
-                  className="w-full h-full object-cover pointer-events-none"
-                />
-                <span className="absolute bottom-0.5 left-1 bg-black/60 text-[9px] text-white px-1 rounded">
-                  #{idx + 1}
-                </span>
-              </div>
-            </React.Fragment>
-          ))}
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="ml-2 w-8 h-8 flex-shrink-0 rounded-full bg-foreground text-background flex items-center justify-center active:scale-90 transition"
-              aria-label="Add clip"
-            >
-              <Plus size={16} />
-            </button>
-          )}
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 text-gray-400">
+          <button onClick={() => toast("Clip Duplicated")} className="hover:text-white p-1">
+            <Copy className="w-4 h-4" />
+          </button>
+          <button onClick={() => toast("Clip Rotated")} className="hover:text-white p-1">
+            <RotateCw className="w-4 h-4" />
+          </button>
+          <button onClick={() => toast("Clip Deleted")} className="text-red-400 hover:text-red-300 p-1">
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* audio row */}
-      <button
-        onClick={onAddAudio}
-        className="h-7 w-full rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-[10px] font-bold text-emerald-600 flex items-center gap-2 px-3 overflow-hidden"
-      >
-        {audioLabel ? (
-          <><Music size={12} className="flex-shrink-0" /><span className="truncate">{audioLabel}</span></>
-        ) : (
-          <><Plus size={12} /> Add audio track</>
-        )}
-      </button>
+      {/* 2. CapCut & YouCut Feature Toolbar */}
+      <div className="flex items-center gap-5 overflow-x-auto px-4 py-3 bg-zinc-900 border-b border-zinc-800 scrollbar-none">
+        {[
+          { id: "trim", name: "TRIM / CUT", icon: Scissors },
+          { id: "speed", name: "SPEED (1x-10x)", icon: Gauge },
+          { id: "volume", name: "VOLUME", icon: Volume2 },
+          { id: "filter", name: "FILTERS", icon: Sliders },
+          { id: "effect", name: "EFFECTS", icon: Sparkles },
+          { id: "text", name: "TEXT / STICKER", icon: Type },
+          { id: "crop", name: "CROP & ZOOM", icon: Crop },
+        ].map((tool) => {
+          const Icon = tool.icon;
+          const isActive = activeTool === tool.id;
+          return (
+            <button
+              key={tool.id}
+              onClick={() => setActiveTool(tool.id)}
+              className={`flex flex-col items-center gap-1 min-w-[60px] transition ${
+                isActive ? "text-orange-500 scale-105" : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <div className={`p-2 rounded-xl ${isActive ? "bg-orange-500/10 border border-orange-500/30" : "bg-zinc-800"}`}>
+                <Icon className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-semibold">{tool.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Smooth & Instant Touch Timeline Track */}
+      <div className="relative h-28 bg-black p-3 flex items-center overflow-x-auto space-x-3 scrollbar-none">
+        {/* Central Playhead Indicator */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-orange-500 z-20 pointer-events-none flex flex-col items-center">
+          <div className="w-2 h-2 bg-orange-500 rotate-45 -mt-1" />
+        </div>
+
+        {clips.map((clip, index) => {
+          const isSelected = selectedClipIndex === index;
+          return (
+            <div
+              key={clip.id || index}
+              onPointerDown={(e) => handleClipTap(index, e)}
+              className={`relative flex-shrink-0 h-16 w-32 rounded-lg overflow-hidden cursor-pointer transition-all border-2 touch-manipulation ${
+                isSelected
+                  ? "border-orange-500 scale-105 z-10 shadow-lg shadow-orange-500/30"
+                  : "border-zinc-800 opacity-60 hover:opacity-90"
+              }`}
+              style={{ touchAction: "manipulation" }}
+            >
+              {/* Thumbnail Background Placeholder */}
+              <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
+                <span className="text-xs font-bold text-white bg-black/70 px-2 py-0.5 rounded border border-zinc-700">
+                  #{index + 1}
+                </span>
+              </div>
+
+              {/* Selection Yellow Handles (CapCut Style) */}
+              {isSelected && (
+                <>
+                  <div className="absolute left-0 top-0 bottom-0 w-2 bg-orange-500 rounded-l" />
+                  <div className="absolute right-0 top-0 bottom-0 w-2 bg-orange-500 rounded-r" />
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Add Track Button */}
+        <button 
+          onClick={() => toast("Add new clip")}
+          className="flex-shrink-0 h-16 w-16 rounded-lg border-2 border-dashed border-zinc-700 flex items-center justify-center text-gray-500 hover:text-white hover:border-gray-500 transition"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      </div>
+
     </div>
   );
-};
+}
