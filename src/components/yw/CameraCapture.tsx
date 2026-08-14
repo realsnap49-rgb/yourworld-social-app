@@ -6,9 +6,12 @@ import {
   FolderClock,
   ZoomIn,
   ZoomOut,
+  Zap,
+  ZapOff,
 } from "lucide-react";
 
 type Mode = "POST" | "REEL" | "LIVE";
+type Flash = "off" | "on" | "auto";
 
 interface CameraCaptureProps {
   onClose: () => void;
@@ -35,6 +38,9 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     native: false,
   });
   const [error, setError] = useState<string | null>(null);
+  const [flash, setFlash] = useState<Flash>("off");
+  const [torchable, setTorchable] = useState(false);
+  const [screenFlash, setScreenFlash] = useState(false);
 
   /* ---------- camera boot: force highest native res + fps ---------- */
   const start = useCallback(async (mode: "user" | "environment") => {
