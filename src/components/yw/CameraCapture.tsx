@@ -122,7 +122,9 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     const track = stream.getVideoTracks()[0];
     const caps = (track?.getCapabilities?.() ?? {}) as MediaTrackCapabilities & {
       zoom?: { min: number; max: number };
+      torch?: boolean;
     };
+    setTorchable(Boolean(caps.torch));
     if (caps.zoom && caps.zoom.max > caps.zoom.min) {
       setZoomRange({ min: caps.zoom.min, max: caps.zoom.max, native: true });
       setZoom(caps.zoom.min);
@@ -132,6 +134,51 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     }
     setError(null);
   }, []);
+
+  /* ---------- flashlight: hardware LED (rear) / screen flash (front) ---------- */
+  const setTorch = useCallback(async (on: boolean) => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: on } as unknown as MediaTrackConstraintSet],
+      });
+    } catch {
+      /* device has no controllable LED */
+    }
+  }, []);
+
+  /** Rough ambient-light read from the live preview, used by Auto mode. */
+  const isDarkScene = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return false;
+    const c = document.createElement("canvas");
+    c.width = 32;
+    c.height = 32;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return false;
+    ctx.drawImage(v, 0, 0, 32, 32);
+    const { data } = ctx.getImageData(0, 0, 32, 32);
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+    return sum / (data.length / 4) < 70;
+  }, []);
+
+  const flashWanted = useCallback(
+    () => (flash === "on" ? true : flash === "auto" ? isDarkScene() : false),
+    [flash, isDarkScene],
+  );
+
+  // Keep the LED in sync when the user toggles or flips while recording.
+  useEffect(() => {
+    if (facing !== "environment") return;
+    void setTorch(flash === "on" && recording);
+    return () => {
+      void setTorch(false);
+    };
+  }, [facing, flash, recording, setTorch]);
 
   useEffect(() => {
     void start(facing);
