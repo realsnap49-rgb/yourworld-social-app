@@ -78,6 +78,10 @@ export function CreateStudioPage() {
   const [playFraction, setPlayFraction] = useState(0);
   const [customTextInput, setCustomTextInput] = useState("");
   const [showMusicPicker, setShowMusicPicker] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [exportRes, setExportRes] = useState<"8K" | "4K" | "2K" | "HD">("4K");
+  const [exportStage, setExportStage] = useState<"choose" | "saving" | "done">("choose");
+  const [exportProgress, setExportProgress] = useState(0);
   const [audioTrack, setAudioTrack] = useState<
     { id: string; title: string; url: string; start: number; duration: number } | null
   >(null);
