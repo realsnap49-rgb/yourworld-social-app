@@ -579,20 +579,20 @@ export function CreateStudioPage() {
           </div>
 
           {/* HORIZONTAL SCROLLABLE TOOL MENU */}
-          <div className="flex-shrink-0 bg-card border-t border-border px-3 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <div className="flex-shrink-0 bg-card border-t border-border px-2 py-1.5 flex items-center justify-between gap-1 overflow-x-auto scrollbar-none">
             {TOOL_MENU.map((t) => {
               const active = activeToolPanel === t.id;
               return (
                 <button
                   key={t.id}
                   onClick={() => handleToolMenu(t.id)}
-                  className={`flex flex-col items-center justify-center gap-1 min-w-[64px] py-2 px-2 rounded-2xl text-[9px] font-extrabold uppercase tracking-wide flex-shrink-0 border transition active:scale-95 ${
+                  className={`flex flex-col items-center justify-center gap-0.5 min-w-[44px] py-1.5 px-1 rounded-xl text-[8px] font-extrabold uppercase tracking-tight flex-shrink-0 border transition active:scale-95 ${
                     active
                       ? "bg-orange-500 text-white border-orange-500"
                       : "bg-muted text-foreground border-transparent"
                   }`}
                 >
-                  <t.Icon size={18} />
+                  <t.Icon size={15} />
                   {t.label}
                 </button>
               );
