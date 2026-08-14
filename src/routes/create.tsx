@@ -744,17 +744,24 @@ export function CreateStudioPage() {
                 const clip = clips[i];
                 setActiveClipIndex(i);
                 if (!v || !clip) return;
-                // pause and park the preview on the selected clip's first frame
-                if (!v.paused) v.pause();
-                setIsPlaying(false);
                 scrubbingRef.current = false;
                 if (scrubTimerRef.current) clearTimeout(scrubTimerRef.current);
                 const start = clip.trimStart ?? 0;
                 const applySeek = () => {
                   try { v.currentTime = start; } catch { /* ignore */ }
+                  void v.play().catch(() => {});
                 };
-                if (loadedUrlRef.current === clip.url && v.readyState >= 1) applySeek();
-                else v.addEventListener("loadeddata", applySeek, { once: true });
+                setIsPlaying(true);
+                if (clip.url && loadedUrlRef.current !== clip.url) {
+                  loadedUrlRef.current = clip.url;
+                  v.src = clip.url;
+                  v.load();
+                  v.addEventListener("loadeddata", applySeek, { once: true });
+                } else if (v.readyState >= 1) {
+                  applySeek();
+                } else {
+                  v.addEventListener("loadeddata", applySeek, { once: true });
+                }
               }}
               onTrim={(i, start, end) => {
                 setClips((prev) =>
