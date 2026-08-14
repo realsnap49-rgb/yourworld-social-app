@@ -1,150 +1,189 @@
-import React, { useState, useRef } from "react";
-import {
-  Scissors, Gauge, Volume2, Sparkles, Type, Sliders, Crop, 
-  Copy, Trash2, RotateCw, Play, Pause, Plus, ZoomIn
-} from "lucide-react";
-import { toast } from "sonner";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { Music2, Plus, Volume2, VolumeX } from "lucide-react";
 
-interface Clip {
+export interface TimelineClip {
   id: string;
-  title: string;
-  duration: number;
-  thumbnailUrl?: string;
+  url?: string;
+  duration?: number;
+  trimStart?: number;
+  trimEnd?: number;
 }
 
-interface EditorProps {
-  clips?: Clip[];
-  onClipSelect?: (index: number) => void;
+export interface LightTimelineProps {
+  clips: TimelineClip[];
+  activeIndex: number;
+  currentTime: number;
+  totalDuration: number;
+  playFraction?: number;
+  isPlaying?: boolean;
+  audioLabel?: string;
+  onAddAudio?: () => void;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+  onSelect?: (index: number) => void;
+  onTrim?: (index: number, start: number, end: number) => void;
+  onAdd?: () => void;
+  onScrub?: (index: number, fraction: number) => void;
 }
 
-export default function CapCutProTimeline({ clips: initialClips, onClipSelect }: EditorProps) {
-  const [selectedClipIndex, setSelectedClipIndex] = useState(0);
-  const [activeTool, setActiveTool] = useState<string | null>("trim");
-  const [isPlaying, setIsPlaying] = useState(false);
+const CELL = 112;
 
-  // Mock clips if none provided from parent
-  const clips = initialClips || [
-    { id: "1", title: "Clip 1", duration: 4 },
-    { id: "2", title: "Clip 2", duration: 5 },
-    { id: "3", title: "Clip 3", duration: 3 },
-  ];
+const fmt = (s: number) => {
+  const t = Math.max(0, Math.floor(s || 0));
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+};
 
-  // CapCut Style Single-Tap Selection Handler
-  const handleClipTap = (index: number, e: React.PointerEvent) => {
-    e.stopPropagation(); // Stop timeline drag from blocking clip tap
-    setSelectedClipIndex(index);
-    if (onClipSelect) onClipSelect(index);
-    toast.success(`Clip #${index + 1} Selected`);
-  };
+const clipLen = (c: TimelineClip) => {
+  const dur = c.duration || 0;
+  const start = c.trimStart ?? 0;
+  const end = c.trimEnd ?? dur;
+  return Math.max(0.1, end - start);
+};
+
+export function LightTimeline({
+  clips,
+  activeIndex,
+  currentTime,
+  totalDuration,
+  playFraction,
+  isPlaying,
+  audioLabel,
+  onAddAudio,
+  isMuted,
+  onToggleMute,
+  onSelect,
+  onAdd,
+  onScrub,
+}: LightTimelineProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const userScrollRef = useRef(false);
+  const userTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const padRef = useRef(0);
+
+  const lens = useMemo(() => clips.map(clipLen), [clips]);
+
+  // keep half-container padding so the first/last frame can reach the center line
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const set = () => {
+      padRef.current = el.clientWidth / 2;
+      el.style.paddingLeft = `${padRef.current}px`;
+      el.style.paddingRight = `${padRef.current}px`;
+    };
+    set();
+    window.addEventListener("resize", set);
+    return () => window.removeEventListener("resize", set);
+  }, []);
+
+  // auto-scroll the track under the fixed center playhead while playing
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || userScrollRef.current) return;
+    const frac = playFraction ?? 0;
+    const before = lens.slice(0, activeIndex).length * CELL;
+    const target = before + frac * CELL;
+    if (Math.abs(el.scrollLeft - target) > 1) el.scrollLeft = target;
+  }, [activeIndex, playFraction, lens]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || !userScrollRef.current || !onScrub) return;
+    const x = Math.max(0, el.scrollLeft);
+    const idx = Math.min(clips.length - 1, Math.floor(x / CELL));
+    const frac = Math.min(1, Math.max(0, (x - idx * CELL) / CELL));
+    onScrub(idx, frac);
+  }, [clips.length, onScrub]);
+
+  const markUser = useCallback(() => {
+    userScrollRef.current = true;
+    if (userTimer.current) clearTimeout(userTimer.current);
+    userTimer.current = setTimeout(() => {
+      userScrollRef.current = false;
+    }, 260);
+  }, []);
 
   return (
-    <div className="w-full bg-zinc-950 text-white flex flex-col border-t border-zinc-800 select-none">
-      
-      {/* 1. Quick Editing Controls Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-zinc-900/80 border-b border-zinc-800 text-xs">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="p-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition"
-          >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-          </button>
-          <span className="font-mono text-gray-300">
-            Clip {selectedClipIndex + 1} / {clips.length}
-          </span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 text-gray-400">
-          <button onClick={() => toast("Clip Duplicated")} className="hover:text-white p-1">
-            <Copy className="w-4 h-4" />
-          </button>
-          <button onClick={() => toast("Clip Rotated")} className="hover:text-white p-1">
-            <RotateCw className="w-4 h-4" />
-          </button>
-          <button onClick={() => toast("Clip Deleted")} className="text-red-400 hover:text-red-300 p-1">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* 2. CapCut & YouCut Feature Toolbar */}
-      <div className="flex items-center gap-5 overflow-x-auto px-4 py-3 bg-zinc-900 border-b border-zinc-800 scrollbar-none">
-        {[
-          { id: "trim", name: "TRIM / CUT", icon: Scissors },
-          { id: "speed", name: "SPEED (1x-10x)", icon: Gauge },
-          { id: "volume", name: "VOLUME", icon: Volume2 },
-          { id: "filter", name: "FILTERS", icon: Sliders },
-          { id: "effect", name: "EFFECTS", icon: Sparkles },
-          { id: "text", name: "TEXT / STICKER", icon: Type },
-          { id: "crop", name: "CROP & ZOOM", icon: Crop },
-        ].map((tool) => {
-          const Icon = tool.icon;
-          const isActive = activeTool === tool.id;
-          return (
-            <button
-              key={tool.id}
-              onClick={() => setActiveTool(tool.id)}
-              className={`flex flex-col items-center gap-1 min-w-[60px] transition ${
-                isActive ? "text-orange-500 scale-105" : "text-gray-400 hover:text-gray-200"
-              }`}
-            >
-              <div className={`p-2 rounded-xl ${isActive ? "bg-orange-500/10 border border-orange-500/30" : "bg-zinc-800"}`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-semibold">{tool.name}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 3. Smooth & Instant Touch Timeline Track */}
-      <div className="relative h-28 bg-black p-3 flex items-center overflow-x-auto space-x-3 scrollbar-none">
-        {/* Central Playhead Indicator */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-orange-500 z-20 pointer-events-none flex flex-col items-center">
-          <div className="w-2 h-2 bg-orange-500 rotate-45 -mt-1" />
-        </div>
-
-        {clips.map((clip, index) => {
-          const isSelected = selectedClipIndex === index;
-          return (
-            <div
-              key={clip.id || index}
-              onPointerDown={(e) => handleClipTap(index, e)}
-              className={`relative flex-shrink-0 h-16 w-32 rounded-lg overflow-hidden cursor-pointer transition-all border-2 touch-manipulation ${
-                isSelected
-                  ? "border-orange-500 scale-105 z-10 shadow-lg shadow-orange-500/30"
-                  : "border-zinc-800 opacity-60 hover:opacity-90"
-              }`}
-              style={{ touchAction: "manipulation" }}
-            >
-              {/* Thumbnail Background Placeholder */}
-              <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-                <span className="text-xs font-bold text-white bg-black/70 px-2 py-0.5 rounded border border-zinc-700">
-                  #{index + 1}
-                </span>
-              </div>
-
-              {/* Selection Yellow Handles (CapCut Style) */}
-              {isSelected && (
-                <>
-                  <div className="absolute left-0 top-0 bottom-0 w-2 bg-orange-500 rounded-l" />
-                  <div className="absolute right-0 top-0 bottom-0 w-2 bg-orange-500 rounded-r" />
-                </>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Add Track Button */}
-        <button 
-          onClick={() => toast("Add new clip")}
-          className="flex-shrink-0 h-16 w-16 rounded-lg border-2 border-dashed border-zinc-700 flex items-center justify-center text-gray-500 hover:text-white hover:border-gray-500 transition"
+    <div className="w-full select-none">
+      {/* unified time readout */}
+      <div className="flex items-center justify-between px-4 pb-1">
+        <button
+          onClick={onToggleMute}
+          className="text-muted-foreground p-1 rounded-lg active:scale-95 transition"
+          aria-label={isMuted ? "Unmute" : "Mute"}
         >
-          <Plus className="w-6 h-6" />
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+        <span className="text-[11px] font-black tabular-nums text-foreground">
+          {fmt(currentTime)} <span className="text-muted-foreground">/ {fmt(totalDuration)}</span>
+        </span>
+        <button
+          onClick={onAdd}
+          className="text-muted-foreground p-1 rounded-lg active:scale-95 transition"
+          aria-label="Add clip"
+        >
+          <Plus className="w-4 h-4" />
         </button>
       </div>
 
+      <div className="relative">
+        {/* fixed center playhead */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-orange-500 z-20 pointer-events-none" />
+
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          onPointerDown={markUser}
+          onTouchStart={markUser}
+          onWheel={markUser}
+          className="overflow-x-auto overflow-y-hidden scrollbar-none"
+          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
+        >
+          {/* video track — continuous, zero gaps, white dividers */}
+          <div className="flex items-center h-16">
+            {clips.map((clip, i) => {
+              const selected = i === activeIndex;
+              return (
+                <div
+                  key={clip.id || i}
+                  onPointerUp={() => onSelect?.(i)}
+                  style={{ width: CELL }}
+                  className={`relative h-16 flex-shrink-0 bg-muted overflow-hidden cursor-pointer transition-opacity ${
+                    selected ? "opacity-100 ring-2 ring-inset ring-orange-500 z-10" : "opacity-50"
+                  }`}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-foreground/70">
+                      #{i + 1} · {clipLen(clip).toFixed(1)}s
+                    </span>
+                  </div>
+                  {i > 0 && <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-background" />}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* audio track */}
+          <div className="flex items-center h-8 mt-1">
+            <button
+              onClick={onAddAudio}
+              style={{ minWidth: clips.length * CELL || CELL }}
+              className={`h-8 flex items-center gap-2 px-3 rounded-md text-[10px] font-bold ${
+                audioLabel
+                  ? "bg-emerald-500/20 text-emerald-700 border border-emerald-500/40"
+                  : "bg-muted text-muted-foreground border border-dashed border-border"
+              }`}
+            >
+              <Music2 className="w-3 h-3" />
+              {audioLabel || "Add audio track"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {isPlaying ? null : null}
     </div>
   );
 }
+
+export default LightTimeline;
