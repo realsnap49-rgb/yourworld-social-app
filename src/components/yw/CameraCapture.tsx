@@ -41,6 +41,8 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   const [flash, setFlash] = useState<Flash>("off");
   const [torchable, setTorchable] = useState(false);
   const [screenFlash, setScreenFlash] = useState(false);
+  const [liveTitle, setLiveTitle] = useState("");
+  const [isLive, setIsLive] = useState(false);
 
   /* ---------- camera boot: force highest native res + fps ---------- */
   const start = useCallback(async (mode: "user" | "environment") => {
