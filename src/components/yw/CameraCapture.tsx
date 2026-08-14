@@ -235,7 +235,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     return () => window.clearInterval(id);
   }, [recording]);
 
-  const shootPhoto = () => {
+  const grabPhoto = () => {
     const v = videoRef.current;
     if (!v) return;
     const canvas = document.createElement("canvas");
@@ -254,6 +254,21 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
       if (!blob) return;
       onCapture([new File([blob], `yw_${Date.now()}.jpg`, { type: "image/jpeg" })]);
     }, "image/jpeg", 0.95);
+  };
+
+  const shootPhoto = async () => {
+    if (!flashWanted()) return grabPhoto();
+    if (facing === "user") {
+      setScreenFlash(true);
+      await new Promise((r) => window.setTimeout(r, 220));
+      grabPhoto();
+      window.setTimeout(() => setScreenFlash(false), 140);
+    } else {
+      await setTorch(true);
+      await new Promise((r) => window.setTimeout(r, 260));
+      grabPhoto();
+      window.setTimeout(() => void setTorch(false), 200);
+    }
   };
 
   const startRecording = () => {
@@ -298,16 +313,22 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
     recorderRef.current = rec;
     setElapsed(0);
     setRecording(true);
+    if (flashWanted()) {
+      if (facing === "user") setScreenFlash(true);
+      else void setTorch(true);
+    }
   };
 
   const stopRecording = () => {
     recorderRef.current?.stop();
     recorderRef.current = null;
     setRecording(false);
+    setScreenFlash(false);
+    void setTorch(false);
   };
 
   const onShutter = () => {
-    if (mode === "POST") return shootPhoto();
+    if (mode === "POST") return void shootPhoto();
     if (recording) return stopRecording();
     startRecording();
   };
