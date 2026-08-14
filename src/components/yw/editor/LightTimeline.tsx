@@ -24,6 +24,7 @@ export interface LightTimelineProps {
   onTrim?: (index: number, start: number, end: number) => void;
   onAdd?: () => void;
   onScrub?: (index: number, fraction: number) => void;
+  onReorder?: (from: number, to: number) => void;
 }
 
 const CELL = 112;
@@ -122,11 +123,16 @@ export function LightTimeline({
   onSelect,
   onAdd,
   onScrub,
+  onReorder,
 }: LightTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userScrollRef = useRef(false);
   const userTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const padRef = useRef(0);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const dragRef = useRef<{ index: number; startX: number; moved: boolean } | null>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const lens = useMemo(() => clips.map(clipLen), [clips]);
   const thumbs = useThumbnails(clips);
@@ -172,6 +178,54 @@ export function LightTimeline({
     }, 260);
   }, []);
 
+  // ---- long-press drag to reorder ----
+  const beginPress = (index: number) => (e: React.PointerEvent) => {
+    if (!onReorder) return;
+    const startX = e.clientX;
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => {
+      dragRef.current = { index, startX, moved: false };
+      setDragIndex(index);
+      setDragOffset(0);
+      if (navigator.vibrate) try { navigator.vibrate(12); } catch { /* ignore */ }
+    }, 320);
+
+    const move = (ev: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) {
+        if (Math.abs(ev.clientX - startX) > 6 && pressTimer.current) {
+          clearTimeout(pressTimer.current);
+          pressTimer.current = null;
+        }
+        return;
+      }
+      d.moved = true;
+      setDragOffset(ev.clientX - d.startX);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      if (pressTimer.current) {
+        clearTimeout(pressTimer.current);
+        pressTimer.current = null;
+      }
+      const d = dragRef.current;
+      dragRef.current = null;
+      if (d) {
+        const shift = Math.round(dragOffsetRef.current / CELL);
+        const to = Math.min(clips.length - 1, Math.max(0, d.index + shift));
+        if (to !== d.index) onReorder?.(d.index, to);
+      }
+      setDragIndex(null);
+      setDragOffset(0);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  const dragOffsetRef = useRef(0);
+  dragOffsetRef.current = dragOffset;
+
   return (
     <div className="w-full select-none">
       {/* unified time readout */}
@@ -215,9 +269,19 @@ export function LightTimeline({
               return (
                 <div
                   key={clip.id || i}
-                  onPointerUp={() => onSelect?.(i)}
-                  style={{ width: CELL }}
+                  onPointerDown={beginPress(i)}
+                  onPointerUp={() => {
+                    if (dragIndex === null) onSelect?.(i);
+                  }}
+                  style={{
+                    width: CELL,
+                    transform: dragIndex === i ? `translateX(${dragOffset}px) scale(1.06)` : undefined,
+                    zIndex: dragIndex === i ? 30 : undefined,
+                    touchAction: dragIndex === i ? "none" : undefined,
+                  }}
                   className={`relative h-16 flex-shrink-0 bg-muted overflow-hidden cursor-pointer transition-opacity ${
+                    dragIndex === i ? "shadow-xl ring-2 ring-inset ring-orange-500 opacity-100" : ""
+                  } ${
                     selected ? "opacity-100 ring-2 ring-inset ring-orange-500 z-10" : "opacity-50"
                   }`}
                 >
