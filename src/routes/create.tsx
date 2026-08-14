@@ -78,6 +78,41 @@ export function CreateStudioPage() {
   const [playFraction, setPlayFraction] = useState(0);
   const [customTextInput, setCustomTextInput] = useState("");
   const [showMusicPicker, setShowMusicPicker] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [exportRes, setExportRes] = useState<"8K" | "4K" | "2K" | "HD">("4K");
+  const [exportStage, setExportStage] = useState<"choose" | "saving" | "done">("choose");
+  const [exportProgress, setExportProgress] = useState(0);
+
+  const startExport = () => {
+    setExportStage("saving");
+    setExportProgress(0);
+    const step = () => {
+      setExportProgress((p) => {
+        if (p >= 100) return 100;
+        const next = Math.min(100, p + Math.random() * 9 + 3);
+        if (next >= 100) {
+          window.setTimeout(() => setExportStage("done"), 300);
+          return 100;
+        }
+        window.setTimeout(step, 120);
+        return next;
+      });
+    };
+    window.setTimeout(step, 150);
+  };
+
+  const saveToGallery = () => {
+    const url = clips[activeClipIndex]?.url || clips[0]?.url;
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `yourworld-${exportRes}-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast.success(`Saved ${exportRes} video to your gallery`);
+    setShowExport(false);
+  };
   const [audioTrack, setAudioTrack] = useState<
     { id: string; title: string; url: string; start: number; duration: number } | null
   >(null);
@@ -461,14 +496,99 @@ export function CreateStudioPage() {
             <span className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">Edit</span>
             <button
               onClick={() => {
-                toast.success("Video rendered & saved to gallery");
-                navigate({ to: "/" });
+                setExportStage("choose");
+                setExportProgress(0);
+                setShowExport(true);
               }}
               className="bg-orange-500 hover:bg-orange-600 text-white font-black px-3.5 py-1.5 rounded-lg text-[10px] uppercase tracking-wide shadow-sm active:scale-95 transition"
             >
               SAVE
             </button>
           </div>
+
+          {/* EXPORT MODAL */}
+          {showExport && (
+            <div className="absolute inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center">
+              <div className="w-full sm:max-w-sm bg-card text-foreground rounded-t-2xl sm:rounded-2xl p-5 shadow-xl">
+                {exportStage === "choose" && (
+                  <>
+                    <h2 className="text-sm font-black uppercase tracking-wide mb-1">Export video</h2>
+                    <p className="text-[11px] text-muted-foreground mb-4">Choose output resolution</p>
+                    <div className="grid grid-cols-4 gap-2 mb-5">
+                      {(["8K", "4K", "2K", "HD"] as const).map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => setExportRes(r)}
+                          className={`py-2.5 rounded-lg text-xs font-bold border transition ${
+                            exportRes === r
+                              ? "bg-orange-500 text-white border-orange-500"
+                              : "bg-muted text-foreground border-border"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowExport(false)}
+                        className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-xs font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={startExport}
+                        className="flex-1 py-2.5 rounded-lg bg-orange-500 text-white text-xs font-black uppercase"
+                      >
+                        Export {exportRes}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {exportStage === "saving" && (
+                  <>
+                    <h2 className="text-sm font-black uppercase tracking-wide mb-1">Saving {exportRes}</h2>
+                    <p className="text-[11px] text-muted-foreground mb-4">Rendering to your device gallery…</p>
+                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-orange-500 transition-all duration-150"
+                        style={{ width: `${exportProgress}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 text-right text-[11px] font-mono text-muted-foreground">
+                      {Math.round(exportProgress)}%
+                    </div>
+                  </>
+                )}
+
+                {exportStage === "done" && (
+                  <>
+                    <h2 className="text-sm font-black uppercase tracking-wide mb-1">Export complete</h2>
+                    <p className="text-[11px] text-muted-foreground mb-4">{exportRes} video is ready.</p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => {
+                          setShowExport(false);
+                          toast.success("Reel posted");
+                          navigate({ to: "/reels" });
+                        }}
+                        className="w-full py-3 rounded-lg bg-orange-500 text-white text-xs font-black uppercase tracking-wide"
+                      >
+                        Post Reel
+                      </button>
+                      <button
+                        onClick={saveToGallery}
+                        className="w-full py-3 rounded-lg bg-muted text-foreground text-xs font-black uppercase tracking-wide"
+                      >
+                        Save to Gallery
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* FULL-WIDTH VIDEO CANVAS */}
           <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-white overflow-hidden">
