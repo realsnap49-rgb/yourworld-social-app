@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   SwitchCamera,
@@ -8,6 +9,7 @@ import {
   ZoomOut,
   Zap,
   ZapOff,
+  Radio,
 } from "lucide-react";
 
 type Mode = "POST" | "REEL" | "LIVE";
@@ -41,6 +43,8 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   const [flash, setFlash] = useState<Flash>("off");
   const [torchable, setTorchable] = useState(false);
   const [screenFlash, setScreenFlash] = useState(false);
+  const [liveTitle, setLiveTitle] = useState("");
+  const [isLive, setIsLive] = useState(false);
 
   /* ---------- camera boot: force highest native res + fps ---------- */
   const start = useCallback(async (mode: "user" | "environment") => {
@@ -328,6 +332,16 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   };
 
   const onShutter = () => {
+    if (mode === "LIVE") {
+      if (isLive) {
+        setIsLive(false);
+        toast.success("Live ended");
+        return;
+      }
+      setIsLive(true);
+      toast.success(liveTitle ? `Going live: ${liveTitle}` : "You are live!");
+      return;
+    }
     if (mode === "POST") return void shootPhoto();
     if (recording) return stopRecording();
     startRecording();
@@ -372,6 +386,34 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
       {error && (
         <div className="absolute inset-x-6 top-1/2 z-30 -translate-y-1/2 rounded-2xl bg-zinc-900/90 p-4 text-center text-xs font-semibold">
           {error}
+        </div>
+      )}
+
+      {/* LIVE TITLE OVERLAY */}
+      {mode === "LIVE" && !isLive && (
+        <div className="absolute inset-x-0 top-20 z-30 flex justify-center px-6">
+          <div className="w-full max-w-sm rounded-2xl border border-red-500/40 bg-black/70 p-3 backdrop-blur-md">
+            <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-red-400">
+              <Radio size={12} /> Live Title
+            </label>
+            <input
+              type="text"
+              value={liveTitle}
+              onChange={(e) => setLiveTitle(e.target.value)}
+              maxLength={80}
+              placeholder="Give your live a title..."
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white placeholder-white/40 focus:border-red-500 focus:outline-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* LIVE BADGE */}
+      {isLive && (
+        <div className="absolute left-1/2 top-20 z-30 -translate-x-1/2 flex items-center gap-2 rounded-full bg-red-500/90 px-4 py-1.5 text-[11px] font-black uppercase tracking-wide shadow-lg">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+          LIVE
+          {liveTitle && <span className="ml-1 font-bold normal-case opacity-90">· {liveTitle}</span>}
         </div>
       )}
 
@@ -473,16 +515,27 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
 
           <button
             onClick={onShutter}
-            aria-label={recording ? "Stop recording" : "Capture"}
-            className="grid h-20 w-20 place-items-center rounded-full border-4 border-white active:scale-95"
+            aria-label={mode === "LIVE" ? (isLive ? "End live" : "Go live") : recording ? "Stop recording" : "Capture"}
+            className={
+              mode === "LIVE"
+                ? "flex h-16 items-center gap-2 rounded-full border-2 border-red-400 bg-red-500/90 px-8 font-black uppercase tracking-wide text-white shadow-[0_0_24px_rgba(239,68,68,0.6)] active:scale-95"
+                : "grid h-20 w-20 place-items-center rounded-full border-4 border-white active:scale-95"
+            }
           >
-            <span
-              className={
-                recording
-                  ? "h-7 w-7 rounded-md bg-red-500 transition-all"
-                  : "h-14 w-14 rounded-full bg-red-500 transition-all"
-              }
-            />
+            {mode === "LIVE" ? (
+              <>
+                <Radio size={20} className={isLive ? "animate-pulse" : ""} />
+                {isLive ? "End Live" : "Go Live"}
+              </>
+            ) : (
+              <span
+                className={
+                  recording
+                    ? "h-7 w-7 rounded-md bg-red-500 transition-all"
+                    : "h-14 w-14 rounded-full bg-red-500 transition-all"
+                }
+              />
+            )}
           </button>
 
           <button onClick={onDrafts} className="flex flex-col items-center gap-1 active:scale-90">
