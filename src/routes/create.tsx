@@ -771,6 +771,16 @@ export function CreateStudioPage() {
                 );
               }}
               onAdd={() => fileInputRef.current?.click()}
+              onReorder={(from, to) => {
+                setClips((prev) => {
+                  const next = [...prev];
+                  const [moved] = next.splice(from, 1);
+                  next.splice(to, 0, moved);
+                  return next;
+                });
+                setActiveClipIndex(to);
+                toast.success("Clip moved");
+              }}
               onScrub={(i, frac) => {
                 const v = videoRef.current;
                 scrubbingRef.current = true;
