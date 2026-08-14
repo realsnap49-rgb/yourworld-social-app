@@ -99,7 +99,7 @@ export function ChatThreadPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [activeCall, setActiveCall] = useState<"audio" | "video" | null>(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionSheetId, setActionSheetId] = useState<string | null>(null);
