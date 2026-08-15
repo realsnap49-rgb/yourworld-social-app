@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Search, SquarePen, MessageSquare } from "lucide-react";
+import { Search, SquarePen, MessageSquare, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveThreadPeer } from "@/lib/social-data";
 
@@ -18,9 +18,21 @@ interface ChatThread {
   avatarUrl?: string;
 }
 
+interface DiscoverProfile {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
 function ChatListPage() {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [peopleQuery, setPeopleQuery] = useState("");
+  const [people, setPeople] = useState<DiscoverProfile[]>([]);
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const [me, setMe] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadThreads() {
@@ -82,6 +94,35 @@ function ChatListPage() {
     };
   }, []);
 
+  // Load real registered accounts for the "new chat" picker.
+  useEffect(() => {
+    if (!newChatOpen) return;
+    let alive = true;
+    setPeopleLoading(true);
+    const t = setTimeout(async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const uid = sessionData.session?.user.id ?? null;
+      if (alive) setMe(uid);
+
+      let q = supabase
+        .from("profiles")
+        .select("id,username,display_name,avatar_url")
+        .order("display_name", { ascending: true })
+        .limit(50);
+      const term = peopleQuery.trim();
+      if (term) q = q.or(`username.ilike.%${term}%,display_name.ilike.%${term}%`);
+
+      const { data } = await q;
+      if (!alive) return;
+      setPeople(((data ?? []) as DiscoverProfile[]).filter((p) => p.id !== uid));
+      setPeopleLoading(false);
+    }, 220);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [newChatOpen, peopleQuery]);
+
   const filteredThreads = threads.filter((t) =>
     t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
@@ -93,10 +134,8 @@ function ChatListPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Chats</h1>
         <button
-          onClick={() => {
-            const newId = prompt("Enter User ID or Username to start chat:");
-            if (newId) window.location.href = `/chat/${newId}`;
-          }}
+          onClick={() => setNewChatOpen(true)}
+          aria-label="Start a new chat"
           className="p-2 hover:bg-zinc-800 rounded-full"
         >
           <SquarePen className="h-6 w-6" />
@@ -152,6 +191,70 @@ function ChatListPage() {
           ))
         )}
       </div>
+
+      {newChatOpen ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/95 p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">New chat</h2>
+            <button
+              onClick={() => setNewChatOpen(false)}
+              aria-label="Close"
+              className="rounded-full p-2 hover:bg-zinc-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              autoFocus
+              value={peopleQuery}
+              onChange={(e) => setPeopleQuery(e.target.value)}
+              placeholder="Search people by name or username"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-900 py-2 pl-9 pr-4 text-sm focus:border-zinc-700 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex-1 space-y-1 overflow-y-auto">
+            {peopleLoading ? (
+              <p className="py-6 text-center text-sm text-gray-500">Searching…</p>
+            ) : people.length === 0 ? (
+              <p className="py-6 text-center text-sm text-gray-500">No accounts found.</p>
+            ) : (
+              people.map((p) => (
+                <Link
+                  key={p.id}
+                  to="/chat/$threadId"
+                  params={{ threadId: p.id }}
+                  onClick={() => setNewChatOpen(false)}
+                  className="flex items-center gap-3 rounded-xl p-3 hover:bg-zinc-900"
+                >
+                  {p.avatar_url ? (
+                    <img
+                      src={p.avatar_url}
+                      alt=""
+                      className="h-11 w-11 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 text-base font-bold">
+                      {(p.display_name || p.username || "?").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
+                      {p.display_name || p.username || `User ${p.id.slice(0, 6)}`}
+                    </p>
+                    {p.username ? (
+                      <p className="truncate text-xs text-gray-400">@{p.username}</p>
+                    ) : null}
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
