@@ -342,7 +342,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
 
       const callId = uid();
-      let myName = peerName ? "Guest" : "Guest";
+      let myName = "Guest";
       if (!isGuest) {
         const { data: myProfile } = await supabase
           .from("profiles")
