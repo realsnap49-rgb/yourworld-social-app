@@ -275,29 +275,81 @@ export function useThreadMessages(threadId: string) {
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null));
     void load();
-    const channel = supabase
-      .channel(`thread-${threadId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "direct_messages", filter: `thread_id=eq.${threadId}` },
-        () => void load(),
-      )
-      .subscribe();
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let alive = true;
+
+    const upsert = (row: DbMessage) =>
+      setMessages((prev) =>
+        prev.some((m) => m.id === row.id)
+          ? prev.map((m) => (m.id === row.id ? row : m))
+          : [...prev, row].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+      );
+
+    const subscribe = () => {
+      if (!alive) return;
+      channel = supabase
+        .channel(`thread-${threadId}-${Math.random().toString(36).slice(2)}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "direct_messages", filter: `thread_id=eq.${threadId}` },
+          (payload) => {
+            // Apply the change instantly from the payload, no round-trip needed.
+            if (payload.eventType === "DELETE") {
+              const gone = (payload.old as { id?: string })?.id;
+              if (gone) setMessages((prev) => prev.filter((m) => m.id !== gone));
+              return;
+            }
+            const row = payload.new as DbMessage | undefined;
+            if (row?.id) upsert(row);
+            else void load();
+          },
+        )
+        .subscribe((status) => {
+          // Realtime sockets drop on sleep / network changes — rejoin and resync.
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            if (channel) void supabase.removeChannel(channel);
+            channel = null;
+            if (!alive) return;
+            retry = setTimeout(subscribe, 1500);
+          } else if (status === "SUBSCRIBED") {
+            void load();
+          }
+        });
+    };
+    subscribe();
+
+    const resync = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("online", resync);
+
     return () => {
-      void supabase.removeChannel(channel);
+      alive = false;
+      if (retry) clearTimeout(retry);
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("online", resync);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [threadId, load]);
 
   const send = useCallback(
     async (payload: { content?: string; media_url?: string | null; media_type?: string }) => {
       if (!me) return { error: "no-session" as const };
-      const { error } = await supabase.from("direct_messages").insert({
+      const { data, error } = await supabase.from("direct_messages").insert({
         thread_id: threadId,
         sender_id: me,
         content: payload.content ?? "",
         media_url: payload.media_url ?? null,
         media_type: payload.media_type ?? "text",
-      });
+      }).select("*").maybeSingle();
+      // Show my own message instantly instead of waiting for the realtime echo.
+      if (data) {
+        const row = data as DbMessage;
+        setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+      }
       return { error: error?.message ?? null };
     },
     [me, threadId],
