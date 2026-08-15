@@ -48,7 +48,7 @@ function ReelsPage() {
   return (
     <main
       id="yw-reels-scroller"
-      className="no-scrollbar h-[calc(100dvh-4.75rem)] snap-y snap-mandatory overflow-y-scroll bg-background"
+      className="no-scrollbar h-[calc(100dvh-4.75rem)] snap-y snap-mandatory overflow-y-scroll overscroll-y-contain bg-background [-webkit-overflow-scrolling:touch] [scroll-snap-stop:always] [scroll-behavior:smooth]"
       aria-label="Reels"
     >
       <ReelsList />

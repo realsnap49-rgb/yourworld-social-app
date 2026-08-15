@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@/lib/yw-data";
 
@@ -56,8 +56,12 @@ export function useSocialPosts(kind: "post" | "reel") {
   const [rows, setRows] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<string | null>(null);
+  // While the user is interacting we keep the optimistic state and skip
+  // realtime refetches so the UI never flickers back to the old value.
+  const muteUntil = useRef(0);
 
   const load = useCallback(async () => {
+    if (Date.now() < muteUntil.current) return;
     const { data: sessionData } = await supabase.auth.getSession();
     const uid = sessionData.session?.user.id ?? null;
     setMe(uid);
@@ -114,26 +118,38 @@ export function useSocialPosts(kind: "post" | "reel") {
   const toggleLike = useCallback(
     async (postId: string) => {
       if (!me) return;
-      const row = rows.find((r) => r.id === postId);
-      if (!row) return;
-      // optimistic
+      muteUntil.current = Date.now() + 1500;
+      let wasLiked = false;
+      // optimistic, instant
       setRows((prev) =>
-        prev.map((r) =>
-          r.id === postId
-            ? { ...r, likedByMe: !r.likedByMe, likeCount: r.likeCount + (r.likedByMe ? -1 : 1) }
-            : r,
-        ),
+        prev.map((r) => {
+          if (r.id !== postId) return r;
+          wasLiked = !!r.likedByMe;
+          return { ...r, likedByMe: !r.likedByMe, likeCount: r.likeCount + (r.likedByMe ? -1 : 1) };
+        }),
       );
-      if (row.likedByMe) {
+      if (wasLiked) {
         await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", me);
       } else {
         await supabase.from("post_likes").insert({ post_id: postId, user_id: me });
       }
     },
-    [me, rows],
+    [me],
   );
 
-  return { posts: rows, loading, currentUserId: me, toggleLike, reload: load };
+  /** Optimistically bump a post's comment count (call when a comment is posted). */
+  const bumpComment = useCallback((postId: string, delta = 1) => {
+    muteUntil.current = Date.now() + 1500;
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === postId
+          ? { ...r, commentCount: Math.max(0, r.commentCount + delta) }
+          : r,
+      ),
+    );
+  }, []);
+
+  return { posts: rows, loading, currentUserId: me, toggleLike, bumpComment, reload: load };
 }
 
 export type DbMessage = {
