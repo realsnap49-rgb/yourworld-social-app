@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@/lib/yw-data";
 
@@ -150,46 +150,6 @@ export function useSocialPosts(kind: "post" | "reel") {
   }, []);
 
   return { posts: rows, loading, currentUserId: me, toggleLike, bumpComment, reload: load };
-}
-
-function _unusedLegacyToggle() {
-  return null;
-}
-
-function _legacy() {
-  const noop = (postId: string, rows: SocialPost[], me: string | null, setRows: unknown) => {
-    void postId;
-    void rows;
-    void me;
-    void setRows;
-  };
-  return noop;
-}
-
-function _dead() {
-  const legacy = async (
-    postId: string,
-    me: string | null,
-    rows: SocialPost[],
-    setRows: (fn: (prev: SocialPost[]) => SocialPost[]) => void,
-  ) => {
-      if (!me) return;
-      const row = rows.find((r) => r.id === postId);
-      if (!row) return;
-      setRows((prev) =>
-        prev.map((r) =>
-          r.id === postId
-            ? { ...r, likedByMe: !r.likedByMe, likeCount: r.likeCount + (r.likedByMe ? -1 : 1) }
-            : r,
-        ),
-      );
-      if (row.likedByMe) {
-        await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", me);
-      } else {
-        await supabase.from("post_likes").insert({ post_id: postId, user_id: me });
-      }
-  };
-  return legacy;
 }
 
 export type DbMessage = {
