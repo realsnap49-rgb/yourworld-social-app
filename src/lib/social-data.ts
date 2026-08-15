@@ -193,17 +193,6 @@ export async function publishReel(opts: {
   return { error: error?.message ?? null };
 }
 
-type _DbMessageUnused = {
-  id: string;
-  thread_id: string;
-  sender_id: string;
-  content: string;
-  media_url: string | null;
-  media_type: string;
-  is_read: boolean;
-  created_at: string;
-};
-
 /** Live messages for one chat thread. */
 export function useThreadMessages(threadId: string) {
   const [messages, setMessages] = useState<DbMessage[]>([]);
