@@ -20,6 +20,7 @@ import { MomentProvider } from "@/lib/moment-store";
 import { AuthProvider, AuthGate } from "@/lib/auth-store";
 import { SearchProvider } from "@/lib/search-store";
 import { ChannelProvider } from "@/lib/channel-store";
+import { CallProvider } from "@/lib/call-store";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -153,6 +154,7 @@ function RootComponent() {
             <MomentProvider>
               <SearchProvider>
                 <ChannelProvider>
+                <CallProvider>
                 {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                 <AuthGate>
                   <div className={cn("mx-auto min-h-screen w-full max-w-lg", hideNav ? "" : "pb-20")}>
@@ -161,6 +163,7 @@ function RootComponent() {
                   {!hideNav && <BottomNav onOpenCreate={() => { window.location.href = '/create'; }} />}
                 </AuthGate>
                 <Toaster position="top-center" />
+                </CallProvider>
                 </ChannelProvider>
               </SearchProvider>
             </MomentProvider>
