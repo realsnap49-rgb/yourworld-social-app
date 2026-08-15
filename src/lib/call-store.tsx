@@ -35,12 +35,31 @@ type Ctx = {
     peerName?: string;
     mode: CallMode;
   }) => Promise<void>;
+  /** The id other people can call you on — Supabase user id, or a temporary guest session id. */
+  myCallId: string | null;
+  isGuest: boolean;
 };
 
-const CallCtx = createContext<Ctx>({ startCall: async () => {} });
+const CallCtx = createContext<Ctx>({ startCall: async () => {}, myCallId: null, isGuest: true });
 export const useCall = () => useContext(CallCtx);
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+const GUEST_KEY = "yw.guest-call-id";
+
+/** Stable per-browser temporary id so signed-out users can still ring and be rung. */
+function getGuestCallId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const existing = window.localStorage.getItem(GUEST_KEY);
+    if (existing) return existing;
+    const fresh = `guest-${uid()}`;
+    window.localStorage.setItem(GUEST_KEY, fresh);
+    return fresh;
+  } catch {
+    return `guest-${uid()}`;
+  }
+}
 
 /** Simple WebAudio ringtone so incoming calls actually ring on the device. */
 function useRingtone(active: boolean) {
@@ -91,7 +110,10 @@ function useRingtone(active: boolean) {
 }
 
 export function CallProvider({ children }: { children: ReactNode }) {
-  const [me, setMe] = useState<string | null>(null);
+  const [authId, setAuthId] = useState<string | null>(null);
+  const [guestId, setGuestId] = useState<string | null>(null);
+  const me = authId ?? guestId;
+  const isGuest = !authId;
   const [call, setCall] = useState<CallState | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [micOn, setMicOn] = useState(true);
@@ -110,9 +132,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   /* ---------- identity ---------- */
   useEffect(() => {
-    void supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? null));
+    setGuestId(getGuestCallId());
+    void supabase.auth.getUser().then(({ data }) => setAuthId(data.user?.id ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setMe(session?.user.id ?? null);
+      setAuthId(session?.user.id ?? null);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -298,11 +321,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const startCall = useCallback<Ctx["startCall"]>(
     async ({ threadId, peerId, peerName, mode }) => {
       if (!me) {
-        toast.error("Sign in to make calls");
+        toast.error("Calling isn't ready yet — try again in a moment");
         return;
       }
       let target = peerId ?? null;
-      if (!target && threadId) {
+      if (!target && threadId && !isGuest) {
         const { data } = await supabase
           .from("thread_participants")
           .select("user_id")
@@ -310,17 +333,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
         target = (data ?? []).map((r) => r.user_id).find((id) => id !== me) ?? null;
       }
       if (!target) {
-        toast.error("This person isn't reachable for calls yet");
+        toast.error(
+          isGuest
+            ? "Guest calls need the other person's call ID"
+            : "This person isn't reachable for calls yet",
+        );
         return;
       }
 
       const callId = uid();
-      const { data: myProfile } = await supabase
-        .from("profiles")
-        .select("display_name, username")
-        .eq("id", me)
-        .maybeSingle();
-      const myName = myProfile?.display_name || myProfile?.username || "Someone";
+      let myName = "Guest";
+      if (!isGuest) {
+        const { data: myProfile } = await supabase
+          .from("profiles")
+          .select("display_name, username")
+          .eq("id", me)
+          .maybeSingle();
+        myName = myProfile?.display_name || myProfile?.username || "Someone";
+      }
       setCall({ callId, mode, peerId: target, peerName: peerName ?? "Calling…", incoming: false });
       setPhase("outgoing");
 
@@ -357,7 +387,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       });
     },
-    [me, getMedia, createPeer, openSignalChannel, teardown],
+    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown],
   );
 
   const accept = useCallback(async () => {
@@ -416,7 +446,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => () => teardown(), [teardown]);
 
-  const value = useMemo(() => ({ startCall }), [startCall]);
+  const value = useMemo(
+    () => ({ startCall, myCallId: me, isGuest }),
+    [startCall, me, isGuest],
+  );
 
   const statusText =
     phase === "incoming"
