@@ -315,6 +315,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
 
       const callId = uid();
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("display_name, username")
+        .eq("id", me)
+        .maybeSingle();
+      const myName = myProfile?.display_name || myProfile?.username || "Someone";
       setCall({ callId, mode, peerId: target, peerName: peerName ?? "Calling…", incoming: false });
       setPhase("outgoing");
 
@@ -341,7 +347,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 callId,
                 mode,
                 fromId: me,
-                fromName: peerName ? undefined : undefined,
+                fromName: myName,
                 threadId,
               },
             })
