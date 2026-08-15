@@ -206,3 +206,65 @@ export function useThreadMessages(threadId: string) {
     [messages, loading, me, send, remove, load],
   );
 }
+
+/** Resolves the other participant of a DM thread (id + display name). */
+export async function resolveThreadPeer(
+  threadId: string,
+  me: string | null,
+): Promise<{ peerId: string | null; peerName: string; avatarUrl: string | null }> {
+  let peerId: string | null = null;
+
+  const { data: parts } = await supabase
+    .from("thread_participants")
+    .select("user_id")
+    .eq("thread_id", threadId);
+  peerId = (parts ?? []).map((p) => p.user_id).find((id) => id !== me) ?? null;
+
+  if (!peerId) {
+    // Fall back to whoever has sent a message in this thread.
+    const { data: msgs } = await supabase
+      .from("direct_messages")
+      .select("sender_id")
+      .eq("thread_id", threadId)
+      .limit(50);
+    peerId = (msgs ?? []).map((m) => m.sender_id).find((id) => id !== me) ?? null;
+  }
+
+  // A thread id can also simply be the peer's user id (deep link / new chat).
+  if (!peerId && /^[0-9a-f-]{36}$/i.test(threadId) && threadId !== me) peerId = threadId;
+
+  if (!peerId) return { peerId: null, peerName: "Unknown user", avatarUrl: null };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar_url")
+    .eq("id", peerId)
+    .maybeSingle();
+
+  return {
+    peerId,
+    peerName:
+      profile?.display_name || profile?.username || `User ${peerId.slice(0, 6)}`,
+    avatarUrl: profile?.avatar_url ?? null,
+  };
+}
+
+export function useThreadPeer(threadId: string, me: string | null) {
+  const [peer, setPeer] = useState<{
+    peerId: string | null;
+    peerName: string;
+    avatarUrl: string | null;
+  }>({ peerId: null, peerName: "", avatarUrl: null });
+
+  useEffect(() => {
+    let alive = true;
+    void resolveThreadPeer(threadId, me).then((p) => {
+      if (alive) setPeer(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [threadId, me]);
+
+  return peer;
+}

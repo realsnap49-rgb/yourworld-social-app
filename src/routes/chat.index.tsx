@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Search, SquarePen, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveThreadPeer } from "@/lib/social-data";
 
 export const Route = createFileRoute("/chat/")({
   component: ChatListPage,
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/chat/")({
 interface ChatThread {
   id: string;
   name: string;
+  peerId?: string | null;
   lastMessage: string;
   time: string;
   unreadCount?: number;
@@ -22,6 +24,8 @@ function ChatListPage() {
 
   useEffect(() => {
     async function loadThreads() {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const me = sessionData.session?.user.id ?? null;
       // Supabase direct messages table se threads fetch
       const { data, error } = await supabase
         .from("direct_messages")
@@ -35,7 +39,7 @@ function ChatListPage() {
           if (!map.has(msg.thread_id)) {
             map.set(msg.thread_id, {
               id: msg.thread_id,
-              name: `User (${msg.thread_id.slice(0, 4)})`,
+              name: "Loading…",
               lastMessage: msg.content || "Media file",
               time: new Date(msg.created_at).toLocaleTimeString([], {
                 hour: "2-digit",
@@ -45,7 +49,21 @@ function ChatListPage() {
             });
           }
         });
-        setThreads(Array.from(map.values()));
+        const base = Array.from(map.values());
+        setThreads(base);
+
+        const resolved = await Promise.all(
+          base.map(async (t) => {
+            const peer = await resolveThreadPeer(t.id, me);
+            return {
+              ...t,
+              name: peer.peerName,
+              peerId: peer.peerId,
+              avatarUrl: peer.avatarUrl ?? undefined,
+            };
+          }),
+        );
+        setThreads(resolved);
       }
     }
 
