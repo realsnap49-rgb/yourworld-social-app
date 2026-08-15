@@ -159,8 +159,16 @@ export function ChatThreadPage() {
 
   const EMOJIS = ["👍", "❤️", "😂", "🔥", "🎉", "😍", "👏", "🙌", "🚀", "💯"];
 
+  const didFirstScroll = useRef(false);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const id = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: didFirstScroll.current ? "smooth" : "auto",
+        block: "end",
+      });
+      didFirstScroll.current = true;
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages, isRecording]);
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
