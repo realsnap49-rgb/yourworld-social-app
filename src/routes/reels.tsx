@@ -138,6 +138,98 @@ function ReelsList() {
 
 const REEL_DURATION = 15; // seconds per reel (image-backed demo media)
 
+/**
+ * Renders reel media with graceful recovery: if the stored URL fails to load
+ * (expired signed URL, missing public URL) we retry with a freshly resolved
+ * Supabase URL, then with a local blob URL from this session, then fall back
+ * to an image.
+ */
+function ReelMedia({
+  url,
+  type,
+  alt,
+  active,
+  mediaRef,
+}: {
+  url: string;
+  type: string;
+  alt: string;
+  active: boolean;
+  mediaRef: React.MutableRefObject<HTMLElement | null>;
+}) {
+  const [src, setSrc] = useState(url);
+  const [asImage, setAsImage] = useState(!type.startsWith("video"));
+  const tried = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    tried.current = new Set();
+    setSrc(url);
+    setAsImage(!type.startsWith("video"));
+  }, [url, type]);
+
+  const handleError = useCallback(() => {
+    tried.current.add(src);
+    void (async () => {
+      const local = getLocalMedia(url);
+      if (local && !tried.current.has(local)) {
+        setSrc(local);
+        return;
+      }
+      const resolved = await resolveMediaUrl(url);
+      if (resolved && !tried.current.has(resolved)) {
+        setSrc(resolved);
+        return;
+      }
+      setAsImage(true);
+    })();
+  }, [src, url]);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || asImage) return;
+    if (active) void v.play().catch(() => {});
+    else v.pause();
+  }, [active, asImage, src]);
+
+  const className = cn(
+    "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
+    active && asImage && "animate-kenburns",
+  );
+
+  if (asImage) {
+    return (
+      <img
+        ref={(el) => {
+          mediaRef.current = el;
+        }}
+        src={src}
+        alt={alt}
+        decoding="async"
+        loading="eager"
+        onError={handleError}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <video
+      ref={(el) => {
+        videoRef.current = el;
+        mediaRef.current = el;
+      }}
+      src={src}
+      playsInline
+      muted
+      loop
+      preload="metadata"
+      onError={handleError}
+      className={className}
+    />
+  );
+}
+
 function ReelItem({
   reel,
   active,
