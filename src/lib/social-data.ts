@@ -147,6 +147,52 @@ export type DbMessage = {
   created_at: string;
 };
 
+/** Uploads a rendered reel and inserts it into the posts table (kind = "reel"). */
+export async function publishReel(opts: {
+  fileUrl: string;
+  caption?: string;
+  hashtags?: string[];
+  audio?: string | null;
+  allowDownload?: boolean;
+}): Promise<{ error: string | null }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const uid = sessionData.session?.user.id;
+  if (!uid) return { error: "You need to sign in to post a reel." };
+
+  let mediaUrl = opts.fileUrl;
+
+  // Blob/object URLs must be uploaded to storage first.
+  if (/^(blob:|data:)/.test(opts.fileUrl)) {
+    try {
+      const blob = await (await fetch(opts.fileUrl)).blob();
+      const ext = blob.type.includes("webm") ? "webm" : "mp4";
+      const path = `${uid}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("reels")
+        .upload(path, blob, { contentType: blob.type || "video/mp4", upsert: false });
+      if (upErr) return { error: upErr.message };
+      const { data: signed } = await supabase.storage
+        .from("reels")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      mediaUrl = signed?.signedUrl ?? path;
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Upload failed" };
+    }
+  }
+
+  const { error } = await supabase.from("posts").insert({
+    user_id: uid,
+    kind: "reel",
+    media_url: mediaUrl,
+    media_type: "video",
+    caption: opts.caption ?? "",
+    hashtags: opts.hashtags ?? [],
+    audio: opts.audio ?? null,
+    allow_download: opts.allowDownload ?? true,
+  });
+  return { error: error?.message ?? null };
+}
+
 /** Live messages for one chat thread. */
 export function useThreadMessages(threadId: string) {
   const [messages, setMessages] = useState<DbMessage[]>([]);

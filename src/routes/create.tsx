@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
 import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
+import { publishReel } from "@/lib/social-data";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -82,6 +83,7 @@ export function CreateStudioPage() {
   const [exportRes, setExportRes] = useState<"8K" | "4K" | "2K" | "HD">("4K");
   const [exportStage, setExportStage] = useState<"choose" | "saving" | "done">("choose");
   const [exportProgress, setExportProgress] = useState(0);
+  const [posting, setPosting] = useState(false);
 
   const startExport = () => {
     setExportStage("saving");
@@ -112,6 +114,29 @@ export function CreateStudioPage() {
     a.remove();
     toast.success(`Saved ${exportRes} video to your gallery`);
     setShowExport(false);
+  };
+
+  const postReel = async () => {
+    const url = clips[activeClipIndex]?.url || clips[0]?.url;
+    if (!url) {
+      toast.error("Nothing to post yet");
+      return;
+    }
+    setPosting(true);
+    const caption = clips[activeClipIndex]?.textOverlay ?? "";
+    const { error } = await publishReel({
+      fileUrl: url,
+      caption,
+      audio: audioTrack?.title ?? null,
+    });
+    setPosting(false);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    setShowExport(false);
+    toast.success("Reel posted");
+    navigate({ to: "/reels" });
   };
   const [audioTrack, setAudioTrack] = useState<
     { id: string; title: string; url: string; start: number; duration: number } | null
@@ -568,14 +593,11 @@ export function CreateStudioPage() {
                     <p className="text-[11px] text-muted-foreground mb-4">{exportRes} video is ready.</p>
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => {
-                          setShowExport(false);
-                          toast.success("Reel posted");
-                          navigate({ to: "/reels" });
-                        }}
-                        className="w-full py-3 rounded-lg bg-orange-500 text-white text-xs font-black uppercase tracking-wide"
+                        onClick={() => void postReel()}
+                        disabled={posting}
+                        className="w-full py-3 rounded-lg bg-orange-500 text-white text-xs font-black uppercase tracking-wide disabled:opacity-60"
                       >
-                        Post Reel
+                        {posting ? "Posting…" : "Post Reel"}
                       </button>
                       <button
                         onClick={saveToGallery}
