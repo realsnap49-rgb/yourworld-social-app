@@ -76,11 +76,19 @@ function ReelsList() {
     } satisfies Reel,
     author: p.author,
     likedByMe: p.likedByMe,
+    mediaUrl: p.media_url,
+    mediaType: p.media_type,
   }));
 
   const items = live.length
     ? live
-    : reels.map((reel) => ({ reel, author: undefined as User | undefined, likedByMe: undefined }));
+    : reels.map((reel) => ({
+        reel,
+        author: undefined as User | undefined,
+        likedByMe: undefined,
+        mediaUrl: reel.poster,
+        mediaType: "image",
+      }));
   const usingLive = live.length > 0;
 
   useEffect(() => {
@@ -101,7 +109,7 @@ function ReelsList() {
 
   return (
     <>
-      {items.map(({ reel, author, likedByMe }, i) => (
+      {items.map(({ reel, author, likedByMe, mediaUrl, mediaType }, i) => (
         <section
           key={reel.id}
           data-index={i}
@@ -117,6 +125,8 @@ function ReelsList() {
               active={i === active}
               author={author}
               likedByMe={likedByMe}
+              mediaUrl={mediaUrl}
+              mediaType={mediaType}
               onDbLike={usingLive ? () => void toggleDbLike(reel.id) : undefined}
             />
           ) : null}
