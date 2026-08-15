@@ -68,7 +68,6 @@ export function ChatThreadPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const callVideoRef = useRef<HTMLVideoElement>(null);
 
   const [message, setMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
@@ -99,8 +98,6 @@ export function ChatThreadPage() {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [activeCall, setActiveCall] = useState<"audio" | "video" | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -187,18 +184,6 @@ export function ChatThreadPage() {
     return () => clearInterval(timer);
   }, [isRecording]);
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    if (activeCall === "video") {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then((s) => {
-          stream = s;
-          if (callVideoRef.current) callVideoRef.current.srcObject = s;
-        })
-        .catch(console.error);
-    }
-    return () => stream?.getTracks().forEach((t) => t.stop());
-  }, [activeCall]);
 
   const pushLocal = (partial: Omit<Message, "id" | "time" | "ts" | "local">) =>
     setLocalMessages((prev) => [
