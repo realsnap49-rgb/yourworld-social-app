@@ -397,23 +397,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
         config: { broadcast: { self: false } },
       });
       ring.subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          void ring
-            .send({
-              type: "broadcast",
-              event: "ring",
-              payload: {
-                callId,
-                mode,
-                fromId: me,
-                fromName: myName,
-                threadId,
-              },
-            })
-            .finally(() => {
-              setTimeout(() => void supabase.removeChannel(ring), 1000);
-            });
-        }
+        if (status !== "SUBSCRIBED") return;
+        const payload = { callId, mode, fromId: me, fromName: myName, threadId };
+        // Re-send a few times: the receiver may still be re-joining its channel.
+        let sent = 0;
+        const fire = () => {
+          if (phaseRef.current !== "outgoing") {
+            clearInterval(timer);
+            void supabase.removeChannel(ring);
+            return;
+          }
+          void ring.send({ type: "broadcast", event: "ring", payload });
+          if (++sent >= 5) {
+            clearInterval(timer);
+            setTimeout(() => void supabase.removeChannel(ring), 500);
+          }
+        };
+        const timer = setInterval(fire, 1200);
+        fire();
       });
     },
     [me, isGuest, getMedia, createPeer, openSignalChannel, teardown],
