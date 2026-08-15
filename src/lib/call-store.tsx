@@ -279,9 +279,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
   /* ---------- incoming ring listener (per user) ---------- */
   useEffect(() => {
     if (!me) return;
-    const ch = supabase
-      .channel(`calls-user-${me}`, { config: { broadcast: { self: false } } })
-      .on("broadcast", { event: "ring" }, ({ payload }) => {
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let alive = true;
+    const seen = new Set<string>();
+
+    const listen = () => {
+      if (!alive) return;
+      ch = supabase
+        .channel(`calls-user-${me}`, { config: { broadcast: { self: false } } })
+        .on("broadcast", { event: "ring" }, ({ payload }) => {
+        if (!payload?.callId || seen.has(payload.callId)) return;
+        seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
           supabase.channel(`rtc-${payload.callId}`).subscribe((s) => {
@@ -302,15 +311,35 @@ export function CallProvider({ children }: { children: ReactNode }) {
         });
         setPhase("incoming");
       })
-      .on("broadcast", { event: "cancel" }, () => {
+        .on("broadcast", { event: "cancel" }, () => {
         if (phaseRef.current === "incoming") {
           toast.message("Missed call");
           teardown();
         }
       })
-      .subscribe();
+        .subscribe((status) => {
+          // Rejoin automatically so a dropped socket never silences incoming calls.
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            if (ch) void supabase.removeChannel(ch);
+            ch = null;
+            if (alive) retry = setTimeout(listen, 1500);
+          }
+        });
+    };
+    listen();
+
+    const wake = () => {
+      if (document.visibilityState === "visible" && !ch) listen();
+    };
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+
     return () => {
-      void supabase.removeChannel(ch);
+      alive = false;
+      if (retry) clearTimeout(retry);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
+      if (ch) void supabase.removeChannel(ch);
     };
   }, [me, teardown]);
 
@@ -368,23 +397,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
         config: { broadcast: { self: false } },
       });
       ring.subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          void ring
-            .send({
-              type: "broadcast",
-              event: "ring",
-              payload: {
-                callId,
-                mode,
-                fromId: me,
-                fromName: myName,
-                threadId,
-              },
-            })
-            .finally(() => {
-              setTimeout(() => void supabase.removeChannel(ring), 1000);
-            });
-        }
+        if (status !== "SUBSCRIBED") return;
+        const payload = { callId, mode, fromId: me, fromName: myName, threadId };
+        // Re-send a few times: the receiver may still be re-joining its channel.
+        let sent = 0;
+        const fire = () => {
+          if (phaseRef.current !== "outgoing") {
+            clearInterval(timer);
+            void supabase.removeChannel(ring);
+            return;
+          }
+          void ring.send({ type: "broadcast", event: "ring", payload });
+          if (++sent >= 5) {
+            clearInterval(timer);
+            setTimeout(() => void supabase.removeChannel(ring), 500);
+          }
+        };
+        const timer = setInterval(fire, 1200);
+        fire();
       });
     },
     [me, isGuest, getMedia, createPeer, openSignalChannel, teardown],
