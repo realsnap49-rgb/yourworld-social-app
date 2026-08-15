@@ -19,7 +19,7 @@ import { YwAvatar } from "@/components/yw/Avatar";
 import { ShareSheet } from "@/components/yw/ShareSheet";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
 import { byId, formatCount, posts, reels, type Reel, type User } from "@/lib/yw-data";
-import { useSocialPosts } from "@/lib/social-data";
+import { getLocalMedia, resolveMediaUrl, useSocialPosts } from "@/lib/social-data";
 import { useDoubleTapLike, useYw } from "@/lib/yw-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
