@@ -10,6 +10,7 @@ import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { useThreadMessages } from "@/lib/social-data";
+import { useCall } from "@/lib/call-store";
 
 export const Route = createFileRoute("/chat/$threadId")({
   component: ChatThreadPage,
@@ -57,6 +58,7 @@ function MenuItem({
 export function ChatThreadPage() {
   const navigate = useNavigate();
   const { threadId } = Route.useParams();
+  const { startCall } = useCall();
   const {
     messages: dbMessages,
     currentUserId,
@@ -66,7 +68,6 @@ export function ChatThreadPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const callVideoRef = useRef<HTMLVideoElement>(null);
 
   const [message, setMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
@@ -97,8 +98,6 @@ export function ChatThreadPage() {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [activeCall, setActiveCall] = useState<"audio" | "video" | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -185,18 +184,6 @@ export function ChatThreadPage() {
     return () => clearInterval(timer);
   }, [isRecording]);
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    if (activeCall === "video") {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then((s) => {
-          stream = s;
-          if (callVideoRef.current) callVideoRef.current.srcObject = s;
-        })
-        .catch(console.error);
-    }
-    return () => stream?.getTracks().forEach((t) => t.stop());
-  }, [activeCall]);
 
   const pushLocal = (partial: Omit<Message, "id" | "time" | "ts" | "local">) =>
     setLocalMessages((prev) => [
@@ -301,8 +288,20 @@ export function ChatThreadPage() {
         </div>
 
         <div className="flex items-center gap-4 text-zinc-300">
-          <button onClick={() => setActiveCall("audio")} className="hover:text-white"><Phone size={20} /></button>
-          <button onClick={() => setActiveCall("video")} className="hover:text-white"><Video size={20} /></button>
+          <button
+            onClick={() => void startCall({ threadId, peerName: displayName, mode: "audio" })}
+            aria-label="Voice call"
+            className="hover:text-white"
+          >
+            <Phone size={20} />
+          </button>
+          <button
+            onClick={() => void startCall({ threadId, peerName: displayName, mode: "video" })}
+            aria-label="Video call"
+            className="hover:text-white"
+          >
+            <Video size={20} />
+          </button>
           <button onClick={() => setShowOptionsMenu(!showOptionsMenu)} className="hover:text-white"><MoreVertical size={20} /></button>
         </div>
 
@@ -525,33 +524,6 @@ export function ChatThreadPage() {
         )}
       </div>
 
-      {/* CALL MODAL */}
-      {activeCall && (
-        <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col justify-between p-6 text-white animate-in fade-in duration-200">
-          {activeCall === "video" && (
-            <video ref={callVideoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover z-0" />
-          )}
-
-          <div className="relative z-10 flex flex-col items-center gap-3 mt-12 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-3xl font-bold shadow-2xl">
-              U
-            </div>
-            <h2 className="text-xl font-bold">Active User</h2>
-            <span className="text-xs text-emerald-400 font-bold animate-pulse">
-              {activeCall === "video" ? "Video Call Connected..." : "Audio Call Connected..."}
-            </span>
-          </div>
-
-          <div className="relative z-10 flex items-center justify-center gap-6 mb-10">
-            <button onClick={() => setIsMuted(!isMuted)} className={`p-4 rounded-full backdrop-blur-md ${isMuted ? 'bg-red-500 text-white' : 'bg-zinc-800/80 text-white'}`}>
-              <MicOff size={22} />
-            </button>
-            <button onClick={() => setActiveCall(null)} className="p-5 bg-red-600 text-white rounded-full shadow-2xl active:scale-90">
-              <X size={26} />
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );
