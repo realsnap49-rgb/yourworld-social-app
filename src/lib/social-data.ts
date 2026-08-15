@@ -56,8 +56,12 @@ export function useSocialPosts(kind: "post" | "reel") {
   const [rows, setRows] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<string | null>(null);
+  // While the user is interacting we keep the optimistic state and skip
+  // realtime refetches so the UI never flickers back to the old value.
+  const muteUntil = useRef(0);
 
   const load = useCallback(async () => {
+    if (Date.now() < muteUntil.current) return;
     const { data: sessionData } = await supabase.auth.getSession();
     const uid = sessionData.session?.user.id ?? null;
     setMe(uid);
@@ -114,9 +118,64 @@ export function useSocialPosts(kind: "post" | "reel") {
   const toggleLike = useCallback(
     async (postId: string) => {
       if (!me) return;
+      muteUntil.current = Date.now() + 1500;
+      let wasLiked = false;
+      // optimistic, instant
+      setRows((prev) =>
+        prev.map((r) => {
+          if (r.id !== postId) return r;
+          wasLiked = !!r.likedByMe;
+          return { ...r, likedByMe: !r.likedByMe, likeCount: r.likeCount + (r.likedByMe ? -1 : 1) };
+        }),
+      );
+      if (wasLiked) {
+        await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", me);
+      } else {
+        await supabase.from("post_likes").insert({ post_id: postId, user_id: me });
+      }
+    },
+    [me],
+  );
+
+  /** Optimistically bump a post's comment count (call when a comment is posted). */
+  const bumpComment = useCallback((postId: string, delta = 1) => {
+    muteUntil.current = Date.now() + 1500;
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === postId
+          ? { ...r, commentCount: Math.max(0, r.commentCount + delta) }
+          : r,
+      ),
+    );
+  }, []);
+
+  return { posts: rows, loading, currentUserId: me, toggleLike, bumpComment, reload: load };
+}
+
+function _unusedLegacyToggle() {
+  return null;
+}
+
+function _legacy() {
+  const noop = (postId: string, rows: SocialPost[], me: string | null, setRows: unknown) => {
+    void postId;
+    void rows;
+    void me;
+    void setRows;
+  };
+  return noop;
+}
+
+function _dead() {
+  const legacy = async (
+    postId: string,
+    me: string | null,
+    rows: SocialPost[],
+    setRows: (fn: (prev: SocialPost[]) => SocialPost[]) => void,
+  ) => {
+      if (!me) return;
       const row = rows.find((r) => r.id === postId);
       if (!row) return;
-      // optimistic
       setRows((prev) =>
         prev.map((r) =>
           r.id === postId
@@ -129,11 +188,8 @@ export function useSocialPosts(kind: "post" | "reel") {
       } else {
         await supabase.from("post_likes").insert({ post_id: postId, user_id: me });
       }
-    },
-    [me, rows],
-  );
-
-  return { posts: rows, loading, currentUserId: me, toggleLike, reload: load };
+  };
+  return legacy;
 }
 
 export type DbMessage = {
