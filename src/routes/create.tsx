@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
 import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
+import { publishReel } from "@/lib/social-data";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -82,6 +83,7 @@ export function CreateStudioPage() {
   const [exportRes, setExportRes] = useState<"8K" | "4K" | "2K" | "HD">("4K");
   const [exportStage, setExportStage] = useState<"choose" | "saving" | "done">("choose");
   const [exportProgress, setExportProgress] = useState(0);
+  const [posting, setPosting] = useState(false);
 
   const startExport = () => {
     setExportStage("saving");
