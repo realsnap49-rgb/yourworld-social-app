@@ -19,7 +19,7 @@ import { YwAvatar } from "@/components/yw/Avatar";
 import { ShareSheet } from "@/components/yw/ShareSheet";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
 import { byId, formatCount, posts, reels, type Reel, type User } from "@/lib/yw-data";
-import { useSocialPosts } from "@/lib/social-data";
+import { getLocalMedia, resolveMediaUrl, useSocialPosts } from "@/lib/social-data";
 import { useDoubleTapLike, useYw } from "@/lib/yw-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
@@ -76,11 +76,19 @@ function ReelsList() {
     } satisfies Reel,
     author: p.author,
     likedByMe: p.likedByMe,
+    mediaUrl: p.media_url,
+    mediaType: p.media_type,
   }));
 
   const items = live.length
     ? live
-    : reels.map((reel) => ({ reel, author: undefined as User | undefined, likedByMe: undefined }));
+    : reels.map((reel) => ({
+        reel,
+        author: undefined as User | undefined,
+        likedByMe: undefined,
+        mediaUrl: reel.poster,
+        mediaType: "image",
+      }));
   const usingLive = live.length > 0;
 
   useEffect(() => {
@@ -101,7 +109,7 @@ function ReelsList() {
 
   return (
     <>
-      {items.map(({ reel, author, likedByMe }, i) => (
+      {items.map(({ reel, author, likedByMe, mediaUrl, mediaType }, i) => (
         <section
           key={reel.id}
           data-index={i}
@@ -117,6 +125,8 @@ function ReelsList() {
               active={i === active}
               author={author}
               likedByMe={likedByMe}
+              mediaUrl={mediaUrl}
+              mediaType={mediaType}
               onDbLike={usingLive ? () => void toggleDbLike(reel.id) : undefined}
             />
           ) : null}
@@ -128,17 +138,113 @@ function ReelsList() {
 
 const REEL_DURATION = 15; // seconds per reel (image-backed demo media)
 
+/**
+ * Renders reel media with graceful recovery: if the stored URL fails to load
+ * (expired signed URL, missing public URL) we retry with a freshly resolved
+ * Supabase URL, then with a local blob URL from this session, then fall back
+ * to an image.
+ */
+function ReelMedia({
+  url,
+  type,
+  alt,
+  active,
+  mediaRef,
+}: {
+  url: string;
+  type: string;
+  alt: string;
+  active: boolean;
+  mediaRef: React.MutableRefObject<HTMLElement | null>;
+}) {
+  const [src, setSrc] = useState(url);
+  const [asImage, setAsImage] = useState(!type.startsWith("video"));
+  const tried = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    tried.current = new Set();
+    setSrc(url);
+    setAsImage(!type.startsWith("video"));
+  }, [url, type]);
+
+  const handleError = useCallback(() => {
+    tried.current.add(src);
+    void (async () => {
+      const local = getLocalMedia(url);
+      if (local && !tried.current.has(local)) {
+        setSrc(local);
+        return;
+      }
+      const resolved = await resolveMediaUrl(url);
+      if (resolved && !tried.current.has(resolved)) {
+        setSrc(resolved);
+        return;
+      }
+      setAsImage(true);
+    })();
+  }, [src, url]);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || asImage) return;
+    if (active) void v.play().catch(() => {});
+    else v.pause();
+  }, [active, asImage, src]);
+
+  const className = cn(
+    "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
+    active && asImage && "animate-kenburns",
+  );
+
+  if (asImage) {
+    return (
+      <img
+        ref={(el) => {
+          mediaRef.current = el;
+        }}
+        src={src}
+        alt={alt}
+        decoding="async"
+        loading="eager"
+        onError={handleError}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <video
+      ref={(el) => {
+        videoRef.current = el;
+        mediaRef.current = el;
+      }}
+      src={src}
+      playsInline
+      muted
+      loop
+      preload="metadata"
+      onError={handleError}
+      className={className}
+    />
+  );
+}
+
 function ReelItem({
   reel,
   active,
   author,
   likedByMe,
+  mediaUrl,
+  mediaType,
   onDbLike,
 }: {
   reel: Reel;
   active: boolean;
   author?: User;
   likedByMe?: boolean;
+  mediaUrl?: string;
+  mediaType?: string;
   onDbLike?: () => void;
 }) {
   const user = author ?? byId(reel.userId);
@@ -192,7 +298,7 @@ function ReelItem({
   const endScrub = () => setScrubbing(false);
 
   // ---- pinch to zoom -----------------------------------------------------
-  const mediaRef = useRef<HTMLImageElement>(null);
+  const mediaRef = useRef<HTMLElement | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStart = useRef({ dist: 0, scale: 1 });
   const transform = useRef({ scale: 1, x: 0, y: 0 });
@@ -265,16 +371,12 @@ function ReelItem({
         onPointerUp={releasePointer}
         onPointerCancel={releasePointer}
       >
-        <img
-          ref={mediaRef}
-          src={reel.poster}
+        <ReelMedia
+          url={mediaUrl ?? reel.poster}
+          type={mediaType ?? "image"}
           alt={reel.caption}
-          decoding="async"
-          loading="eager"
-          className={cn(
-            "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
-            active && "animate-kenburns",
-          )}
+          active={active}
+          mediaRef={mediaRef}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
       </div>

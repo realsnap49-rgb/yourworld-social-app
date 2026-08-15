@@ -51,6 +51,51 @@ export function timeAgo(iso: string) {
   return `${Math.round(s / 86400)}d ago`;
 }
 
+/* -------------------------------------------------------------------------
+ * Media URL resolution for reels/posts
+ * ---------------------------------------------------------------------- */
+
+/** Local blob URLs kept for media the current session just uploaded. */
+const localMedia = new Map<string, string>();
+
+/** Remember a local blob/object URL as a fallback for a remote media URL. */
+export function rememberLocalMedia(remoteUrl: string, localUrl: string) {
+  if (remoteUrl && /^(blob:|data:)/.test(localUrl)) localMedia.set(remoteUrl, localUrl);
+}
+
+export function getLocalMedia(remoteUrl: string) {
+  return localMedia.get(remoteUrl) ?? null;
+}
+
+const signedCache = new Map<string, string>();
+
+function storagePathFrom(url: string, bucket: string): string | null {
+  if (!/^https?:/.test(url)) return url.replace(/^\/+/, "");
+  const m = url.match(new RegExp(`/storage/v1/object/(?:sign|public)/${bucket}/([^?]+)`));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/**
+ * Turns a stored media reference into a URL the <video>/<img> tag can load.
+ * Handles bare storage paths and expired signed URLs by re-signing, and falls
+ * back to the bucket's public URL.
+ */
+export async function resolveMediaUrl(url: string, bucket = "reels"): Promise<string> {
+  if (!url) return url;
+  if (/^(blob:|data:)/.test(url)) return url;
+  const cached = signedCache.get(url);
+  if (cached) return cached;
+
+  const path = storagePathFrom(url, bucket);
+  if (!path) return url;
+
+  const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60 * 24);
+  const next =
+    data?.signedUrl ?? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl ?? url;
+  signedCache.set(url, next);
+  return next;
+}
+
 /** Live list of posts of a given kind, with author, like and comment counts. */
 export function useSocialPosts(kind: "post" | "reel") {
   const [rows, setRows] = useState<SocialPost[]>([]);
@@ -206,6 +251,7 @@ export async function publishReel(opts: {
     audio: opts.audio ?? null,
     allow_download: opts.allowDownload ?? true,
   });
+  if (!error) rememberLocalMedia(mediaUrl, opts.fileUrl);
   return { error: error?.message ?? null };
 }
 
