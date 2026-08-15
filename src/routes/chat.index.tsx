@@ -32,7 +32,7 @@ function ChatListPage() {
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<DiscoverProfile[]>([]);
   const [peopleLoading, setPeopleLoading] = useState(false);
-  const [me, setMe] = useState<string | null>(null);
+  const [, setMe] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadThreads() {
