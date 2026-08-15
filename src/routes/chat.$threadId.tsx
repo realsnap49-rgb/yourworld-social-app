@@ -9,7 +9,7 @@ import {
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
-import { useThreadMessages } from "@/lib/social-data";
+import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
 import { useCall } from "@/lib/call-store";
 
 export const Route = createFileRoute("/chat/$threadId")({
@@ -104,8 +104,13 @@ export function ChatThreadPage() {
   const [actionSheetId, setActionSheetId] = useState<string | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Peer identity resolved from the thread (never hardcoded)
+  const peer = useThreadPeer(threadId, currentUserId);
+  const [nameOverride, setNameOverride] = useState<string | null>(null);
+  const displayName = nameOverride ?? peer.peerName ?? "";
+  const setDisplayName = (n: string) => setNameOverride(n);
+
   // Chat option states
-  const [displayName, setDisplayName] = useState("Active User");
   const [secretLock, setSecretLock] = useState(false);
   const [viewOnce, setViewOnce] = useState(false);
   const [autoDelete, setAutoDelete] = useState(0); // seconds, 0 = off
@@ -289,14 +294,28 @@ export function ChatThreadPage() {
 
         <div className="flex items-center gap-4 text-zinc-300">
           <button
-            onClick={() => void startCall({ threadId, peerName: displayName, mode: "audio" })}
+            onClick={() =>
+              void startCall({
+                threadId,
+                peerId: peer.peerId ?? undefined,
+                peerName: displayName,
+                mode: "audio",
+              })
+            }
             aria-label="Voice call"
             className="hover:text-white"
           >
             <Phone size={20} />
           </button>
           <button
-            onClick={() => void startCall({ threadId, peerName: displayName, mode: "video" })}
+            onClick={() =>
+              void startCall({
+                threadId,
+                peerId: peer.peerId ?? undefined,
+                peerName: displayName,
+                mode: "video",
+              })
+            }
             aria-label="Video call"
             className="hover:text-white"
           >
