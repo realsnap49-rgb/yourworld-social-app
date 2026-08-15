@@ -143,12 +143,16 @@ function ReelItem({
   active,
   author,
   likedByMe,
+  mediaUrl,
+  mediaType,
   onDbLike,
 }: {
   reel: Reel;
   active: boolean;
   author?: User;
   likedByMe?: boolean;
+  mediaUrl?: string;
+  mediaType?: string;
   onDbLike?: () => void;
 }) {
   const user = author ?? byId(reel.userId);
@@ -202,7 +206,7 @@ function ReelItem({
   const endScrub = () => setScrubbing(false);
 
   // ---- pinch to zoom -----------------------------------------------------
-  const mediaRef = useRef<HTMLImageElement>(null);
+  const mediaRef = useRef<HTMLElement | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStart = useRef({ dist: 0, scale: 1 });
   const transform = useRef({ scale: 1, x: 0, y: 0 });
@@ -275,16 +279,12 @@ function ReelItem({
         onPointerUp={releasePointer}
         onPointerCancel={releasePointer}
       >
-        <img
-          ref={mediaRef}
-          src={reel.poster}
+        <ReelMedia
+          url={mediaUrl ?? reel.poster}
+          type={mediaType ?? "image"}
           alt={reel.caption}
-          decoding="async"
-          loading="eager"
-          className={cn(
-            "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
-            active && "animate-kenburns",
-          )}
+          active={active}
+          mediaRef={mediaRef}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
       </div>
