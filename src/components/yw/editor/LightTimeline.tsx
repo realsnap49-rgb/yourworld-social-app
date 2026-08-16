@@ -126,6 +126,7 @@ export function LightTimeline({
   onToggleMute,
   onSelect,
   onAdd,
+  onTrim,
   onScrub,
   onReorder,
   audioTrack,
