@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Music2, Plus, Volume2, VolumeX } from "lucide-react";
+import { Plus, Volume2, VolumeX } from "lucide-react";
+import { AudioTrackLane, type AudioTrackState } from "./AudioTrackLane";
 
 export interface TimelineClip {
   id: string;
@@ -25,6 +26,9 @@ export interface LightTimelineProps {
   onAdd?: () => void;
   onScrub?: (index: number, fraction: number) => void;
   onReorder?: (from: number, to: number) => void;
+  audioTrack?: AudioTrackState | null;
+  onAudioChange?: (next: AudioTrackState) => void;
+  onAudioRemove?: () => void;
 }
 
 const CELL = 112;
