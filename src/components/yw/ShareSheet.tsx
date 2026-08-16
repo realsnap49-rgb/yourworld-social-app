@@ -5,6 +5,8 @@ import { Search, Send } from 'lucide-react';
 interface ShareSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  title?: string;
+  children?: React.ReactNode;
 }
 
 export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose }) => {
