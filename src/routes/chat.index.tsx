@@ -104,15 +104,8 @@ function ChatListPage() {
       const uid = sessionData.session?.user.id ?? null;
       if (alive) setMe(uid);
 
-      let q = supabase
-        .from("profiles")
-        .select("id,username,display_name,avatar_url")
-        .order("display_name", { ascending: true })
-        .limit(50);
       const term = peopleQuery.trim();
-      if (term) q = q.or(`username.ilike.%${term}%,display_name.ilike.%${term}%`);
-
-      const { data } = await q;
+      const { data } = await supabase.rpc("search_profiles", { search: term });
       if (!alive) return;
       setPeople(((data ?? []) as DiscoverProfile[]).filter((p) => p.id !== uid));
       setPeopleLoading(false);
