@@ -128,6 +128,9 @@ export function LightTimeline({
   onAdd,
   onScrub,
   onReorder,
+  audioTrack,
+  onAudioChange,
+  onAudioRemove,
 }: LightTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userScrollRef = useRef(false);
