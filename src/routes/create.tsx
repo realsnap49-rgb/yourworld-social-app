@@ -4,13 +4,14 @@ import {
   ArrowLeft, Play, Pause, Scissors, Gauge, Volume2,
   Sparkles, Captions, Trash2, Copy, RotateCw,
   Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop, SplitSquareHorizontal,
-  PictureInPicture2,
+  PictureInPicture2, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
 import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import { publishReel } from "@/lib/social-data";
+import type { AudioTrackState } from "@/components/yw/editor/AudioTrackLane";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -138,9 +139,33 @@ export function CreateStudioPage() {
     toast.success("Reel posted");
     navigate({ to: "/reels" });
   };
-  const [audioTrack, setAudioTrack] = useState<
-    { id: string; title: string; url: string; start: number; duration: number } | null
-  >(null);
+  const [audioTrack, setAudioTrack] = useState<AudioTrackState | null>(null);
+
+  // Load a music file from the device gallery / storage
+  const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const probe = document.createElement("audio");
+    probe.preload = "metadata";
+    probe.src = url;
+    probe.addEventListener("loadedmetadata", () => {
+      const dur = isFinite(probe.duration) && probe.duration > 0 ? probe.duration : 30;
+      setAudioTrack({
+        id: `up_${Date.now()}`,
+        title: file.name.replace(/\.[^.]+$/, ""),
+        url,
+        start: 0,
+        clipStart: 0,
+        clipEnd: dur,
+        duration: dur,
+      });
+      setShowMusicPicker(false);
+      toast.success("Music added from your device");
+    });
+    probe.addEventListener("error", () => toast.error("Could not read that audio file"));
+  };
 
   const totalDuration = clips.reduce((acc, c) => {
     const d = c.duration || 0;
@@ -160,6 +185,7 @@ export function CreateStudioPage() {
   const dragRafRef = useRef<number | null>(null);
   const seekRafRef = useRef<number | null>(null);
   const pendingSeekRef = useRef<number | null>(null);
+  const globalTimeRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -383,8 +409,11 @@ export function CreateStudioPage() {
     const a = audioElRef.current;
     if (!v || !a || !audioTrack) return;
     const sync = () => {
-      const t = v.currentTime - audioTrack.start;
-      if (t >= 0 && t <= audioTrack.duration && !v.paused) {
+      const global = globalTimeRef.current;
+      const span = Math.max(0.1, audioTrack.clipEnd - audioTrack.clipStart);
+      const rel = global - audioTrack.start;
+      const t = audioTrack.clipStart + rel;
+      if (rel >= 0 && rel <= span && !v.paused) {
         if (Math.abs(a.currentTime - t) > 0.25) a.currentTime = t;
         if (a.paused) void a.play().catch(() => {});
       } else if (!a.paused) {
@@ -403,7 +432,7 @@ export function CreateStudioPage() {
       v.removeEventListener("pause", onPause);
       a.pause();
     };
-  }, [audioTrack?.url, audioTrack?.start, audioTrack?.duration, activeClipIndex]);
+  }, [audioTrack?.url, audioTrack?.start, audioTrack?.clipStart, audioTrack?.clipEnd, activeClipIndex]);
 
   const handleSplit = () => {
     const v = videoRef.current;
@@ -497,7 +526,7 @@ export function CreateStudioPage() {
         type="file" 
         ref={audioInputRef} 
         accept="audio/*" 
-        onChange={() => alert("Background Audio track added successfully!")} 
+        onChange={handleAudioSelect}
         className="hidden" 
       />
 
@@ -635,6 +664,7 @@ export function CreateStudioPage() {
                     before += Math.max(0, (p?.trimEnd ?? pd) - (p?.trimStart ?? 0));
                   }
                   setPlayFraction(frac);
+                  globalTimeRef.current = before + frac * span;
                   setCurrentTime(before + frac * span);
                 }}
                 onLoadedMetadata={(e) => {
@@ -879,6 +909,9 @@ export function CreateStudioPage() {
               playFraction={playFraction}
               isPlaying={isPlaying}
               audioLabel={audioTrack?.title}
+              audioTrack={audioTrack}
+              onAudioChange={(next) => setAudioTrack(next)}
+              onAudioRemove={() => setAudioTrack(null)}
               onAddAudio={() => setShowMusicPicker(true)}
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}
@@ -965,6 +998,16 @@ export function CreateStudioPage() {
             <div className="absolute inset-0 z-[60] bg-foreground/30 flex items-end" onClick={() => setShowMusicPicker(false)}>
               <div className="w-full bg-card border-t border-border rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground mb-3">Music Library</p>
+                <button
+                  onClick={() => audioInputRef.current?.click()}
+                  className="w-full mb-3 flex items-center gap-3 p-3 rounded-2xl border border-dashed border-orange-500/50 bg-orange-500/10 text-left active:scale-[0.99] transition"
+                >
+                  <span className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center"><Upload size={16} /></span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-xs font-black text-foreground">Upload from device</span>
+                    <span className="block text-[10px] text-muted-foreground">Pick any song from your gallery or storage</span>
+                  </span>
+                </button>
                 <div className="flex flex-col gap-2">
                   {NO_COPYRIGHT_MUSIC.map((m) => {
                     const [mm, ss] = m.duration.split(":").map(Number);
@@ -973,7 +1016,7 @@ export function CreateStudioPage() {
                       <button
                         key={m.id}
                         onClick={() => {
-                          setAudioTrack({ id: m.id, title: m.title, url: m.url, start: 0, duration: secs });
+                          setAudioTrack({ id: m.id, title: m.title, url: m.url, start: 0, clipStart: 0, clipEnd: secs, duration: secs });
                           setShowMusicPicker(false);
                           toast.success(`${m.title} added to audio track`);
                         }}

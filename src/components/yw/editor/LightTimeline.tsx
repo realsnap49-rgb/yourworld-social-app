@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Music2, Plus, Volume2, VolumeX } from "lucide-react";
+import { Plus, Volume2, VolumeX } from "lucide-react";
+import { AudioTrackLane, type AudioTrackState } from "./AudioTrackLane";
 
 export interface TimelineClip {
   id: string;
@@ -25,6 +26,9 @@ export interface LightTimelineProps {
   onAdd?: () => void;
   onScrub?: (index: number, fraction: number) => void;
   onReorder?: (from: number, to: number) => void;
+  audioTrack?: AudioTrackState | null;
+  onAudioChange?: (next: AudioTrackState) => void;
+  onAudioRemove?: () => void;
 }
 
 const CELL = 112;
@@ -122,8 +126,12 @@ export function LightTimeline({
   onToggleMute,
   onSelect,
   onAdd,
+  onTrim,
   onScrub,
   onReorder,
+  audioTrack,
+  onAudioChange,
+  onAudioRemove,
 }: LightTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userScrollRef = useRef(false);
@@ -266,6 +274,31 @@ export function LightTimeline({
           <div className="flex items-center h-16">
             {clips.map((clip, i) => {
               const selected = i === activeIndex;
+              const dur = clip.duration || 0;
+              const tStart = clip.trimStart ?? 0;
+              const tEnd = clip.trimEnd ?? dur;
+              const startPct = dur ? (tStart / dur) * 100 : 0;
+              const endPct = dur ? (tEnd / dur) * 100 : 100;
+              const trimDrag = (side: "start" | "end") => (e: React.PointerEvent) => {
+                if (!onTrim || !dur) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const cellEl = (e.currentTarget as HTMLElement).parentElement;
+                if (!cellEl) return;
+                const rect = cellEl.getBoundingClientRect();
+                const move = (ev: PointerEvent) => {
+                  const pct = Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width));
+                  const t = pct * dur;
+                  if (side === "start") onTrim(i, Math.min(t, tEnd - 0.2), tEnd);
+                  else onTrim(i, tStart, Math.max(t, tStart + 0.2));
+                };
+                const up = () => {
+                  window.removeEventListener("pointermove", move);
+                  window.removeEventListener("pointerup", up);
+                };
+                window.addEventListener("pointermove", move);
+                window.addEventListener("pointerup", up);
+              };
               return (
                 <div
                   key={clip.id || i}
@@ -299,26 +332,43 @@ export function LightTimeline({
                     </span>
                   </div>
                   {i > 0 && <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-background" />}
+
+                  {/* trimmed-out shading */}
+                  <div className="absolute inset-y-0 left-0 bg-background/70 pointer-events-none" style={{ width: `${startPct}%` }} />
+                  <div className="absolute inset-y-0 right-0 bg-background/70 pointer-events-none" style={{ width: `${100 - endPct}%` }} />
+
+                  {selected && dur > 0 && (
+                    <>
+                      <div
+                        onPointerDown={trimDrag("start")}
+                        className="absolute inset-y-0 w-3 bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20"
+                        style={{ left: `${startPct}%` }}
+                      >
+                        <span className="h-5 w-[2px] bg-white/90 rounded" />
+                      </div>
+                      <div
+                        onPointerDown={trimDrag("end")}
+                        className="absolute inset-y-0 w-3 -translate-x-full bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20"
+                        style={{ left: `${endPct}%` }}
+                      >
+                        <span className="h-5 w-[2px] bg-white/90 rounded" />
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* audio track */}
-          <div className="flex items-center h-8 mt-1">
-            <button
-              onClick={onAddAudio}
-              style={{ minWidth: clips.length * CELL || CELL }}
-              className={`h-8 flex items-center gap-2 px-3 rounded-md text-[10px] font-bold ${
-                audioLabel
-                  ? "bg-emerald-500/20 text-emerald-700 border border-emerald-500/40"
-                  : "bg-muted text-muted-foreground border border-dashed border-border"
-              }`}
-            >
-              <Music2 className="w-3 h-3" />
-              {audioLabel || "Add audio track"}
-            </button>
-          </div>
+          {/* dedicated audio track with waveform trim */}
+          <AudioTrackLane
+            track={audioTrack ?? null}
+            totalDuration={totalDuration}
+            width={Math.max(CELL, clips.length * CELL)}
+            onChange={(next) => onAudioChange?.(next)}
+            onPick={() => onAddAudio?.()}
+            onRemove={() => onAudioRemove?.()}
+          />
         </div>
       </div>
 
