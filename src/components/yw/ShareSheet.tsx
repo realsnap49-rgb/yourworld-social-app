@@ -3,13 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Search, Send } from 'lucide-react';
 
 interface ShareSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   title?: string;
   children?: React.ReactNode;
 }
 
-export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose }) => {
+export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen = false, onClose = () => {} }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<any[]>([]);
 
