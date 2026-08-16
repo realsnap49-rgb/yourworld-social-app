@@ -218,7 +218,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_profiles: {
+        Args: { search?: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+          username: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
