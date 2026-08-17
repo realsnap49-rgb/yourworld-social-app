@@ -554,8 +554,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                className="absolute right-4 top-4 z-10 h-40 w-28 rounded-2xl border border-white/20 object-cover"
+                className="absolute right-4 top-28 z-10 h-40 w-28 rounded-2xl border border-white/20 object-cover"
               />
+              {phase !== "incoming" && (
+                <div className="absolute right-4 top-4 z-[9999] flex gap-3">
+                  <button
+                    onClick={() => void toggleFlash()}
+                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
+                    aria-label="Toggle flashlight"
+                  >
+                    {flashOn ? <Zap size={22} className="text-yellow-400" /> : <ZapOff size={22} />}
+                  </button>
+                  <button
+                    onClick={() => void flipCamera()}
+                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
+                    aria-label="Flip camera"
+                  >
+                    <SwitchCamera size={22} />
+                  </button>
+                </div>
+              )}
             </>
           )}
           <audio ref={remoteAudio} autoPlay className="hidden" />
