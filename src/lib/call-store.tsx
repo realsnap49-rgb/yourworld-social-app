@@ -514,12 +514,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
           )}
           <audio ref={remoteAudio} autoPlay className="hidden" />
 
-          <div className="relative z-10 mt-12 flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 text-3xl font-bold">
-              {(call.peerName || "U").charAt(0).toUpperCase()}
-            </div>
-            <h2 className="text-xl font-bold">{call.peerName}</h2>
-            <span className="animate-pulse text-xs font-bold text-emerald-400">{statusText}</span>
+          <div className="relative z-10 mt-12 flex flex-col gap-1 px-2">
+            <h2 className="text-lg font-bold drop-shadow-lg">{call.peerName}</h2>
+            <span className="animate-pulse text-xs font-bold text-emerald-400 drop-shadow-lg">{statusText}</span>
           </div>
 
           <div className="relative z-10 mb-10 flex items-center justify-center gap-6">
