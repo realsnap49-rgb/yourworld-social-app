@@ -128,12 +128,14 @@ export function useSocialPosts(kind: "post" | "reel") {
     const authorIds = [...new Set(posts.map((p) => p.user_id))];
 
     const [{ data: profiles }, { data: likes }, { data: comments }] = await Promise.all([
-      supabase.from("profiles").select("id,username,display_name,avatar_url").in("id", authorIds),
+      supabase.rpc("get_public_profiles", { ids: authorIds }),
       supabase.from("post_likes").select("post_id,user_id").in("post_id", ids),
       supabase.from("post_comments").select("post_id").in("post_id", ids),
     ]);
 
-    const profileById = new Map((profiles ?? []).map((p) => [p.id, p as DbProfile]));
+    const profileById = new Map(
+      ((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]),
+    );
 
     setRows(
       posts.map((p) => ({
@@ -395,11 +397,10 @@ export async function resolveThreadPeer(
 
   if (!peerId) return { peerId: null, peerName: "Unknown user", avatarUrl: null };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, username, display_name, avatar_url")
-    .eq("id", peerId)
-    .maybeSingle();
+  const { data: profileRows } = await supabase.rpc("get_public_profiles", {
+    ids: [peerId],
+  });
+  const profile = ((profileRows ?? []) as DbProfile[])[0] ?? null;
 
   return {
     peerId,
