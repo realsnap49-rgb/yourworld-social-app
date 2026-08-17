@@ -126,7 +126,7 @@ export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({ isOpen, onClose,
       </div>
 
       {/* Bottom Controls */}
-      <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, display: 'flex', justifyCenter: 'center', justifyContent: 'center', gap: '24px', zIndex: 1000000 }}>
+      <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '24px', zIndex: 1000000 }}>
         <button 
           onClick={() => setIsMuted(!isMuted)} 
           style={{ padding: '16px', borderRadius: '9999px', color: '#fff', backgroundColor: isMuted ? '#ef4444' : 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.3)' }}
