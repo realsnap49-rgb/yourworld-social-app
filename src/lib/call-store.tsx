@@ -61,52 +61,75 @@ function getGuestCallId(): string {
   }
 }
 
-/** Simple WebAudio ringtone so incoming calls actually ring on the device. */
-function useRingtone(active: boolean) {
-  useEffect(() => {
-    if (!active || typeof window === "undefined") return;
-    let stopped = false;
-    let ctx: AudioContext | null = null;
-    let timer: ReturnType<typeof setInterval> | null = null;
-    try {
-      const AC = window.AudioContext ?? (window as any).webkitAudioContext;
-      ctx = new AC();
-      const beep = () => {
-        if (!ctx || stopped) return;
-        const now = ctx.currentTime;
-        [0, 0.4].forEach((offset) => {
-          const osc = ctx!.createOscillator();
-          const gain = ctx!.createGain();
-          osc.type = "sine";
-          osc.frequency.value = 440;
-          gain.gain.setValueAtTime(0.0001, now + offset);
-          gain.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.32);
-          osc.connect(gain).connect(ctx!.destination);
-          osc.start(now + offset);
-          osc.stop(now + offset + 0.35);
-        });
-      };
-      void ctx.resume();
-      beep();
-      timer = setInterval(beep, 2000);
-    } catch {
-      /* audio blocked — UI still shows the incoming call */
+/** Builds a looping ring tone as a WAV data URL playable by an HTML5 <audio> element. */
+function buildRingToneUrl(freqs: number[], onSec: number, cycleSec: number): string {
+  const rate = 22050;
+  const total = Math.floor(rate * cycleSec);
+  const bytes = 44 + total * 2;
+  const buf = new ArrayBuffer(bytes);
+  const view = new DataView(buf);
+  const str = (off: number, s: string) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+  };
+  str(0, "RIFF"); view.setUint32(4, bytes - 8, true); str(8, "WAVEfmt ");
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  str(36, "data"); view.setUint32(40, total * 2, true);
+  for (let i = 0; i < total; i++) {
+    const t = i / rate;
+    let v = 0;
+    if (t < onSec) {
+      for (const f of freqs) v += Math.sin(2 * Math.PI * f * t);
+      v /= freqs.length;
+      // short fades to avoid clicks
+      const fade = Math.min(1, t / 0.02, (onSec - t) / 0.02);
+      v *= Math.max(0, fade) * 0.35;
     }
-    if (navigator.vibrate) {
+    view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, v)) * 32767, true);
+  }
+  let bin = "";
+  const u8 = new Uint8Array(buf);
+  for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+  return `data:audio/wav;base64,${btoa(bin)}`;
+}
+
+let incomingUrl: string | null = null;
+let ringbackUrl: string | null = null;
+
+/** HTML5 <audio> ringtone: incoming ring, or ringback while our outgoing call connects. */
+function useRingtone(kind: "incoming" | "ringback" | null) {
+  useEffect(() => {
+    if (!kind || typeof window === "undefined") return;
+    let audio: HTMLAudioElement | null = null;
+    try {
+      if (kind === "incoming") {
+        incomingUrl ??= buildRingToneUrl([440, 480], 1.2, 3);
+      } else {
+        ringbackUrl ??= buildRingToneUrl([440, 480], 1, 4);
+      }
+      audio = new Audio(kind === "incoming" ? incomingUrl! : ringbackUrl!);
+      audio.loop = true;
+      audio.volume = kind === "incoming" ? 1 : 0.6;
+      void audio.play().catch(() => {});
+    } catch {
+      /* audio blocked — UI still shows the call */
+    }
+    if (kind === "incoming" && navigator.vibrate) {
       try {
         navigator.vibrate([400, 300, 400, 300, 400]);
       } catch { /* ignore */ }
     }
     return () => {
-      stopped = true;
-      if (timer) clearInterval(timer);
-      void ctx?.close();
+      if (audio) {
+        audio.pause();
+        audio.src = "";
+      }
       if (navigator.vibrate) {
         try { navigator.vibrate(0); } catch { /* ignore */ }
       }
     };
-  }, [active]);
+  }, [kind]);
 }
 
 export function CallProvider({ children }: { children: ReactNode }) {
@@ -130,7 +153,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteAudio = useRef<HTMLAudioElement | null>(null);
   const remoteStream = useRef<MediaStream | null>(null);
 
-  useRingtone(phase === "incoming");
+  useRingtone(
+    phase === "incoming" ? "incoming" : phase === "outgoing" ? "ringback" : null,
+  );
 
   /* ---------- identity ---------- */
   useEffect(() => {
@@ -493,12 +518,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const flipCamera = useCallback(async () => {
     const next = facingMode === "user" ? "environment" : "user";
-    setFacingMode(next);
-    const oldTrack = localStream.current?.getVideoTracks()[0];
+    const oldTrack = localStream.current?.getVideoTracks()[0] ?? null;
+    // Most phones can't open both cameras at once — release the old one first.
+    if (oldTrack) {
+      oldTrack.stop();
+      localStream.current?.removeTrack(oldTrack);
+    }
+    setFlashOn(false);
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: { facingMode: next, width: { ideal: 1280 } },
+        audio: false,
+        video: { facingMode: { ideal: next }, width: { ideal: 1280 } },
       });
       const newVideoTrack = newStream.getVideoTracks()[0];
       const sender = pcRef.current
@@ -507,16 +537,25 @@ export function CallProvider({ children }: { children: ReactNode }) {
       if (sender && newVideoTrack) {
         await sender.replaceTrack(newVideoTrack);
       }
-      if (oldTrack) oldTrack.stop();
-      if (localStream.current && oldTrack) {
-        localStream.current.removeTrack(oldTrack);
+      if (localStream.current && newVideoTrack) {
         localStream.current.addTrack(newVideoTrack);
       }
-      // keep the new audio track out (we already have one) to avoid echo
-      newStream.getAudioTracks().forEach((t) => t.stop());
+      setFacingMode(next);
       attachStreams();
     } catch {
       toast.error("Couldn't switch camera");
+      // try to restore the previous camera so the call keeps video
+      try {
+        const back = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 } },
+        });
+        const t = back.getVideoTracks()[0];
+        const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === "video");
+        if (sender && t) await sender.replaceTrack(t);
+        if (localStream.current && t) localStream.current.addTrack(t);
+        attachStreams();
+      } catch { /* ignore */ }
     }
   }, [facingMode, attachStreams]);
 
