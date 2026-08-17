@@ -118,6 +118,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [flashOn, setFlashOn] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
