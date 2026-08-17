@@ -6,15 +6,62 @@ interface VideoCallSheetProps {
   isOpen: boolean;
   onClose: () => void;
   targetUserId: string;
+  status?: 'ringing' | 'connecting' | 'connected';
 }
 
-export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({ isOpen, onClose, targetUserId }) => {
+export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({ isOpen, onClose, targetUserId, status = 'ringing' }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [isBlurOn, setIsBlurOn] = useState(false); // Background blur state
   const localVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Looping ringback tone while ringing / connecting
+  useEffect(() => {
+    if (!isOpen || status === 'connected') return;
+
+    let ctx: AudioContext | null = null;
+    let stopped = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    try {
+      const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+      if (!Ctor) return;
+      ctx = new Ctor();
+      void ctx.resume?.();
+
+      const beep = () => {
+        if (!ctx || stopped) return;
+        const now = ctx.currentTime;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, now);
+        gain.connect(ctx.destination);
+        [440, 480].forEach((freq) => {
+          const osc = ctx!.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          osc.connect(gain);
+          osc.start(now);
+          osc.stop(now + 1.2);
+        });
+        gain.gain.linearRampToValueAtTime(0.08, now + 0.05);
+        gain.gain.setValueAtTime(0.08, now + 1.1);
+        gain.gain.linearRampToValueAtTime(0, now + 1.2);
+      };
+
+      beep();
+      timer = setInterval(beep, 3000);
+    } catch {
+      // audio unavailable — ignore
+    }
+
+    return () => {
+      stopped = true;
+      if (timer) clearInterval(timer);
+      void ctx?.close?.();
+    };
+  }, [isOpen, status]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -76,8 +123,15 @@ export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({ isOpen, onClose,
         className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${isBlurOn ? 'blur-md scale-105' : 'blur-none'}`} 
       />
       
-      {/* Top Right Controls: Blur Toggle, Flash & Switch Camera */}
-      <div className="absolute top-6 right-6 flex gap-3 z-50">
+      {/* Status pill */}
+      {status !== 'connected' && (
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[80] px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white/90 text-sm capitalize">
+          {status}...
+        </div>
+      )}
+
+      {/* Top Right Controls: Blur Toggle, Flash & Switch Camera — always pinned above the call card */}
+      <div className="fixed top-6 right-6 flex gap-3 z-[100] pointer-events-auto">
         <button 
           onClick={() => setIsBlurOn(!isBlurOn)} 
           title="Toggle Background Blur"
