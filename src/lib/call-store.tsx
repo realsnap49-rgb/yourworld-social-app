@@ -184,12 +184,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const getMedia = useCallback(async (mode: CallMode) => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: mode === "video" ? { facingMode: "user", width: { ideal: 1280 } } : false,
+      video: mode === "video" ? { facingMode, width: { ideal: 1280 } } : false,
     });
     localStream.current = stream;
     attachStreams();
     return stream;
-  }, [attachStreams]);
+  }, [attachStreams, facingMode]);
 
   const createPeer = useCallback(
     (stream: MediaStream) => {
