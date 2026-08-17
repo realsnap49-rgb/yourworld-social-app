@@ -8,7 +8,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { Mic, MicOff, PhoneOff, Phone, Video, VideoOff } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Phone, Video, VideoOff, SwitchCamera, Zap, ZapOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -118,6 +118,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [flashOn, setFlashOn] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
@@ -156,6 +158,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setCall(null);
     setMicOn(true);
     setCamOn(true);
+    setFacingMode("user");
+    setFlashOn(false);
   }, []);
 
   const signal = useCallback((payload: Record<string, unknown>) => {
@@ -182,12 +186,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const getMedia = useCallback(async (mode: CallMode) => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: mode === "video" ? { facingMode: "user", width: { ideal: 1280 } } : false,
+      video: mode === "video" ? { facingMode, width: { ideal: 1280 } } : false,
     });
     localStream.current = stream;
     attachStreams();
     return stream;
-  }, [attachStreams]);
+  }, [attachStreams, facingMode]);
 
   const createPeer = useCallback(
     (stream: MediaStream) => {
@@ -474,6 +478,48 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const toggleFlash = useCallback(async () => {
+    const track = localStream.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: !flashOn } as MediaTrackConstraintSet],
+      } as MediaTrackConstraints);
+      setFlashOn(!flashOn);
+    } catch {
+      toast.error("Flashlight not supported on this device");
+    }
+  }, [flashOn]);
+
+  const flipCamera = useCallback(async () => {
+    const next = facingMode === "user" ? "environment" : "user";
+    setFacingMode(next);
+    const oldTrack = localStream.current?.getVideoTracks()[0];
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: next, width: { ideal: 1280 } },
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const sender = pcRef.current
+        ?.getSenders()
+        .find((s) => s.track?.kind === "video");
+      if (sender && newVideoTrack) {
+        await sender.replaceTrack(newVideoTrack);
+      }
+      if (oldTrack) oldTrack.stop();
+      if (localStream.current && oldTrack) {
+        localStream.current.removeTrack(oldTrack);
+        localStream.current.addTrack(newVideoTrack);
+      }
+      // keep the new audio track out (we already have one) to avoid echo
+      newStream.getAudioTracks().forEach((t) => t.stop());
+      attachStreams();
+    } catch {
+      toast.error("Couldn't switch camera");
+    }
+  }, [facingMode, attachStreams]);
+
   useEffect(() => () => teardown(), [teardown]);
 
   const value = useMemo(
@@ -508,8 +554,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                className="absolute right-4 top-4 z-10 h-40 w-28 rounded-2xl border border-white/20 object-cover"
+                className="absolute right-4 top-28 z-10 h-40 w-28 rounded-2xl border border-white/20 object-cover"
               />
+              {phase !== "incoming" && (
+                <div className="absolute right-4 top-4 z-[9999] flex gap-3">
+                  <button
+                    onClick={() => void toggleFlash()}
+                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
+                    aria-label="Toggle flashlight"
+                  >
+                    {flashOn ? <Zap size={22} className="text-yellow-400" /> : <ZapOff size={22} />}
+                  </button>
+                  <button
+                    onClick={() => void flipCamera()}
+                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
+                    aria-label="Flip camera"
+                  >
+                    <SwitchCamera size={22} />
+                  </button>
+                </div>
+              )}
             </>
           )}
           <audio ref={remoteAudio} autoPlay className="hidden" />
