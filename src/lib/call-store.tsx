@@ -158,6 +158,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setCall(null);
     setMicOn(true);
     setCamOn(true);
+    setFacingMode("user");
+    setFlashOn(false);
   }, []);
 
   const signal = useCallback((payload: Record<string, unknown>) => {
