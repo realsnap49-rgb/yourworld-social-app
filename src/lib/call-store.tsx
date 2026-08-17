@@ -478,6 +478,48 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const toggleFlash = useCallback(async () => {
+    const track = localStream.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: !flashOn } as MediaTrackConstraintSet],
+      } as MediaTrackConstraints);
+      setFlashOn(!flashOn);
+    } catch {
+      toast.error("Flashlight not supported on this device");
+    }
+  }, [flashOn]);
+
+  const flipCamera = useCallback(async () => {
+    const next = facingMode === "user" ? "environment" : "user";
+    setFacingMode(next);
+    const oldTrack = localStream.current?.getVideoTracks()[0];
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: next, width: { ideal: 1280 } },
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const sender = pcRef.current
+        ?.getSenders()
+        .find((s) => s.track?.kind === "video");
+      if (sender && newVideoTrack) {
+        await sender.replaceTrack(newVideoTrack);
+      }
+      if (oldTrack) oldTrack.stop();
+      if (localStream.current && oldTrack) {
+        localStream.current.removeTrack(oldTrack);
+        localStream.current.addTrack(newVideoTrack);
+      }
+      // keep the new audio track out (we already have one) to avoid echo
+      newStream.getAudioTracks().forEach((t) => t.stop());
+      attachStreams();
+    } catch {
+      toast.error("Couldn't switch camera");
+    }
+  }, [facingMode, attachStreams]);
+
   useEffect(() => () => teardown(), [teardown]);
 
   const value = useMemo(
