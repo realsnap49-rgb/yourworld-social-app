@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Camera, Zap, ZapOff } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera, Zap, ZapOff, Sparkles } from 'lucide-react';
 
 interface VideoCallSheetProps {
   isOpen: boolean;
@@ -13,27 +13,39 @@ export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({ isOpen, onClose,
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [isFlashOn, setIsFlashOn] = useState(false);
+  const [isBlurOn, setIsBlurOn] = useState(false); // Background blur state
   const localVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    let currentStream: MediaStream | null = null;
+
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        currentStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facingMode },
           audio: true
         });
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = currentStream;
+        }
       } catch (err) {
         console.error("Camera error:", err);
       }
     };
+
     startCamera();
+
+    return () => {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+    };
   }, [isOpen, facingMode]);
 
   const toggleCamera = () => {
-    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
   };
 
   const toggleFlash = async () => {
@@ -54,26 +66,57 @@ export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({ isOpen, onClose,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50">
-      <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-[9999]">
+      {/* Full screen video feed with Blur toggle */}
+      <video 
+        ref={localVideoRef} 
+        autoPlay 
+        playsInline 
+        muted 
+        className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${isBlurOn ? 'blur-md scale-105' : 'blur-none'}`} 
+      />
       
-      <div className="absolute top-4 right-4 flex gap-4">
-        <button onClick={toggleCamera} className="p-3 bg-white/20 rounded-full text-white">
-          <Camera size={24} />
+      {/* Top Right Controls: Blur Toggle, Flash & Switch Camera */}
+      <div className="absolute top-6 right-6 flex gap-3 z-50">
+        <button 
+          onClick={() => setIsBlurOn(!isBlurOn)} 
+          title="Toggle Background Blur"
+          className={`p-3 rounded-full text-white backdrop-blur-md border border-white/20 active:scale-95 transition ${isBlurOn ? 'bg-purple-600' : 'bg-black/50'}`}
+        >
+          <Sparkles size={22} className={isBlurOn ? 'text-yellow-300' : 'text-white'} />
         </button>
-        <button onClick={toggleFlash} className="p-3 bg-white/20 rounded-full text-white">
-          {isFlashOn ? <Zap size={24} /> : <ZapOff size={24} />}
+        <button 
+          onClick={toggleFlash} 
+          className="p-3 bg-black/50 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-95 transition"
+        >
+          {isFlashOn ? <Zap size={22} className="text-yellow-400 fill-yellow-400" /> : <ZapOff size={22} />}
+        </button>
+        <button 
+          onClick={toggleCamera} 
+          className="p-3 bg-black/50 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-95 transition"
+        >
+          <SwitchCamera size={22} />
         </button>
       </div>
 
-      <div className="absolute bottom-10 flex gap-6">
-        <button onClick={() => setIsMuted(!isMuted)} className="p-4 bg-gray-800 rounded-full text-white">
+      {/* Bottom Call Controls */}
+      <div className="absolute bottom-10 flex gap-6 z-50 items-center">
+        <button 
+          onClick={() => setIsMuted(!isMuted)} 
+          className={`p-4 rounded-full text-white backdrop-blur-md transition active:scale-95 ${isMuted ? 'bg-red-500' : 'bg-white/20'}`}
+        >
           {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
         </button>
-        <button onClick={() => setIsVideoOff(!isVideoOff)} className="p-4 bg-gray-800 rounded-full text-white">
+        <button 
+          onClick={() => setIsVideoOff(!isVideoOff)} 
+          className={`p-4 rounded-full text-white backdrop-blur-md transition active:scale-95 ${isVideoOff ? 'bg-red-500' : 'bg-white/20'}`}
+        >
           {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
         </button>
-        <button onClick={onClose} className="p-4 bg-red-600 rounded-full text-white">
+        <button 
+          onClick={onClose} 
+          className="p-4 bg-red-600 rounded-full text-white active:scale-95 transition shadow-lg"
+        >
           <PhoneOff size={24} />
         </button>
       </div>
