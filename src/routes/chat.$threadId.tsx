@@ -492,6 +492,12 @@ export function ChatThreadPage() {
               </div>
             )}
 
+            {m.viewOnce && m.sender === "them" && (m.opened || openedOnce.includes(m.id)) && (
+              <div className="max-w-[75%] flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-800/70 px-4 py-3 text-xs font-semibold text-zinc-400">
+                <EyeOff size={15} /> Opened
+              </div>
+            )}
+
             {m.audio && (
               <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl min-w-[200px] ${
                 m.sender === "me" ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" : "bg-zinc-800 text-white border border-zinc-700"
@@ -520,7 +526,18 @@ export function ChatThreadPage() {
               </div>
             )}
 
-            <span className="text-[10px] text-zinc-500 mt-1 px-1">{m.time}</span>
+            <span className="text-[10px] text-zinc-500 mt-1 px-1 flex items-center gap-1">
+              {m.time}
+              {m.sender === "me" && (
+                m.local ? (
+                  <Check size={12} className="text-zinc-500" />
+                ) : m.read ? (
+                  <CheckCheck size={12} className="text-sky-400" />
+                ) : (
+                  <CheckCheck size={12} className="text-zinc-500" />
+                )
+              )}
+            </span>
           </div>
         ))}
         <div ref={messagesEndRef} />
