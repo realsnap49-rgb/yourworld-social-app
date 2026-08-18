@@ -638,6 +638,27 @@ export function ChatThreadPage() {
 
     </div>
     {/* WhatsApp / Instagram Style Full Screen Editor */}
+{viewOnceOpen && (
+  <div className="fixed inset-0 z-[95] bg-black flex flex-col">
+    <div className="flex items-center justify-between p-4 text-white">
+      <span className="text-xs font-bold text-emerald-400 flex items-center gap-2"><EyeOff size={14} /> View once</span>
+      <button
+        type="button"
+        onClick={() => {
+          setOpenedOnce((prev) => [...prev, viewOnceOpen.id]);
+          void burnMedia(viewOnceOpen.id);
+          setViewOnceOpen(null);
+        }}
+        className="p-2 bg-zinc-800/80 rounded-full"
+      >
+        <X size={20} />
+      </button>
+    </div>
+    <div className="flex-1 flex items-center justify-center p-4">
+      <img src={viewOnceOpen.url} alt="View once" className="max-h-full max-w-full object-contain rounded-lg" />
+    </div>
+  </div>
+)}
 {selectedImage && (
   <div className="fixed inset-0 bg-black z-50 flex flex-col justify-between p-4">
     {/* Top Controls */}
