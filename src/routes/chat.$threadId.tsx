@@ -61,7 +61,6 @@ export function ChatThreadPage() {
   const { startCall } = useCall();
   const {
     messages: dbMessages,
-    const validMessages = (messages || []).filter(msg => (msg.text && msg.text.trim() !== "") || msg.mediaUrl || msg.imageUrl || msg.type === 'call_notification');
     currentUserId,
     send: sendToDb,
     remove: removeFromDb,
