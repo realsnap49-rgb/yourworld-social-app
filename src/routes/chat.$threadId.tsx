@@ -75,7 +75,7 @@ export function ChatThreadPage() {
   ];
 
   const handleClosePreview = () => {
-    if (selectedImage) { URL.revokeObjectURL(selectedImage); }
+    if (selectedImage?.startsWith("blob:")) { URL.revokeObjectURL(selectedImage); }
     setSelectedImage(null);
     setCaption("");
     setIsViewOnce(false);
@@ -92,6 +92,7 @@ export function ChatThreadPage() {
   } = useThreadMessages(threadId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const [message, setMessage] = useState("");
@@ -249,20 +250,18 @@ export function ChatThreadPage() {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const src = event.target.result as string;
-          if (currentUserId) {
-            void sendToDb({ media_url: src, media_type: "image" });
-          } else {
-            pushLocal({ image: src, sender: "me" });
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (!event.target?.result) return;
+      setCaption("");
+      setIsViewOnce(false);
+      setSelectedFilter("normal");
+      setShowFilters(false);
+      setSelectedImage(event.target.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const startRecording = async () => {
