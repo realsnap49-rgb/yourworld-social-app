@@ -899,21 +899,21 @@ export function ChatThreadPage() {
         </button>
       </div>
 
-      <div className="flex items-center justify-between px-2">
-        <span className="text-xs text-zinc-400 bg-zinc-800/80 px-3 py-1 rounded-full border border-zinc-700/50">
-          {peer?.peerName || "Chat"}
-        </span>
+      <div className="flex items-center justify-end px-2">
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
+            if (!selectedImage) return;
+            const filterCss = filters.find((f) => f.id === selectedFilter)?.css ?? "none";
+            const finalImage = await renderPhoto(selectedImage, filterCss, overlays);
             if (currentUserId) {
               void sendToDb({
-                media_url: selectedImage,
-                media_type: "image",
+                media_url: finalImage,
+                media_type: isViewOnce ? "image_once" : "image",
                 content: caption,
               });
             } else {
-              pushLocal({ image: selectedImage ?? undefined, text: caption || undefined, sender: "me" });
+              pushLocal({ image: finalImage, text: caption || undefined, sender: "me", viewOnce: isViewOnce });
             }
             handleClosePreview();
           }}
