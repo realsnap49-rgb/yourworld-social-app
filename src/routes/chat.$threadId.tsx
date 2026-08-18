@@ -401,7 +401,7 @@ export function ChatThreadPage() {
 
       <div className="relative flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
         <UserWatermark username={currentUser.username} className="fixed text-white" />
-        {Messages.map((m) => m.system ? (
+        {messages.map((m) => m.system ? (
           <p key={m.id} className="mx-auto w-fit rounded-full bg-zinc-800/70 px-3 py-1 text-center text-[11px] text-zinc-400">
             {m.text}
           </p>
