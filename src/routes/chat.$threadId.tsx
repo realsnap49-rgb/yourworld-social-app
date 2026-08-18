@@ -295,6 +295,7 @@ export function ChatThreadPage() {
   };
 
   return (
+    <>
     <div className="fixed inset-0 z-50 bg-black text-white font-sans flex flex-col justify-between overflow-hidden">
       
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
@@ -686,6 +687,7 @@ export function ChatThreadPage() {
     </div>
   </div>
 )}
+    </>
   );
 }
 
