@@ -4,7 +4,7 @@ import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
   Mic, Send, Smile, Play, Pause, X, MicOff,
   Pencil, Lock, EyeOff, Clock, Camera, VideoOff, BellOff, UserX, Flag,
-  Trash2, CheckCheck, Check
+  Trash2, CheckCheck, Check, Crop, Type, Sparkles 
 } from "lucide-react";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
@@ -57,6 +57,31 @@ function MenuItem({
 
 export function ChatThreadPage() {
   const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
+  const [isViewOnce, setIsViewOnce] = useState(false);
+  const [isHD, setIsHD] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState("normal");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filters = [
+    { id: 'normal', name: 'Original', class: '' },
+    { id: 'soft-glow', name: 'Soft Glow', class: 'brightness-110 contrast-95 saturate-110 sepia-[0.15]' },
+    { id: 'vivid', name: 'Vivid Pop', class: 'saturate-150 contrast-105' },
+    { id: 'warm', name: 'Warm Sun', class: 'sepia-[0.25] saturate-125 brightness-105' },
+    { id: 'cool', name: 'Cool Aesthetic', class: 'hue-rotate-15 saturate-110' },
+    { id: 'vintage', name: 'Retro Vintage', class: 'sepia-[0.4] contrast-110 brightness-95' },
+    { id: 'mono', name: 'Noir B&W', class: 'grayscale contrast-125' }
+  ];
+
+  const handleClosePreview = () => {
+    if (selectedImage) { URL.revokeObjectURL(selectedImage); }
+    setSelectedImage(null);
+    setCaption("");
+    setIsViewOnce(false);
+    setSelectedFilter("normal");
+    setShowFilters(false);
+  };
   const { threadId } = Route.useParams();
   const { startCall } = useCall();
   const {
@@ -556,6 +581,111 @@ export function ChatThreadPage() {
 
 
     </div>
+    {/* WhatsApp / Instagram Style Full Screen Editor */}
+{selectedImage && (
+  <div className="fixed inset-0 bg-black z-50 flex flex-col justify-between p-4">
+    {/* Top Controls */}
+    <div className="flex items-center justify-between text-white pt-2 px-2 z-10">
+      <button type="button" onClick={handleClosePreview} className="p-2 bg-zinc-800/80 rounded-full hover:bg-zinc-700">
+        <X size={20} />
+      </button>
+      <div className="flex items-center gap-3">
+        <button 
+          type="button"
+          onClick={() => setIsHD(!isHD)} 
+          className={`px-2 py-0.5 text-xs font-bold border rounded transition-all ${isHD ? 'border-emerald-500 text-emerald-400 bg-emerald-950/40' : 'border-zinc-600 text-zinc-400'}`}
+        >
+          HD
+        </button>
+        <button 
+          type="button"
+          onClick={() => setShowFilters(!showFilters)} 
+          className={`p-2 rounded-full transition-all ${showFilters ? 'bg-emerald-500 text-black' : 'bg-zinc-800/80 text-zinc-200'}`}
+        >
+          <Sparkles size={18} />
+        </button>
+        <button type="button" className="p-2 bg-zinc-800/80 rounded-full text-zinc-300"><Crop size={18} /></button>
+        <button type="button" className="p-2 bg-zinc-800/80 rounded-full text-zinc-300"><Smile size={18} /></button>
+        <button type="button" className="p-2 bg-zinc-800/80 rounded-full text-zinc-300"><Type size={18} /></button>
+      </div>
+    </div>
+
+    {/* Center Image */}
+    <div className="flex-1 flex items-center justify-center my-2 overflow-hidden relative">
+      <img 
+        src={selectedImage} 
+        alt="Preview" 
+        className={`max-h-full max-w-full object-contain rounded-lg transition-all duration-300 ${filters.find(f => f.id === selectedFilter)?.class || ''}`} 
+      />
+    </div>
+
+    {/* Filters Carousel */}
+    {showFilters && (
+      <div className="flex gap-2 overflow-x-auto py-2 px-1 my-1 no-scrollbar justify-start sm:justify-center">
+        {filters.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => setSelectedFilter(f.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              selectedFilter === f.id 
+                ? 'bg-emerald-500 text-black font-bold scale-105' 
+                : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+            }`}
+          >
+            {f.name}
+          </button>
+        ))}
+      </div>
+    )}
+
+    {/* Bottom Bar */}
+    <div className="flex flex-col gap-3 pb-2 z-10">
+      <div className="flex items-center bg-zinc-900 border border-zinc-700/80 rounded-full px-4 py-2 gap-2">
+        <ImageIcon size={18} className="text-zinc-400" />
+        <input
+          type="text"
+          placeholder="Add a caption..."
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          className="bg-transparent text-white text-sm flex-1 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => setIsViewOnce(!isViewOnce)}
+          className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+            isViewOnce ? 'bg-emerald-500 text-black scale-110 shadow-lg shadow-emerald-500/30' : 'bg-zinc-800 text-white border border-zinc-600'
+          }`}
+        >
+          1
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between px-2">
+        <span className="text-xs text-zinc-400 bg-zinc-800/80 px-3 py-1 rounded-full border border-zinc-700/50">
+          {peer?.name || "Chat"}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            sendToDb({
+              type: 'image',
+              imageUrl: selectedImage,
+              text: caption,
+              isViewOnce: isViewOnce,
+              quality: isHD ? 'HD' : 'SD',
+              filter: selectedFilter
+            });
+            handleClosePreview();
+          }}
+          className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg active:scale-95 transition-all"
+        >
+          <Send size={20} className="ml-0.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
   );
 }
 
