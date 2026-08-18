@@ -486,11 +486,20 @@ export function ChatThreadPage() {
               </div>
             )}
 
-            {m.image && (
+            {m.image && m.viewOnce && m.sender === "them" && !openedOnce.includes(m.id) ? (
+              <button
+                type="button"
+                onClick={() => setViewOnceOpen({ id: m.id, url: m.image! })}
+                className="max-w-[75%] flex items-center gap-2 rounded-2xl border border-emerald-600/60 bg-emerald-950/30 px-4 py-3 text-xs font-bold text-emerald-400"
+              >
+                <span className="w-5 h-5 rounded-full border border-emerald-500 flex items-center justify-center">1</span>
+                Tap to view once
+              </button>
+            ) : m.image ? (
               <div className="max-w-[75%] rounded-2xl overflow-hidden border border-zinc-800 shadow-lg">
                 <img src={m.image} alt="Attachment" className="w-full h-auto object-cover max-h-60" />
               </div>
-            )}
+            ) : null}
 
             {m.viewOnce && m.sender === "them" && (m.opened || openedOnce.includes(m.id)) && (
               <div className="max-w-[75%] flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-800/70 px-4 py-3 text-xs font-semibold text-zinc-400">
