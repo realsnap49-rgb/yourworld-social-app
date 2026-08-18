@@ -6,6 +6,10 @@ import {
   Pencil, Lock, EyeOff, Clock, Camera, VideoOff, BellOff, UserX, Flag,
   Trash2, CheckCheck, Check, Crop, Type, Sparkles 
 } from "lucide-react";
+import {
+  PHOTO_FILTERS, TEXT_COLORS, STICKER_EMOJIS, cropImage, renderPhoto,
+  type Overlay,
+} from "@/components/yw/chat/photo-editor";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
@@ -26,6 +30,9 @@ type Message = {
   time: string;
   ts: number;
   local?: boolean;
+  read?: boolean;
+  viewOnce?: boolean;
+  opened?: boolean;
 };
 
 function MenuItem({
@@ -64,15 +71,18 @@ export function ChatThreadPage() {
   const [selectedFilter, setSelectedFilter] = useState("normal");
   const [showFilters, setShowFilters] = useState(false);
 
-  const filters = [
-    { id: 'normal', name: 'Original', class: '' },
-    { id: 'soft-glow', name: 'Soft Glow', class: 'brightness-110 contrast-95 saturate-110 sepia-[0.15]' },
-    { id: 'vivid', name: 'Vivid Pop', class: 'saturate-150 contrast-105' },
-    { id: 'warm', name: 'Warm Sun', class: 'sepia-[0.25] saturate-125 brightness-105' },
-    { id: 'cool', name: 'Cool Aesthetic', class: 'hue-rotate-15 saturate-110' },
-    { id: 'vintage', name: 'Retro Vintage', class: 'sepia-[0.4] contrast-110 brightness-95' },
-    { id: 'mono', name: 'Noir B&W', class: 'grayscale contrast-125' }
-  ];
+  const filters = PHOTO_FILTERS;
+
+  // Editor tools
+  const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [activeTool, setActiveTool] = useState<null | "crop" | "emoji" | "text">(null);
+  const [textColor, setTextColor] = useState(TEXT_COLORS[0]);
+  const [textDraft, setTextDraft] = useState("");
+  const [cropRect, setCropRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const cropStart = useRef<{ x: number; y: number } | null>(null);
+  const dragId = useRef<string | null>(null);
+  const imageBoxRef = useRef<HTMLDivElement>(null);
+  const [openedOnce, setOpenedOnce] = useState<string[]>([]);
 
   const handleClosePreview = () => {
     if (selectedImage?.startsWith("blob:")) { URL.revokeObjectURL(selectedImage); }
@@ -81,6 +91,10 @@ export function ChatThreadPage() {
     setIsViewOnce(false);
     setSelectedFilter("normal");
     setShowFilters(false);
+    setOverlays([]);
+    setActiveTool(null);
+    setCropRect(null);
+    setTextDraft("");
   };
   const { threadId } = Route.useParams();
   const { startCall } = useCall();
@@ -89,6 +103,8 @@ export function ChatThreadPage() {
     currentUserId,
     send: sendToDb,
     remove: removeFromDb,
+    markRead,
+    burnMedia,
   } = useThreadMessages(threadId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,17 +124,29 @@ export function ChatThreadPage() {
     const fromDb: Message[] = dbMessages.map((m) => ({
       id: m.id,
       text: m.media_type === "text" ? m.content : m.content || undefined,
-      image: m.media_type === "image" ? m.media_url ?? undefined : undefined,
+      image: m.media_type.startsWith("image") ? m.media_url ?? undefined : undefined,
       audio: m.media_type === "audio" ? m.media_url ?? undefined : undefined,
       sender: m.sender_id === currentUserId ? "me" : "them",
       system: m.media_type === "system",
       time: fmtTime(m.created_at),
       ts: new Date(m.created_at).getTime(),
+      read: m.is_read,
+      viewOnce: m.media_type.startsWith("image_once"),
+      opened: m.media_type === "image_once_opened",
     }));
     return [...fromDb, ...localMessages]
       .filter((m) => !hiddenIds.includes(m.id))
       .sort((a, b) => a.ts - b.ts);
   }, [dbMessages, localMessages, hiddenIds, currentUserId]);
+
+  // Read receipts: any visible incoming message is marked read.
+  useEffect(() => {
+    if (!currentUserId) return;
+    const unread = dbMessages
+      .filter((m) => m.sender_id !== currentUserId && !m.is_read)
+      .map((m) => m.id);
+    if (unread.length) void markRead(unread);
+  }, [dbMessages, currentUserId, markRead]);
 
   const [showEmojis, setShowEmojis] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
