@@ -363,9 +363,30 @@ export function useThreadMessages(threadId: string) {
     await supabase.from("direct_messages").delete().in("id", ids);
   }, []);
 
+  /** Marks incoming messages as read (blue ticks on the sender's side). */
+  const markRead = useCallback(
+    async (ids: string[]) => {
+      if (!me || !ids.length) return;
+      setMessages((prev) => prev.map((m) => (ids.includes(m.id) ? { ...m, is_read: true } : m)));
+      await supabase.from("direct_messages").update({ is_read: true }).in("id", ids);
+    },
+    [me],
+  );
+
+  /** Burns a view-once photo after the recipient opened it. */
+  const burnMedia = useCallback(async (id: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, media_url: null, media_type: "image_once_opened" } : m)),
+    );
+    await supabase
+      .from("direct_messages")
+      .update({ media_url: null, media_type: "image_once_opened" })
+      .eq("id", id);
+  }, []);
+
   return useMemo(
-    () => ({ messages, loading, currentUserId: me, send, remove, reload: load }),
-    [messages, loading, me, send, remove, load],
+    () => ({ messages, loading, currentUserId: me, send, remove, markRead, burnMedia, reload: load }),
+    [messages, loading, me, send, remove, markRead, burnMedia, load],
   );
 }
 
