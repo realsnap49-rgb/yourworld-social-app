@@ -295,6 +295,7 @@ export function ChatThreadPage() {
   };
 
   return (
+    <>
     <div className="fixed inset-0 z-50 bg-black text-white font-sans flex flex-col justify-between overflow-hidden">
       
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
@@ -663,18 +664,15 @@ export function ChatThreadPage() {
 
       <div className="flex items-center justify-between px-2">
         <span className="text-xs text-zinc-400 bg-zinc-800/80 px-3 py-1 rounded-full border border-zinc-700/50">
-          {peer?.name || "Chat"}
+          {peer?.peerName || "Chat"}
         </span>
         <button
           type="button"
           onClick={() => {
-            sendToDb({
-              type: 'image',
-              imageUrl: selectedImage,
-              text: caption,
-              isViewOnce: isViewOnce,
-              quality: isHD ? 'HD' : 'SD',
-              filter: selectedFilter
+            void sendToDb({
+              media_url: selectedImage,
+              media_type: "image",
+              content: caption,
             });
             handleClosePreview();
           }}
@@ -686,6 +684,7 @@ export function ChatThreadPage() {
     </div>
   </div>
 )}
+    </>
   );
 }
 
