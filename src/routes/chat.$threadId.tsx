@@ -83,6 +83,7 @@ export function ChatThreadPage() {
   const dragId = useRef<string | null>(null);
   const imageBoxRef = useRef<HTMLDivElement>(null);
   const [openedOnce, setOpenedOnce] = useState<string[]>([]);
+  const [viewOnceOpen, setViewOnceOpen] = useState<{ id: string; url: string } | null>(null);
 
   const handleClosePreview = () => {
     if (selectedImage?.startsWith("blob:")) { URL.revokeObjectURL(selectedImage); }
