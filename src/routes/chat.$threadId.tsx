@@ -526,6 +526,9 @@ export function ChatThreadPage() {
             <button onClick={startRecording} className="p-2 text-zinc-400 hover:text-white"><Mic size={22} /></button>
             
             <div className="flex-1 relative flex items-center">
+              <button type="button" className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white mr-2 shrink-0" onClick={() => console.log("Camera open")}>
+  <Camera size={18} />
+</button>
               <input
                 type="text"
                 value={message}
