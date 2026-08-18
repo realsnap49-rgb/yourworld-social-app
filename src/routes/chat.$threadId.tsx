@@ -75,7 +75,7 @@ export function ChatThreadPage() {
   ];
 
   const handleClosePreview = () => {
-    if (selectedImage) { URL.revokeObjectURL(selectedImage); }
+    if (selectedImage?.startsWith("blob:")) { URL.revokeObjectURL(selectedImage); }
     setSelectedImage(null);
     setCaption("");
     setIsViewOnce(false);
@@ -92,6 +92,7 @@ export function ChatThreadPage() {
   } = useThreadMessages(threadId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const [message, setMessage] = useState("");
@@ -249,20 +250,18 @@ export function ChatThreadPage() {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const src = event.target.result as string;
-          if (currentUserId) {
-            void sendToDb({ media_url: src, media_type: "image" });
-          } else {
-            pushLocal({ image: src, sender: "me" });
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (!event.target?.result) return;
+      setCaption("");
+      setIsViewOnce(false);
+      setSelectedFilter("normal");
+      setShowFilters(false);
+      setSelectedImage(event.target.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const startRecording = async () => {
@@ -299,6 +298,7 @@ export function ChatThreadPage() {
     <div className="fixed inset-0 z-50 bg-black text-white font-sans flex flex-col justify-between overflow-hidden">
       
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
+      <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleImageSelect} />
 
       {/* TOP HEADER */}
       <div className="relative z-[70] flex items-center justify-between px-4 py-3 bg-zinc-950/90 border-b border-zinc-800/80 backdrop-blur-md shrink-0">
@@ -552,7 +552,7 @@ export function ChatThreadPage() {
             <button onClick={startRecording} className="p-2 text-zinc-400 hover:text-white"><Mic size={22} /></button>
             
             <div className="flex-1 relative flex items-center">
-              <button type="button" className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white mr-2 shrink-0" onClick={() => console.log("Camera open")}>
+              <button type="button" aria-label="Open camera" className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white mr-2 shrink-0" onClick={() => cameraInputRef.current?.click()}>
   <Camera size={18} />
 </button>
               <input
@@ -669,11 +669,15 @@ export function ChatThreadPage() {
         <button
           type="button"
           onClick={() => {
-            void sendToDb({
-              media_url: selectedImage,
-              media_type: "image",
-              content: caption,
-            });
+            if (currentUserId) {
+              void sendToDb({
+                media_url: selectedImage,
+                media_type: "image",
+                content: caption,
+              });
+            } else {
+              pushLocal({ image: selectedImage ?? undefined, text: caption || undefined, sender: "me" });
+            }
             handleClosePreview();
           }}
           className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg active:scale-95 transition-all"
