@@ -106,6 +106,7 @@ export function ChatThreadPage() {
     remove: removeFromDb,
     markRead,
     burnMedia,
+    loading: messagesLoading,
   } = useThreadMessages(threadId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -456,6 +457,18 @@ export function ChatThreadPage() {
 
       <div className="relative flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
         <UserWatermark username={currentUser.username} className="fixed text-white" />
+        {messagesLoading && messages.length === 0 && (
+          <div className="space-y-3.5" aria-hidden>
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className={`flex ${i % 2 ? "justify-end" : "justify-start"}`}>
+                <div
+                  className="h-10 animate-pulse rounded-2xl bg-gradient-to-r from-zinc-800/70 via-zinc-700/60 to-zinc-800/70 bg-[length:200%_100%]"
+                  style={{ width: `${45 + ((i * 37) % 30)}%` }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
         {messages.map((m) => m.system ? (
           <p key={m.id} className="mx-auto w-fit rounded-full bg-zinc-800/70 px-3 py-1 text-center text-[11px] text-zinc-400">
             {m.text}
