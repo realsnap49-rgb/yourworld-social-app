@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Lock, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -16,7 +16,6 @@ function AuthPage() {
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"input" | "verify">("input");
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -26,10 +25,10 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithOtp({ email });
     setLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast.error(error.message);
     } else {
       setStep("verify");
-      toast({ title: "Code Sent", description: "Check your email for the 6-digit code." });
+      toast.success("Code sent", { description: "Check your email for the 6-digit code." });
     }
   };
 
@@ -40,9 +39,9 @@ function AuthPage() {
     const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
     setLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast.error(error.message);
     } else {
-      toast({ title: "Success", description: "Logged in successfully!" });
+      toast.success("Logged in successfully!");
       navigate({ to: "/chat" });
     }
   };
