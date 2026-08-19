@@ -262,6 +262,10 @@ export function useThreadMessages(threadId: string) {
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [me, setMe] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const messagesRef = useRef<DbMessage[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
