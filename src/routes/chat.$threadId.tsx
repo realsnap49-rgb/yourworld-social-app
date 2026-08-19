@@ -11,6 +11,8 @@ import {
   type Overlay,
 } from "@/components/yw/chat/photo-editor";
 import { UserWatermark } from "@/components/yw/UserWatermark";
+import { LazyImage } from "@/components/yw/LazyImage";
+import { compressImageFile } from "@/lib/image-compress";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
@@ -292,20 +294,17 @@ export function ChatThreadPage() {
     setShowEmojis(false);
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (!event.target?.result) return;
-      setCaption("");
-      setIsViewOnce(false);
-      setSelectedFilter("normal");
-      setShowFilters(false);
-      setSelectedImage(event.target.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Compress on-device first so sending/uploading is near-instant.
+    const compressed = await compressImageFile(file, { maxDim: 1600, quality: 0.82 });
+    setCaption("");
+    setIsViewOnce(false);
+    setSelectedFilter("normal");
+    setShowFilters(false);
+    setSelectedImage(compressed);
   };
 
   const startRecording = async () => {
@@ -537,7 +536,12 @@ export function ChatThreadPage() {
               </button>
             ) : m.image && !(m.viewOnce && (m.opened || openedOnce.includes(m.id))) ? (
               <div className="max-w-[75%] rounded-2xl overflow-hidden border border-zinc-800 shadow-lg">
-                <img src={m.image} alt="Attachment" className="w-full h-auto object-cover max-h-60" />
+                <LazyImage
+                  src={m.image}
+                  alt="Attachment"
+                  wrapperClassName="w-full"
+                  className="w-full h-auto object-cover max-h-60"
+                />
               </div>
             ) : null}
 
@@ -703,7 +707,13 @@ export function ChatThreadPage() {
       </button>
     </div>
     <div className="flex-1 flex items-center justify-center p-4">
-      <img src={viewOnceOpen.url} alt="View once" className="max-h-full max-w-full object-contain rounded-lg" />
+      <LazyImage
+        src={viewOnceOpen.url}
+        alt="View once"
+        loading="eager"
+        wrapperClassName="max-h-full max-w-full"
+        className="max-h-full max-w-full object-contain rounded-lg"
+      />
     </div>
   </div>
 )}

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Search, SquarePen, MessageSquare, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveThreadPeer } from "@/lib/social-data";
+import { cacheGet, cacheSet } from "@/lib/local-cache";
 
 export const Route = createFileRoute("/chat/")({
   component: ChatListPage,
@@ -26,7 +27,10 @@ interface DiscoverProfile {
 }
 
 function ChatListPage() {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
+  // Paint the cached list immediately, then refresh from the network.
+  const [threads, setThreads] = useState<ChatThread[]>(
+    () => cacheGet<ChatThread[]>("chat-threads") ?? [],
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [peopleQuery, setPeopleQuery] = useState("");
@@ -62,7 +66,13 @@ function ChatListPage() {
           }
         });
         const base = Array.from(map.values());
-        setThreads(base);
+        // Keep already-resolved names from the cache instead of flashing "Loading…".
+        setThreads((prev) =>
+          base.map((t) => {
+            const known = prev.find((p) => p.id === t.id);
+            return known ? { ...t, name: known.name, peerId: known.peerId, avatarUrl: known.avatarUrl } : t;
+          }),
+        );
 
         const resolved = await Promise.all(
           base.map(async (t) => {
@@ -76,6 +86,7 @@ function ChatListPage() {
           }),
         );
         setThreads(resolved);
+        cacheSet("chat-threads", resolved.slice(0, 30));
       }
     }
 
