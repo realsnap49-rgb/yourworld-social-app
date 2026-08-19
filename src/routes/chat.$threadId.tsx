@@ -292,20 +292,17 @@ export function ChatThreadPage() {
     setShowEmojis(false);
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (!event.target?.result) return;
-      setCaption("");
-      setIsViewOnce(false);
-      setSelectedFilter("normal");
-      setShowFilters(false);
-      setSelectedImage(event.target.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Compress on-device first so sending/uploading is near-instant.
+    const compressed = await compressImageFile(file, { maxDim: 1600, quality: 0.82 });
+    setCaption("");
+    setIsViewOnce(false);
+    setSelectedFilter("normal");
+    setShowFilters(false);
+    setSelectedImage(compressed);
   };
 
   const startRecording = async () => {
