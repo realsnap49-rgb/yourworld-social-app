@@ -66,7 +66,13 @@ function ChatListPage() {
           }
         });
         const base = Array.from(map.values());
-        setThreads(base);
+        // Keep already-resolved names from the cache instead of flashing "Loading…".
+        setThreads((prev) =>
+          base.map((t) => {
+            const known = prev.find((p) => p.id === t.id);
+            return known ? { ...t, name: known.name, peerId: known.peerId, avatarUrl: known.avatarUrl } : t;
+          }),
+        );
 
         const resolved = await Promise.all(
           base.map(async (t) => {
