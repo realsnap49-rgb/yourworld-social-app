@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveThreadPeer } from "@/lib/social-data";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 
-export const Route = createFileRoute("/chat/")({
+export const Route = createFileRoute("/_authenticated/chat/")({
   component: ChatListPage,
 });
 
