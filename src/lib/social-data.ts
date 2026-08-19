@@ -259,7 +259,8 @@ export async function publishReel(opts: {
 }
 
 /** Live messages for one chat thread. */
-export function useThreadMessages(threadId: string) {
+export function useThreadMessages(threadId: string, opts: { staleTime?: number } = {}) {
+  const staleTime = opts.staleTime ?? 0;
   // Hydrate instantly from the local cache so the thread paints with zero wait.
   const [messages, setMessages] = useState<DbMessage[]>(
     () => cacheGet<DbMessage[]>(`thread:${threadId}`) ?? [],
@@ -284,7 +285,7 @@ export function useThreadMessages(threadId: string) {
       .select("id,thread_id,sender_id,content,media_url,media_type,is_read,created_at")
       .eq("thread_id", threadId)
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(20);
     const rows = ((data ?? []) as DbMessage[]).slice().reverse();
     // Keep any still-pending optimistic messages on screen.
     setMessages((prev) => [...rows, ...prev.filter((m) => m.id.startsWith("tmp-"))]);
@@ -298,6 +299,7 @@ export function useThreadMessages(threadId: string) {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let retry: ReturnType<typeof setTimeout> | null = null;
     let alive = true;
+    let subscribeCount = 0;
 
     const upsert = (row: DbMessage) =>
       setMessages((prev) =>
@@ -308,6 +310,7 @@ export function useThreadMessages(threadId: string) {
 
     const subscribe = () => {
       if (!alive) return;
+      subscribeCount++;
       channel = supabase
         .channel(`thread-${threadId}-${Math.random().toString(36).slice(2)}`)
         .on(
@@ -333,13 +336,19 @@ export function useThreadMessages(threadId: string) {
             if (!alive) return;
             retry = setTimeout(subscribe, 1500);
           } else if (status === "SUBSCRIBED") {
-            void load();
+            // Only catch up on a reconnect — never on the first join and never
+            // on each new message. Realtime payloads drive live updates, so a
+            // full refetch would just flicker the thread back to the old state.
+            if (subscribeCount > 1) void load();
           }
         });
     };
     subscribe();
 
     const resync = () => {
+      // With staleTime: Infinity the thread is treated as never stale — realtime
+      // reconnects (above) already catch up, so skip the full refetch here.
+      if (staleTime === Infinity) return;
       if (document.visibilityState === "visible") void load();
     };
     document.addEventListener("visibilitychange", resync);
