@@ -82,11 +82,17 @@ function AuthPage() {
     setLoading(true);
 
     const isEmail = identifier.includes("@");
-    const { error } = await supabase.auth.verifyOtp({
-      [isEmail ? "email" : "phone"]: identifier.trim(),
-      token,
-      type: isEmail ? "email" : "sms",
-    });
+    const { error } = isEmail
+      ? await supabase.auth.verifyOtp({
+          email: identifier.trim(),
+          token,
+          type: "email",
+        })
+      : await supabase.auth.verifyOtp({
+          phone: identifier.trim(),
+          token,
+          type: "sms",
+        });
 
     setLoading(false);
     verifying.current = false;
