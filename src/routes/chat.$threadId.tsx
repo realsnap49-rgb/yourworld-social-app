@@ -487,7 +487,7 @@ export function ChatThreadPage() {
               </div>
             )}
 
-            {m.image && m.viewOnce && m.sender === "them" && !openedOnce.includes(m.id) ? (
+            {m.image && m.viewOnce && m.sender === "them" && !m.opened && !openedOnce.includes(m.id) ? (
               <button
                 type="button"
                 onClick={() => setViewOnceOpen({ id: m.id, url: m.image! })}
@@ -496,7 +496,7 @@ export function ChatThreadPage() {
                 <span className="w-5 h-5 rounded-full border border-emerald-500 flex items-center justify-center">1</span>
                 Tap to view once
               </button>
-            ) : m.image ? (
+            ) : m.image && !(m.viewOnce && (m.opened || openedOnce.includes(m.id))) ? (
               <div className="max-w-[75%] rounded-2xl overflow-hidden border border-zinc-800 shadow-lg">
                 <img src={m.image} alt="Attachment" className="w-full h-auto object-cover max-h-60" />
               </div>
