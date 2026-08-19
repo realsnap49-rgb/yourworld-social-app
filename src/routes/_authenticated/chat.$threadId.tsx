@@ -19,7 +19,7 @@ import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
 import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
 
-export const Route = createFileRoute("/chat/$threadId")({
+export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ChatThreadPage,
 });
 
