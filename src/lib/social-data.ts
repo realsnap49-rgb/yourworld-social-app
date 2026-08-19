@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { cacheGet, cacheSet } from "@/lib/local-cache";
 import type { User } from "@/lib/yw-data";
 
 export type DbProfile = {
@@ -259,13 +260,23 @@ export async function publishReel(opts: {
 
 /** Live messages for one chat thread. */
 export function useThreadMessages(threadId: string) {
-  const [messages, setMessages] = useState<DbMessage[]>([]);
+  // Hydrate instantly from the local cache so the thread paints with zero wait.
+  const [messages, setMessages] = useState<DbMessage[]>(
+    () => cacheGet<DbMessage[]>(`thread:${threadId}`) ?? [],
+  );
   const [me, setMe] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(
+    () => (cacheGet<DbMessage[]>(`thread:${threadId}`) ?? []).length === 0,
+  );
   const messagesRef = useRef<DbMessage[]>([]);
   useEffect(() => {
     messagesRef.current = messages;
-  }, [messages]);
+    // Persist a small tail of the thread for the next instant open.
+    cacheSet(
+      `thread:${threadId}`,
+      messages.filter((m) => !m.id.startsWith("tmp-")).slice(-40),
+    );
+  }, [messages, threadId]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -274,7 +285,9 @@ export function useThreadMessages(threadId: string) {
       .eq("thread_id", threadId)
       .order("created_at", { ascending: false })
       .limit(60);
-    setMessages(((data ?? []) as DbMessage[]).slice().reverse());
+    const rows = ((data ?? []) as DbMessage[]).slice().reverse();
+    // Keep any still-pending optimistic messages on screen.
+    setMessages((prev) => [...rows, ...prev.filter((m) => m.id.startsWith("tmp-"))]);
     setLoading(false);
   }, [threadId]);
 
@@ -344,6 +357,20 @@ export function useThreadMessages(threadId: string) {
   const send = useCallback(
     async (payload: { content?: string; media_url?: string | null; media_type?: string }) => {
       if (!me) return { error: "no-session" as const };
+      // Optimistic: show the message immediately, reconcile when the insert lands.
+      const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const optimistic: DbMessage = {
+        id: tempId,
+        thread_id: threadId,
+        sender_id: me,
+        content: payload.content ?? "",
+        media_url: payload.media_url ?? null,
+        media_type: payload.media_type ?? "text",
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
+
       const { data, error } = await supabase.from("direct_messages").insert({
         thread_id: threadId,
         sender_id: me,
@@ -351,10 +378,15 @@ export function useThreadMessages(threadId: string) {
         media_url: payload.media_url ?? null,
         media_type: payload.media_type ?? "text",
       }).select("*").maybeSingle();
-      // Show my own message instantly instead of waiting for the realtime echo.
-      if (data) {
+      if (error) {
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      } else if (data) {
         const row = data as DbMessage;
-        setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
+        setMessages((prev) =>
+          prev.some((m) => m.id === row.id)
+            ? prev.filter((m) => m.id !== tempId)
+            : prev.map((m) => (m.id === tempId ? row : m)),
+        );
       }
       return { error: error?.message ?? null };
     },
