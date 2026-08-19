@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Search, SquarePen, MessageSquare, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveThreadPeer } from "@/lib/social-data";
+import { cacheGet, cacheSet } from "@/lib/local-cache";
 
 export const Route = createFileRoute("/chat/")({
   component: ChatListPage,
@@ -26,7 +27,10 @@ interface DiscoverProfile {
 }
 
 function ChatListPage() {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
+  // Paint the cached list immediately, then refresh from the network.
+  const [threads, setThreads] = useState<ChatThread[]>(
+    () => cacheGet<ChatThread[]>("chat-threads") ?? [],
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [peopleQuery, setPeopleQuery] = useState("");
@@ -76,6 +80,7 @@ function ChatListPage() {
           }),
         );
         setThreads(resolved);
+        cacheSet("chat-threads", resolved.slice(0, 30));
       }
     }
 
