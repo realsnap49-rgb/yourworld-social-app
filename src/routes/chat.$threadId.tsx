@@ -14,6 +14,7 @@ import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
+import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
 
 export const Route = createFileRoute("/chat/$threadId")({
@@ -162,6 +163,19 @@ export function ChatThreadPage() {
 
   // Peer identity resolved from the thread (never hardcoded)
   const peer = useThreadPeer(threadId, currentUserId);
+  // Live presence: online dot + "typing..." indicator.
+  const { peerOnline, peerTyping, setTyping } = useThreadPresence(threadId, currentUserId);
+
+  // Live view once: if the media is burned on either device, close the viewer.
+  useEffect(() => {
+    if (!viewOnceOpen) return;
+    const row = dbMessages.find((m) => m.id === viewOnceOpen.id);
+    if (row && (!row.media_url || row.media_type === "image_once_opened")) {
+      setOpenedOnce((prev) => (prev.includes(viewOnceOpen.id) ? prev : [...prev, viewOnceOpen.id]));
+      setViewOnceOpen(null);
+    }
+  }, [dbMessages, viewOnceOpen]);
+
   const [nameOverride, setNameOverride] = useState<string | null>(null);
   const displayName = nameOverride ?? peer.peerName ?? "";
   const setDisplayName = (n: string) => setNameOverride(n);
@@ -341,7 +355,11 @@ export function ChatThreadPage() {
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md">
               U
             </div>
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full" />
+            <span
+              className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${
+                peerOnline ? "bg-emerald-500" : "bg-zinc-600"
+              }`}
+            />
           </div>
 
           <div className="flex flex-col">
@@ -350,8 +368,16 @@ export function ChatThreadPage() {
               {secretLock && <Lock size={12} className="text-purple-400" />}
               {muted && <BellOff size={12} className="text-zinc-500" />}
             </span>
-            <span className="text-[11px] text-emerald-400 font-medium">
-              {blocked ? <span className="text-red-400">Blocked</span> : "Online"}
+            <span className="text-[11px] font-medium">
+              {blocked ? (
+                <span className="text-red-400">Blocked</span>
+              ) : peerTyping ? (
+                <span className="text-purple-400">typing...</span>
+              ) : peerOnline ? (
+                <span className="text-emerald-400">Online</span>
+              ) : (
+                <span className="text-zinc-500">Offline</span>
+              )}
             </span>
           </div>
         </div>
@@ -626,8 +652,17 @@ export function ChatThreadPage() {
               <input
                 type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  setTyping(e.target.value.trim().length > 0);
+                }}
+                onBlur={() => setTyping(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setTyping(false);
+                    handleSend();
+                  }
+                }}
                 placeholder="Message..."
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none"
               />
