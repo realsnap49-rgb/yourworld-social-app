@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock, Mail, Phone, ArrowRight, ShieldCheck } from "lucide-react";
+import { Lock, Mail, Phone, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -16,7 +21,15 @@ function AuthPage() {
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"input" | "verify">("input");
   const [loading, setLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
   const navigate = useNavigate();
+  const verifying = useRef(false);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   // Social Logins
   const handleSocialLogin = async (provider: 'google' | 'apple') => {
@@ -26,43 +39,66 @@ function AuthPage() {
     if (error) toast.error(error.message);
   };
 
-  // Send OTP
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!identifier) return;
+  // Send a 6-digit OTP code (no magic link)
+  const sendCode = async () => {
+    const value = identifier.trim();
+    if (!value) return;
     setLoading(true);
 
-    const isEmail = identifier.includes("@");
-    const { error } = isEmail 
-      ? await supabase.auth.signInWithOtp({ email: identifier })
-      : await supabase.auth.signInWithOtp({ phone: identifier });
+    const isEmail = value.includes("@");
+    const { error } = isEmail
+      ? await supabase.auth.signInWithOtp({
+          email: value,
+          // Omitting emailRedirectTo keeps this a code-based sign-in
+          options: { shouldCreateUser: true },
+        })
+      : await supabase.auth.signInWithOtp({
+          phone: value,
+          options: { shouldCreateUser: true },
+        });
 
     setLoading(false);
 
     if (error) {
       toast.error(error.message);
     } else {
+      setCode("");
       setStep("verify");
-      toast.success(`6-digit code sent to ${identifier}`);
+      setResendIn(45);
+      toast.success(`6-digit code sent to ${value}`);
     }
   };
 
-  // Verify OTP
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code) return;
+    await sendCode();
+  };
+
+  // Verify OTP
+  const handleVerify = async (value?: string) => {
+    const token = (value ?? code).trim();
+    if (token.length !== 6 || verifying.current) return;
+    verifying.current = true;
     setLoading(true);
 
     const isEmail = identifier.includes("@");
-    const { error } = await supabase.auth.verifyOtp({
-      [isEmail ? 'email' : 'phone']: identifier,
-      token: code,
-      type: isEmail ? 'email' : 'sms',
-    });
+    const { error } = isEmail
+      ? await supabase.auth.verifyOtp({
+          email: identifier.trim(),
+          token,
+          type: "email",
+        })
+      : await supabase.auth.verifyOtp({
+          phone: identifier.trim(),
+          token,
+          type: "sms",
+        });
 
     setLoading(false);
+    verifying.current = false;
 
     if (error) {
+      setCode("");
       toast.error(error.message);
     } else {
       toast.success("Welcome! Login Successful.");
@@ -139,31 +175,60 @@ function AuthPage() {
               </form>
             </>
           ) : (
-            <form onSubmit={handleVerify} className="space-y-4">
-              <div className="relative">
-                <ShieldCheck className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
-                <Input
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="pl-10 text-center tracking-widest bg-slate-950/50 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-pink-500 transition-all"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleVerify();
+              }}
+              className="space-y-4"
+            >
+              <p className="text-center text-sm text-slate-400">
+                Enter the 6-digit code sent to{" "}
+                <span className="text-slate-200">{identifier}</span>
+              </p>
+              <div className="flex justify-center">
+                <InputOTP
                   maxLength={6}
-                  autoComplete="one-time-code"
-                  required
-                />
+                  value={code}
+                  autoFocus
+                  onChange={(v) => {
+                    setCode(v);
+                    if (v.length === 6) void handleVerify(v);
+                  }}
+                >
+                  <InputOTPGroup>
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <InputOTPSlot
+                        key={i}
+                        index={i}
+                        className="h-12 w-11 text-lg bg-slate-950/50 border-slate-800 text-slate-100"
+                      />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || code.length !== 6}
                 className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium py-2 rounded-lg shadow-lg shadow-pink-500/25 transition-all"
               >
                 {loading ? "Verifying..." : "Verify & Continue"}
               </Button>
               <button
                 type="button"
-                onClick={() => setStep("input")}
-                className="w-full text-xs text-slate-400 hover:text-slate-200 transition-colors text-center mt-2"
+                disabled={resendIn > 0 || loading}
+                onClick={() => void sendCode()}
+                className="w-full text-xs text-slate-400 hover:text-slate-200 disabled:opacity-50 transition-colors text-center"
+              >
+                {resendIn > 0 ? `Resend code in ${resendIn}s` : "Resend code"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCode("");
+                  setStep("input");
+                }}
+                className="w-full text-xs text-slate-400 hover:text-slate-200 transition-colors text-center"
               >
                 Change Phone / Email
               </button>
