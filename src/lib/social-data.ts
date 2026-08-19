@@ -266,11 +266,11 @@ export function useThreadMessages(threadId: string) {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("direct_messages")
-      .select("*")
+      .select("id,thread_id,sender_id,content,media_url,media_type,is_read,created_at")
       .eq("thread_id", threadId)
-      .order("created_at", { ascending: true })
-      .limit(200);
-    setMessages((data ?? []) as DbMessage[]);
+      .order("created_at", { ascending: false })
+      .limit(60);
+    setMessages(((data ?? []) as DbMessage[]).slice().reverse());
     setLoading(false);
   }, [threadId]);
 
@@ -373,15 +373,27 @@ export function useThreadMessages(threadId: string) {
     [me],
   );
 
-  /** Burns a view-once photo after the recipient opened it. */
+  /** Burns a view-once photo after the recipient opened it (permanent, both sides). */
   const burnMedia = useCallback(async (id: string) => {
+    const row = messagesRef.current.find((m) => m.id === id);
     setMessages((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, media_url: null, media_type: "image_once_opened" } : m)),
+      prev.map((m) =>
+        m.id === id ? { ...m, media_url: null, media_type: "image_once_opened", content: "" } : m,
+      ),
     );
-    await supabase
-      .from("direct_messages")
-      .update({ media_url: null, media_type: "image_once_opened" })
-      .eq("id", id);
+    // Runs as a security-definer RPC so the *recipient* can erase it too.
+    await supabase.rpc("burn_view_once", { _msg_id: id });
+    // Remove the underlying storage object when the media lived in a bucket.
+    const url = row?.media_url;
+    if (url && /^https?:/.test(url)) {
+      for (const bucket of ["chat", "reels"]) {
+        const path = storagePathFrom(url, bucket);
+        if (path && path !== url) {
+          await supabase.storage.from(bucket).remove([path]);
+          break;
+        }
+      }
+    }
   }, []);
 
   return useMemo(
