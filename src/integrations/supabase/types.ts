@@ -218,6 +218,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      burn_view_once: { Args: { _msg_id: string }; Returns: undefined }
       get_public_profiles: {
         Args: { ids: string[] }
         Returns: {
