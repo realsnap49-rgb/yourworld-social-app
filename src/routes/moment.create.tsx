@@ -285,7 +285,6 @@ export function MomentCreatePage() {
               />
               <div className="absolute inset-x-0 bottom-0 z-50 flex flex-col gap-3 bg-gradient-to-t from-black/85 to-transparent p-4 pb-6">
                 <div className="flex items-center gap-2">
-                  {["#ffffff", "#ff2e88", "#ffd countries"].slice(0, 0)}
                   {["#ffffff", "#ff2e88", "#ffd166", "#4ade80", "#38bdf8", "#000000"].map((c) => (
                     <button
                       key={c}
