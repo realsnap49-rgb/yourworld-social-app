@@ -2094,6 +2094,7 @@ export function MomentCreatePage() {
 
         <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
           <div
+            ref={frameRef}
             className={`relative ${
               cropRatio ===
               "original"
@@ -2110,19 +2111,21 @@ export function MomentCreatePage() {
                   loop
                   playsInline
                   muted={videoMuted}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={
-                    getMediaStyle()
-                  }
+                  className="absolute object-cover"
+                  style={{
+                    ...cropStyle(),
+                    ...getMediaStyle(),
+                  }}
                 />
               ) : (
                 <img
                   src={mediaUrl}
                   alt="Moment"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={
-                    getMediaStyle()
-                  }
+                  className="absolute object-cover"
+                  style={{
+                    ...cropStyle(),
+                    ...getMediaStyle(),
+                  }}
                 />
               ))}
 
@@ -2154,22 +2157,73 @@ export function MomentCreatePage() {
               }
             />
 
-            {/* TEXT */}
+            {/* TEXT LAYERS */}
 
-            {overlayText && (
-              <div
-                className="absolute z-30 -translate-x-1/2 -translate-y-1/2 font-black text-center whitespace-nowrap"
-                style={{
-                  left: `${textX}%`,
-                  top: `${textY}%`,
-                  color: textColor,
-                  fontSize: `${textSize}px`,
-                  textShadow:
-                    "0 2px 8px rgba(0,0,0,.7)",
-                }}
-              >
-                {overlayText}
-              </div>
+            {textLayers.map(
+              (layer) => (
+                <TextLayerView
+                  key={layer.id}
+                  layer={layer}
+                  active={
+                    layer.id ===
+                    activeTextId
+                  }
+                  frameRef={
+                    frameRef
+                  }
+                  locked={
+                    drawMode ||
+                    cropMode
+                  }
+                  onSelect={() => {
+                    setActiveTextId(
+                      layer.id
+                    );
+                    setOverlayText(
+                      layer.text
+                    );
+                    setTextColor(
+                      layer.color
+                    );
+                    setTextSize(
+                      layer.size
+                    );
+                    setShowTextInput(
+                      true
+                    );
+                  }}
+                  onChange={(
+                    patch
+                  ) =>
+                    setTextLayers(
+                      (items) =>
+                        items.map(
+                          (item) =>
+                            item.id ===
+                            layer.id
+                              ? {
+                                  ...item,
+                                  ...patch,
+                                }
+                              : item
+                        )
+                    )
+                  }
+                  onRemove={() => {
+                    setTextLayers(
+                      (items) =>
+                        items.filter(
+                          (item) =>
+                            item.id !==
+                            layer.id
+                        )
+                    );
+                    setActiveTextId(
+                      null
+                    );
+                  }}
+                />
+              )
             )}
 
             {/* STICKERS */}
@@ -2195,6 +2249,18 @@ export function MomentCreatePage() {
               )
             )}
           </div>
+
+          {/* FREE CROP OVERLAY */}
+
+          {cropMode && (
+            <CropOverlay
+              rect={cropDraft}
+              onChange={
+                setCropDraft
+              }
+              frameRef={frameRef}
+            />
+          )}
         </div>
 
         {/* DARK GRADIENT */}
