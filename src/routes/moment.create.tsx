@@ -132,9 +132,9 @@ export function MomentCreatePage() {
           <div className="relative z-10 flex flex-col items-center mb-8">
             <div className="flex items-center gap-6 mb-4">
               <button className="p-2.5 bg-black/40 backdrop-blur-md rounded-xl"><ImageIcon size={22} /></button>
-              <button onClick={capturePhoto} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform shadow-2xl">
-                <div className="w-16 h-16 rounded-full border-2 border-black/20 bg-white/20" />
-              </button>
+              <button onClick={capturePhoto} className="relative flex items-center justify-center w-20 h-20 rounded-full border-4 border-white p-1 transition-transform active:scale-90 shadow-lg shadow-white/30">
+  <div className="w-full h-full rounded-full bg-white shadow-inner" />
+</button>
               <button className="p-2.5 bg-black/40 backdrop-blur-md rounded-xl"><Sparkles size={22} /></button>
             </div>
           </div>
@@ -198,17 +198,18 @@ export function MomentCreatePage() {
             <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Add a caption..." className="w-full bg-transparent border-b border-white/30 pb-2 text-sm text-white placeholder-zinc-300 focus:outline-none" />
 
             <div className="flex items-center justify-between gap-3">
-              <button onClick={() => { setPrivacy("everyone"); setStep(2); }} className="flex-1 py-3 bg-black/60 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center gap-2 text-xs font-bold">
+              <button onClick={() => handlePublish('everyone')} className="flex-1 py-3 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center gap-2">
                 <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px]">👤</div>
-                Your stories
+                Your moment
               </button>
 
-              <button onClick={() => { setPrivacy("close_friends"); setStep(2); }} className="flex-1 py-3 bg-black/60 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center gap-2 text-xs font-bold text-emerald-400">
+              <button onClick={() => handlePublish('close_friends')} className="flex-1 py-3 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center gap-2">
                 <div className="w-5 h-5 rounded-full bg-emerald-500 text-black flex items-center justify-center font-black text-[10px]">★</div>
                 Close Friends
               </button>
 
-              <button onClick={() => setStep(2)} className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center active:scale-90 transition-transform shadow-lg">
+              <button onClick={() => handlePublish('everyone')} className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center active:scale-95">
+              
                 <ChevronRight size={24} className="text-white" />
               </button>
             </div>
