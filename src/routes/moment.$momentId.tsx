@@ -155,6 +155,16 @@ function MomentViewer() {
                 playsInline
                 style={{ filter }}
                 className="h-full w-full object-cover"
+                onLoadedMetadata={(e) => {
+                  if (moment.trim) e.currentTarget.currentTime = moment.trim.start;
+                }}
+                onTimeUpdate={(e) => {
+                  const v = e.currentTarget;
+                  if (!moment.trim) return;
+                  if (v.currentTime >= moment.trim.end || v.currentTime < moment.trim.start) {
+                    v.currentTime = moment.trim.start;
+                  }
+                }}
               />
             </div>
           ) : moment.kind === "photo" && moment.media ? (
