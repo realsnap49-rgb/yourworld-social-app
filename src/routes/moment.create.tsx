@@ -422,7 +422,13 @@ export function MomentCreatePage() {
         return null;
       }
 
-      return track.getCapabilities();
+      return track.getCapabilities() as MediaTrackCapabilities & {
+        zoom?: {
+          min?: number;
+          max?: number;
+          step?: number;
+        };
+      };
     } catch {
       return null;
     }
