@@ -203,6 +203,7 @@ const FILTERS: Record<
 
 export function MomentCreatePage() {
   const navigate = useNavigate();
+  const { addMoment } = useMoments();
 
   // =====================================================
   // CAMERA REFS
