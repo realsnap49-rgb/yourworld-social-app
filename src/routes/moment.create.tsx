@@ -297,16 +297,6 @@ export function MomentCreatePage() {
   const [textY, setTextY] =
     useState(45);
 
-  type TextLayer = {
-    id: number;
-    text: string;
-    x: number; // %
-    y: number; // %
-    size: number;
-    rotation: number;
-    color: string;
-  };
-
   const [textLayers, setTextLayers] =
     useState<TextLayer[]>([]);
 
@@ -331,20 +321,6 @@ export function MomentCreatePage() {
   // FREE CROP
   // =====================================================
 
-  type Rect = {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-  };
-
-  const FULL_RECT: Rect = {
-    x: 0,
-    y: 0,
-    w: 1,
-    h: 1,
-  };
-
   const [cropRect, setCropRect] =
     useState<Rect>(FULL_RECT);
 
@@ -353,6 +329,14 @@ export function MomentCreatePage() {
 
   const [cropDraft, setCropDraft] =
     useState<Rect>(FULL_RECT);
+
+  const cropStyle =
+    (): React.CSSProperties => ({
+      left: `${(-cropRect.x / cropRect.w) * 100}%`,
+      top: `${(-cropRect.y / cropRect.h) * 100}%`,
+      width: `${100 / cropRect.w}%`,
+      height: `${100 / cropRect.h}%`,
+    });
 
   // =====================================================
   // STICKERS
