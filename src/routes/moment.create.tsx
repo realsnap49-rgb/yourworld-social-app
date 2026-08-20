@@ -5,6 +5,10 @@ import {
   Type, Pencil, Download, Smile, Wand2, MoreHorizontal, ChevronRight,
   Lock, Check, BarChart2, Bell, Archive, Shield
 } from "lucide-react";
+import { DrawCanvas } from "@/components/yw/moment/DrawCanvas";
+import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
+import { useMoments } from "@/lib/moment-store";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/moment/create")({
   component: MomentCreatePage,
@@ -15,6 +19,8 @@ export function MomentCreatePage() {
   const navigate = useNavigate();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const { addMoment } = useMoments();
+  const clearDrawRef = useRef<(() => void) | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -27,6 +33,7 @@ export function MomentCreatePage() {
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedAudio(e.target.files[0].name);
+      setShowMusic(false);
     }
   };
 
@@ -48,6 +55,91 @@ export function MomentCreatePage() {
   // Editor States
   const [textList, setTextList] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const [selectedAudio, setSelectedAudio] = useState<string | null>("Nawal - Main");
+  const [drawing, setDrawing] = useState<string | undefined>(undefined);
+  const [drawMode, setDrawMode] = useState(false);
+  const [brushColor, setBrushColor] = useState("#ff2e88");
+  const [brushSize, setBrushSize] = useState(8);
+  const [eraser, setEraser] = useState(false);
+  const [showText, setShowText] = useState(false);
+  const [textDraft, setTextDraft] = useState("");
+  const [showMusic, setShowMusic] = useState(false);
+
+  const composeImage = async (): Promise<string | null> => {
+    if (!capturedImage) return null;
+    const load = (src: string) =>
+      new Promise<HTMLImageElement>((res, rej) => {
+        const i = new Image();
+        i.crossOrigin = "anonymous";
+        i.onload = () => res(i);
+        i.onerror = rej;
+        i.src = src;
+      });
+    try {
+      const base = await load(capturedImage);
+      const canvas = document.createElement("canvas");
+      canvas.width = base.naturalWidth || 1080;
+      canvas.height = base.naturalHeight || 1920;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
+      if (drawing) {
+        const layer = await load(drawing);
+        ctx.drawImage(layer, 0, 0, canvas.width, canvas.height);
+      }
+      if (textList.length) {
+        const scale = canvas.width / (window.innerWidth || canvas.width);
+        ctx.textBaseline = "top";
+        for (const t of textList) {
+          ctx.font = `bold ${Math.round(22 * scale)}px sans-serif`;
+          ctx.fillStyle = "#fff";
+          ctx.shadowColor = "rgba(0,0,0,0.6)";
+          ctx.shadowBlur = 8 * scale;
+          ctx.fillText(t.text, t.x * scale, t.y * scale);
+        }
+        ctx.shadowBlur = 0;
+      }
+      return canvas.toDataURL("image/png");
+    } catch {
+      return capturedImage;
+    }
+  };
+
+  const handleDownload = async () => {
+    const url = await composeImage();
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `yourworld-moment-${Date.now()}.png`;
+    a.click();
+    toast.success("Saved to your device");
+  };
+
+  const shareMoment = async () => {
+    const media = (await composeImage()) ?? capturedImage ?? "";
+    addMoment({
+      kind: "photo",
+      media,
+      mediaType: "image/png",
+      text: caption,
+      textBg: "",
+      music: selectedAudio ?? undefined,
+      stickers: [],
+      drawing,
+      mentions: [],
+      privacy:
+        privacy === "close_friends" ? "close" : privacy === "only_me" ? "onlyme" : privacy,
+      duration: duration === "12h" ? 12 : 24,
+      effect: "none",
+      ai: {},
+      allowDownload: allowDownloads,
+      screenshotAlert,
+      poll: addPoll
+        ? { question: caption || "What do you think?", options: ["Yes", "No"], votes: [0, 0], myVote: null }
+        : null,
+    });
+    toast.success("Moment shared");
+    navigate({ to: "/moment" });
+  };
 
   // Share Sheet Complete Form States
   const [caption, setCaption] = useState("");
@@ -177,6 +269,91 @@ export function MomentCreatePage() {
             <img src={capturedImage!} alt="Captured" style={{ transform: `scale(${scale})` }} className="w-full h-full object-cover transition-transform duration-75 ease-out" />
           </div>
 
+          {drawing && !drawMode && (
+            <img src={drawing} alt="" className="pointer-events-none absolute inset-0 z-10 h-full w-full object-cover" />
+          )}
+
+          {drawMode && (
+            <div className="absolute inset-0 z-40">
+              <DrawCanvas
+                color={brushColor}
+                size={brushSize}
+                eraser={eraser}
+                initial={drawing}
+                onCommit={(d) => setDrawing(d)}
+                registerClear={(fn) => (clearDrawRef.current = fn)}
+              />
+              <div className="absolute inset-x-0 bottom-0 z-50 flex flex-col gap-3 bg-gradient-to-t from-black/85 to-transparent p-4 pb-6">
+                <div className="flex items-center gap-2">
+                  {["#ffffff", "#ff2e88", "#ffd166", "#4ade80", "#38bdf8", "#000000"].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => { setBrushColor(c); setEraser(false); }}
+                      style={{ background: c }}
+                      className={`h-7 w-7 rounded-full border-2 ${brushColor === c && !eraser ? "border-white scale-110" : "border-white/30"}`}
+                    />
+                  ))}
+                  <button onClick={() => setEraser((e) => !e)} className={`ml-1 rounded-full px-3 py-1.5 text-xs font-bold ${eraser ? "bg-white text-black" : "bg-white/15 text-white"}`}>Eraser</button>
+                </div>
+                <input type="range" min={2} max={30} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-full accent-pink-500" />
+                <div className="flex gap-3">
+                  <button onClick={() => { clearDrawRef.current?.(); setDrawing(undefined); }} className="flex-1 rounded-full bg-white/15 py-2.5 text-sm font-bold">Clear</button>
+                  <button onClick={() => { setDrawMode(false); setEraser(false); }} className="flex-1 rounded-full bg-white py-2.5 text-sm font-bold text-black">Done</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showText && (
+            <div className="absolute inset-0 z-50 flex flex-col justify-center gap-4 bg-black/70 p-6 backdrop-blur-sm">
+              <input
+                autoFocus
+                value={textDraft}
+                onChange={(e) => setTextDraft(e.target.value)}
+                placeholder="Type something..."
+                className="w-full border-b border-white/40 bg-transparent pb-2 text-center text-2xl font-bold text-white outline-none"
+              />
+              <div className="flex gap-3">
+                <button onClick={() => { setShowText(false); setTextDraft(""); }} className="flex-1 rounded-full bg-white/15 py-2.5 text-sm font-bold">Cancel</button>
+                <button
+                  onClick={() => {
+                    if (textDraft.trim()) setTextList([...textList, { id: Date.now(), text: textDraft.trim(), x: 60, y: 220 }]);
+                    setTextDraft("");
+                    setShowText(false);
+                  }}
+                  className="flex-1 rounded-full bg-white py-2.5 text-sm font-bold text-black"
+                >Add text</button>
+              </div>
+            </div>
+          )}
+
+          {showMusic && (
+            <div className="absolute inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm">
+              <div className="max-h-[70vh] space-y-2 overflow-y-auto rounded-t-3xl bg-[#121214] p-5">
+                <div className="flex items-center justify-between pb-2">
+                  <h3 className="text-base font-bold">Add music</h3>
+                  <button onClick={() => setShowMusic(false)} className="rounded-full bg-zinc-800 p-1"><X size={16} /></button>
+                </div>
+                <button onClick={() => audioInputRef.current?.click()} className="w-full rounded-2xl border border-dashed border-zinc-700 py-3 text-sm font-semibold text-zinc-300">Upload audio from device</button>
+                {NO_COPYRIGHT_MUSIC.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => { setSelectedAudio(`${t.title} — ${t.artist}`); setShowMusic(false); }}
+                    className="flex w-full items-center gap-3 rounded-2xl bg-[#1c1c1e] p-3 text-left"
+                  >
+                    <div className="grid size-9 place-items-center rounded-xl bg-zinc-800"><Music size={16} /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{t.title}</div>
+                      <div className="truncate text-xs text-zinc-500">{t.artist} · {t.category}</div>
+                    </div>
+                    <span className="text-xs text-zinc-500">{t.duration}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
+
           {/* Top Bar */}
           <div className="relative z-30 flex items-center justify-between p-4 pt-6 bg-gradient-to-b from-black/60 to-transparent">
             <button onClick={() => setStep(0)} className="p-2 text-white"><X size={26} /></button>
@@ -192,12 +369,12 @@ export function MomentCreatePage() {
 
           {/* Right Sidebar */}
           <div className="absolute right-3 top-20 z-30 flex flex-col gap-3 items-center bg-black/30 backdrop-blur-md p-1.5 rounded-full border border-white/10">
-            <button onClick={() => { const t = prompt("Add text overlay:"); if (t) setTextList([...textList, { id: Date.now(), text: t, x: 80, y: 200 }]); }} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-serif text-sm font-bold active:scale-90">Aa</button>
+            <button onClick={() => setShowText(true)} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center font-serif text-sm font-bold active:scale-90">Aa</button>
             <button onClick={() => alert("Sticker Panel")} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><Smile size={16} /></button>
-            <button onClick={() => { const song = prompt("Select Track:", "Nawal - Main"); if (song) setSelectedAudio(song); }} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><Music size={16} /></button>
+            <button onClick={() => setShowMusic(true)} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><Music size={16} /></button>
             <button onClick={() => alert("AI Restyle")} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><Wand2 size={16} /></button>
-            <button onClick={() => alert("Brush Draw")} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><Pencil size={16} /></button>
-            <button onClick={() => alert("Saved to gallery")} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><Download size={16} /></button>
+            <button onClick={() => setDrawMode(true)} className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-90 ${drawMode ? "bg-white text-black" : "bg-black/40"}`}><Pencil size={16} /></button>
+            <button onClick={handleDownload} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><Download size={16} /></button>
             <button onClick={() => alert("More tools")} className="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center active:scale-90"><MoreHorizontal size={16} /></button>
           </div>
 
@@ -392,7 +569,7 @@ export function MomentCreatePage() {
 
             {/* Share Moment Button */}
             <button 
-              onClick={() => { alert("Moment Published Successfully! 🚀"); navigate({ to: ".." }); }} 
+              onClick={shareMoment}
               className="w-full py-4 bg-gradient-to-r from-teal-400 via-pink-500 to-rose-500 text-white font-black text-base rounded-full shadow-2xl active:scale-98 transition-transform mt-4"
             >
               Share moment
