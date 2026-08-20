@@ -82,10 +82,18 @@ export function MomentCreatePage() {
   };
 
   const performSnap = () => {
-    setIsVideo(false);
-    setMediaUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80");
+  const video = videoRef.current;
+  if (!video) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 720;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    setMediaUrl(canvas.toDataURL("image/jpeg"));
     setStep(1);
-  };
+  }
+};
 
   // 4. Touch/Drag Event Handlers for Text
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
