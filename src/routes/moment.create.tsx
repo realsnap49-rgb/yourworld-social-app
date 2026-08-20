@@ -1544,11 +1544,25 @@ export function MomentCreatePage() {
           "canvas"
         );
 
-      canvas.width =
+      const sx =
+        cropRect.x *
         image.naturalWidth;
 
-      canvas.height =
+      const sy =
+        cropRect.y *
         image.naturalHeight;
+
+      const sw =
+        cropRect.w *
+        image.naturalWidth;
+
+      const sh =
+        cropRect.h *
+        image.naturalHeight;
+
+      canvas.width = sw;
+
+      canvas.height = sh;
 
       const ctx =
         canvas.getContext("2d");
@@ -1575,6 +1589,10 @@ export function MomentCreatePage() {
 
       ctx.drawImage(
         image,
+        sx,
+        sy,
+        sw,
+        sh,
         -canvas.width / 2,
         -canvas.height / 2,
         canvas.width,
