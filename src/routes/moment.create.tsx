@@ -2259,19 +2259,19 @@ export function MomentCreatePage() {
                 </button>
               )
             )}
+
+            {/* FREE CROP OVERLAY */}
+
+            {cropMode && (
+              <CropOverlay
+                rect={cropDraft}
+                onChange={
+                  setCropDraft
+                }
+                frameRef={frameRef}
+              />
+            )}
           </div>
-
-          {/* FREE CROP OVERLAY */}
-
-          {cropMode && (
-            <CropOverlay
-              rect={cropDraft}
-              onChange={
-                setCropDraft
-              }
-              frameRef={frameRef}
-            />
-          )}
         </div>
 
         {/* DARK GRADIENT */}
