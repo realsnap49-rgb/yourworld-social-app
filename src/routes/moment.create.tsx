@@ -154,9 +154,10 @@ export function MomentCreatePage() {
               <button className="p-2.5 bg-black/40 backdrop-blur-md rounded-xl"><Sparkles size={22} /></button>
             </div>
           </div>
+
+          <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleImageUpload} />
+          <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
         </div>
-      <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleImageUpload} />
-<input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
       )}
 
       {/* STEP 1: EDITOR */}
