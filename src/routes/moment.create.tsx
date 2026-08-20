@@ -1,5 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   X,
   RefreshCw,
@@ -14,12 +17,10 @@ import {
   Star,
   ChevronRight,
   Camera,
-  Video,
   Check,
   Lock,
   Users,
   Globe2,
-  UserRound,
   MessageCircle,
   Heart,
   Archive,
@@ -27,7 +28,23 @@ import {
   Share2,
   RotateCcw,
   ZoomIn,
+  Type,
+  Pencil,
+  Smile,
+  Crop,
+  Undo2,
+  Redo2,
+  Sun,
+  Contrast,
+  Palette,
+  Volume2,
+  VolumeX,
+  Play,
 } from "lucide-react";
+import {
+  createFileRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 
 export const Route = createFileRoute("/moment/create")({
   component: MomentCreatePage,
@@ -35,22 +52,103 @@ export const Route = createFileRoute("/moment/create")({
 
 type CameraFacing = "user" | "environment";
 type CaptureMode = "photo" | "video";
-type Audience = "everyone" | "followers" | "close_friends" | "only_me";
+type Audience =
+  | "everyone"
+  | "followers"
+  | "close_friends"
+  | "only_me";
+
+type FilterName =
+  | "normal"
+  | "vivid"
+  | "warm"
+  | "cool"
+  | "mono"
+  | "dramatic"
+  | "fade"
+  | "dream";
+
+type CropRatio =
+  | "original"
+  | "9:16"
+  | "4:5"
+  | "1:1";
+
+const FILTERS: Record<
+  FilterName,
+  {
+    name: string;
+    css: string;
+  }
+> = {
+  normal: {
+    name: "Normal",
+    css: "",
+  },
+  vivid: {
+    name: "Vivid",
+    css: "saturate(1.45) contrast(1.08)",
+  },
+  warm: {
+    name: "Warm",
+    css: "sepia(.16) saturate(1.25) hue-rotate(-8deg)",
+  },
+  cool: {
+    name: "Cool",
+    css: "saturate(.95) hue-rotate(12deg) contrast(1.05)",
+  },
+  mono: {
+    name: "Mono",
+    css: "grayscale(1) contrast(1.1)",
+  },
+  dramatic: {
+    name: "Drama",
+    css: "contrast(1.35) saturate(1.15)",
+  },
+  fade: {
+    name: "Fade",
+    css: "contrast(.9) saturate(.8) brightness(1.08)",
+  },
+  dream: {
+    name: "Dream",
+    css: "brightness(1.08) saturate(1.15) contrast(.92)",
+  },
+};
 
 export function MomentCreatePage() {
   const navigate = useNavigate();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const pinchStartDistance = useRef<number | null>(null);
+  // =====================================================
+  // CAMERA REFS
+  // =====================================================
 
-  // --------------------------------------------------
-  // CAMERA
-  // --------------------------------------------------
+  const videoRef =
+    useRef<HTMLVideoElement>(null);
+
+  const streamRef =
+    useRef<MediaStream | null>(null);
+
+  const mediaRecorderRef =
+    useRef<MediaRecorder | null>(null);
+
+  const recordedChunksRef =
+    useRef<Blob[]>([]);
+
+  const imageInputRef =
+    useRef<HTMLInputElement>(null);
+
+  const audioInputRef =
+    useRef<HTMLInputElement>(null);
+
+  const drawingCanvasRef =
+    useRef<HTMLCanvasElement>(null);
+
+  const pinchStartDistance =
+    useRef<number | null>(null);
+
+  // =====================================================
+  // CAMERA STATE
+  // =====================================================
 
   const [facingMode, setFacingMode] =
     useState<CameraFacing>("user");
@@ -58,32 +156,51 @@ export function MomentCreatePage() {
   const [captureMode, setCaptureMode] =
     useState<CaptureMode>("photo");
 
-  const [cameraReady, setCameraReady] = useState(false);
-  const [cameraError, setCameraError] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [cameraReady, setCameraReady] =
+    useState(false);
 
-  const [isFlashOn, setIsFlashOn] = useState(false);
-  const [isGridOn, setIsGridOn] = useState(false);
-  const [isNightMode, setIsNightMode] = useState(false);
+  const [cameraError, setCameraError] =
+    useState("");
 
-  const [zoom, setZoom] = useState(1);
-  const [maxZoom, setMaxZoom] = useState(1);
+  const [isRecording, setIsRecording] =
+    useState(false);
+
+  const [recordingSeconds, setRecordingSeconds] =
+    useState(0);
+
+  const [isFlashOn, setIsFlashOn] =
+    useState(false);
+
+  const [isGridOn, setIsGridOn] =
+    useState(false);
+
+  const [isNightMode, setIsNightMode] =
+    useState(false);
+
+  const [zoom, setZoom] =
+    useState(1);
+
+  const [maxZoom, setMaxZoom] =
+    useState(1);
 
   const [timerSeconds, setTimerSeconds] =
     useState<number | null>(null);
 
+  const [timerRunning, setTimerRunning] =
+    useState(false);
+
   const [qualityLabel, setQualityLabel] =
-    useState("Auto");
+    useState("AUTO");
 
   const [cameraResolution, setCameraResolution] =
     useState("");
 
-  // --------------------------------------------------
-  // MEDIA / EDITOR
-  // --------------------------------------------------
+  // =====================================================
+  // MEDIA
+  // =====================================================
 
-  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [step, setStep] =
+    useState<0 | 1 | 2>(0);
 
   const [mediaUrl, setMediaUrl] =
     useState<string | null>(null);
@@ -91,12 +208,49 @@ export function MomentCreatePage() {
   const [mediaBlob, setMediaBlob] =
     useState<Blob | null>(null);
 
-  const [isVideo, setIsVideo] = useState(false);
+  const [isVideo, setIsVideo] =
+    useState(false);
+
+  // =====================================================
+  // EDITOR
+  // =====================================================
+
+  const [selectedFilter, setSelectedFilter] =
+    useState<FilterName>("normal");
+
+  const [brightness, setBrightness] =
+    useState(100);
+
+  const [contrast, setContrast] =
+    useState(100);
+
+  const [saturation, setSaturation] =
+    useState(100);
+
+  const [cropRatio, setCropRatio] =
+    useState<CropRatio>("original");
+
+  const [rotation, setRotation] =
+    useState(0);
+
+  const [videoSpeed, setVideoSpeed] =
+    useState(1);
+
+  const [videoMuted, setVideoMuted] =
+    useState(false);
 
   const [selectedAudio, setSelectedAudio] =
     useState<string | null>(null);
 
-  const [caption, setCaption] = useState("");
+  const [audioUrl, setAudioUrl] =
+    useState<string | null>(null);
+
+  const [caption, setCaption] =
+    useState("");
+
+  // =====================================================
+  // TEXT
+  // =====================================================
 
   const [overlayText, setOverlayText] =
     useState("");
@@ -104,23 +258,62 @@ export function MomentCreatePage() {
   const [showTextInput, setShowTextInput] =
     useState(false);
 
-  const [textPos, setTextPos] =
-    useState({ x: 60, y: 220 });
+  const [textColor, setTextColor] =
+    useState("#ffffff");
 
-  const [isDraggingText, setIsDraggingText] =
+  const [textSize, setTextSize] =
+    useState(28);
+
+  const [textX, setTextX] =
+    useState(50);
+
+  const [textY, setTextY] =
+    useState(45);
+
+  // =====================================================
+  // STICKERS
+  // =====================================================
+
+  const [stickers, setStickers] =
+    useState<
+      {
+        id: number;
+        emoji: string;
+        x: number;
+        y: number;
+        size: number;
+      }[]
+    >([]);
+
+  // =====================================================
+  // DRAWING
+  // =====================================================
+
+  const [drawMode, setDrawMode] =
     useState(false);
 
-  const [dragOffset, setDragOffset] =
-    useState({ x: 0, y: 0 });
+  const [drawColor, setDrawColor] =
+    useState("#ffffff");
 
-  // --------------------------------------------------
-  // SHARE / PRIVACY
-  // --------------------------------------------------
+  const [drawSize, setDrawSize] =
+    useState(6);
+
+  const drawingHistory =
+    useRef<ImageData[]>([]);
+
+  const drawingHistoryIndex =
+    useRef(-1);
+
+  const isDrawing =
+    useRef(false);
+
+  // =====================================================
+  // SHARE
+  // =====================================================
 
   const [audience, setAudience] =
     useState<Audience>("everyone");
 
-  // 12 HOURS DEFAULT
   const [durationHours, setDurationHours] =
     useState<12 | 24>(12);
 
@@ -148,48 +341,39 @@ export function MomentCreatePage() {
   const [allowSharing, setAllowSharing] =
     useState(true);
 
-  // --------------------------------------------------
-  // TIMER
-  // --------------------------------------------------
-
-  const [timerRunning, setTimerRunning] =
-    useState(false);
-
-  // --------------------------------------------------
+  // =====================================================
   // CAMERA CAPABILITIES
-  // --------------------------------------------------
+  // =====================================================
 
   const getVideoTrack = () => {
-    const stream = streamRef.current;
-
-    if (!stream) return null;
-
-    return stream.getVideoTracks()[0] || null;
+    return (
+      streamRef.current
+        ?.getVideoTracks()[0] || null
+    );
   };
 
-  const getCameraCapabilities = () => {
+  const getCapabilities = () => {
     const track = getVideoTrack();
 
     if (!track) return null;
 
-    if (!("getCapabilities" in track)) {
-      return null;
-    }
-
     try {
-      return (
-        track as MediaStreamTrack & {
-          getCapabilities: () => MediaTrackCapabilities;
-        }
-      ).getCapabilities();
+      if (
+        typeof track.getCapabilities !==
+        "function"
+      ) {
+        return null;
+      }
+
+      return track.getCapabilities();
     } catch {
       return null;
     }
   };
 
-  // --------------------------------------------------
+  // =====================================================
   // START CAMERA
-  // --------------------------------------------------
+  // =====================================================
 
   const startCamera = async () => {
     setCameraReady(false);
@@ -211,48 +395,58 @@ export function MomentCreatePage() {
         );
       }
 
-      /*
-       * We try high-quality camera settings first.
-       * If the device cannot provide them, we progressively
-       * fall back instead of crashing.
-       */
+      const requests: MediaStreamConstraints[] =
+        [
+          {
+            video: {
+              facingMode,
+              width: {
+                ideal: 3840,
+              },
+              height: {
+                ideal: 2160,
+              },
+              frameRate: {
+                ideal: 60,
+                max: 60,
+              },
+            },
+            audio: true,
+          },
 
-      const requests: MediaStreamConstraints[] = [
-        {
-          video: {
-            facingMode,
-            width: { ideal: 7680 },
-            height: { ideal: 4320 },
+          {
+            video: {
+              facingMode,
+              width: {
+                ideal: 1920,
+              },
+              height: {
+                ideal: 1080,
+              },
+              frameRate: {
+                ideal: 60,
+                max: 60,
+              },
+            },
+            audio: true,
           },
-          audio: true,
-        },
-        {
-          video: {
-            facingMode,
-            width: { ideal: 3840 },
-            height: { ideal: 2160 },
-          },
-          audio: true,
-        },
-        {
-          video: {
-            facingMode,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: true,
-        },
-        {
-          video: {
-            facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: true,
-        },
-      ];
 
-      let stream: MediaStream | null = null;
+          {
+            video: {
+              facingMode,
+              width: {
+                ideal: 1280,
+              },
+              height: {
+                ideal: 720,
+              },
+            },
+            audio: true,
+          },
+        ];
+
+      let stream: MediaStream | null =
+        null;
 
       for (const constraints of requests) {
         try {
@@ -269,53 +463,77 @@ export function MomentCreatePage() {
 
       if (!stream) {
         throw new Error(
-          "Unable to access camera. Please allow camera permission."
+          "Camera permission denied or camera unavailable."
         );
       }
 
       streamRef.current = stream;
 
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        videoRef.current.srcObject =
+          stream;
 
-        await videoRef.current.play().catch(() => {});
+        await videoRef.current
+          .play()
+          .catch(() => {});
       }
 
-      const track = stream.getVideoTracks()[0];
+      const track =
+        stream.getVideoTracks()[0];
 
-      const settings = track.getSettings();
+      const settings =
+        track.getSettings();
 
-      const width = settings.width || 0;
-      const height = settings.height || 0;
+      const width =
+        settings.width || 0;
+
+      const height =
+        settings.height || 0;
 
       if (width && height) {
-        setCameraResolution(`${width} × ${height}`);
+        setCameraResolution(
+          `${width} × ${height}`
+        );
 
-        if (width >= 7680 || height >= 4320) {
-          setQualityLabel("8K");
-        } else if (width >= 3840 || height >= 2160) {
+        if (
+          width >= 3840 ||
+          height >= 2160
+        ) {
           setQualityLabel("4K");
-        } else if (width >= 1920 || height >= 1080) {
-          setQualityLabel("1080p");
-        } else {
+        } else if (
+          width >= 1920 ||
+          height >= 1080
+        ) {
+          setQualityLabel("1080P");
+        } else if (
+          width >= 1280 ||
+          height >= 720
+        ) {
           setQualityLabel("HD");
+        } else {
+          setQualityLabel("AUTO");
         }
       }
 
-      const capabilities = getCameraCapabilities();
+      const capabilities =
+        getCapabilities();
 
-      if (capabilities?.zoom) {
-        const capabilityZoom = capabilities.zoom as {
-          min?: number;
-          max?: number;
-          step?: number;
-        };
+      const zoomCapability =
+        capabilities?.zoom;
 
-        setMaxZoom(capabilityZoom.max || 1);
+      if (
+        zoomCapability &&
+        typeof zoomCapability ===
+          "object"
+      ) {
+        const z =
+          zoomCapability as {
+            min?: number;
+            max?: number;
+          };
 
-        const initialZoom = capabilityZoom.min || 1;
-
-        setZoom(initialZoom);
+        setMaxZoom(z.max || 1);
+        setZoom(z.min || 1);
       } else {
         setMaxZoom(1);
         setZoom(1);
@@ -328,14 +546,10 @@ export function MomentCreatePage() {
       setCameraError(
         error instanceof Error
           ? error.message
-          : "Camera could not be started."
+          : "Unable to start camera."
       );
     }
   };
-
-  // --------------------------------------------------
-  // CAMERA EFFECT
-  // --------------------------------------------------
 
   useEffect(() => {
     if (step !== 0) return;
@@ -351,153 +565,119 @@ export function MomentCreatePage() {
     };
   }, [facingMode, step]);
 
-  // --------------------------------------------------
-  // APPLY ZOOM
-  // --------------------------------------------------
+  // =====================================================
+  // ZOOM
+  // =====================================================
 
-  const applyZoom = async (value: number) => {
+  const applyZoom = async (
+    value: number
+  ) => {
     const track = getVideoTrack();
 
     if (!track) return;
 
-    const capabilities = getCameraCapabilities();
+    const capabilities =
+      getCapabilities();
 
     if (!capabilities?.zoom) return;
 
     try {
-      const zoomCapabilities = capabilities.zoom as {
-        min?: number;
-        max?: number;
-      };
+      const z =
+        capabilities.zoom as {
+          min?: number;
+          max?: number;
+        };
 
-      const min = zoomCapabilities.min || 1;
-      const max = zoomCapabilities.max || 1;
+      const min = z.min || 1;
+      const max = z.max || 1;
 
-      const nextZoom = Math.min(
-        max,
-        Math.max(min, value)
+      const next = Math.max(
+        min,
+        Math.min(max, value)
       );
 
       await track.applyConstraints({
         advanced: [
           {
-            zoom: nextZoom,
+            zoom: next,
           } as MediaTrackConstraintSet,
         ],
       });
 
-      setZoom(nextZoom);
-    } catch (error) {
-      console.log("Zoom not supported", error);
+      setZoom(next);
+    } catch {
+      // Device does not support zoom.
     }
   };
-
-  // --------------------------------------------------
-  // PINCH ZOOM
-  // --------------------------------------------------
 
   const getTouchDistance = (
     touches: React.TouchList
   ) => {
     if (touches.length < 2) return null;
 
-    const first = touches[0];
-    const second = touches[1];
+    const a = touches[0];
+    const b = touches[1];
 
-    const dx = first.clientX - second.clientX;
-    const dy = first.clientY - second.clientY;
+    const dx =
+      a.clientX - b.clientX;
 
-    return Math.sqrt(dx * dx + dy * dy);
+    const dy =
+      a.clientY - b.clientY;
+
+    return Math.sqrt(
+      dx * dx + dy * dy
+    );
   };
 
   const handlePinchStart = (
     event: React.TouchEvent
   ) => {
-    const distance = getTouchDistance(
-      event.touches
-    );
+    const distance =
+      getTouchDistance(
+        event.touches
+      );
 
     if (distance) {
-      pinchStartDistance.current = distance;
+      pinchStartDistance.current =
+        distance;
     }
   };
 
   const handlePinchMove = (
     event: React.TouchEvent
   ) => {
-    const currentDistance = getTouchDistance(
-      event.touches
-    );
+    const current =
+      getTouchDistance(
+        event.touches
+      );
 
     if (
-      !currentDistance ||
+      !current ||
       !pinchStartDistance.current
     ) {
       return;
     }
 
     const difference =
-      currentDistance -
+      current -
       pinchStartDistance.current;
 
-    const nextZoom =
-      zoom + difference / 200;
-
-    applyZoom(nextZoom);
+    applyZoom(
+      zoom + difference / 180
+    );
 
     pinchStartDistance.current =
-      currentDistance;
+      current;
   };
 
   const handlePinchEnd = () => {
-    pinchStartDistance.current = null;
+    pinchStartDistance.current =
+      null;
   };
 
-  // --------------------------------------------------
-  // TAP TO FOCUS
-  // --------------------------------------------------
-
-  const handleFocus = async (
-    event: React.MouseEvent<HTMLDivElement>
-  ) => {
-    const track = getVideoTrack();
-
-    if (!track) return;
-
-    const capabilities = getCameraCapabilities();
-
-    if (!capabilities) return;
-
-    const x =
-      event.nativeEvent.offsetX /
-      event.currentTarget.clientWidth;
-
-    const y =
-      event.nativeEvent.offsetY /
-      event.currentTarget.clientHeight;
-
-    try {
-      const constraints: MediaTrackConstraints =
-        {
-          advanced: [
-            {
-              focusMode: "single-shot",
-              pointsOfInterest: [{ x, y }],
-            } as MediaTrackConstraintSet,
-          ],
-        };
-
-      await track.applyConstraints(
-        constraints
-      );
-    } catch {
-      // Browser/device does not support manual focus.
-    }
-  };
-
-  // --------------------------------------------------
-  // FLASH / TORCH
-  // --------------------------------------------------
+  // =====================================================
+  // FLASH
+  // =====================================================
 
   const toggleFlash = async () => {
     const track = getVideoTrack();
@@ -505,14 +685,12 @@ export function MomentCreatePage() {
     if (!track) return;
 
     const capabilities =
-      getCameraCapabilities();
+      getCapabilities();
 
-    const hasTorch =
-      capabilities &&
-      "torch" in capabilities;
-
-    if (!hasTorch) {
-      setIsFlashOn((value) => !value);
+    if (
+      !capabilities ||
+      !("torch" in capabilities)
+    ) {
       return;
     }
 
@@ -525,18 +703,23 @@ export function MomentCreatePage() {
         ],
       });
 
-      setIsFlashOn((value) => !value);
-    } catch (error) {
-      console.log("Torch unavailable", error);
+      setIsFlashOn(
+        (value) => !value
+      );
+    } catch {
+      console.log(
+        "Torch unavailable"
+      );
     }
   };
 
-  // --------------------------------------------------
-  // CAPTURE PHOTO
-  // --------------------------------------------------
+  // =====================================================
+  // PHOTO
+  // =====================================================
 
   const performPhotoCapture = () => {
-    const video = videoRef.current;
+    const video =
+      videoRef.current;
 
     if (!video) return;
 
@@ -547,27 +730,24 @@ export function MomentCreatePage() {
       video.videoHeight || 1080;
 
     const canvas =
-      document.createElement("canvas");
+      document.createElement(
+        "canvas"
+      );
 
     canvas.width = width;
     canvas.height = height;
 
-    const context =
+    const ctx =
       canvas.getContext("2d");
 
-    if (!context) return;
-
-    /*
-     * Front camera images need mirroring to feel
-     * natural like a selfie camera.
-     */
+    if (!ctx) return;
 
     if (facingMode === "user") {
-      context.translate(width, 0);
-      context.scale(-1, 1);
+      ctx.translate(width, 0);
+      ctx.scale(-1, 1);
     }
 
-    context.drawImage(
+    ctx.drawImage(
       video,
       0,
       0,
@@ -585,16 +765,13 @@ export function MomentCreatePage() {
         setMediaBlob(blob);
         setMediaUrl(url);
         setIsVideo(false);
+        resetEditor();
         setStep(1);
       },
       "image/jpeg",
-      0.95
+      0.98
     );
   };
-
-  // --------------------------------------------------
-  // TIMER CAPTURE
-  // --------------------------------------------------
 
   const capturePhoto = () => {
     if (timerRunning) return;
@@ -606,17 +783,17 @@ export function MomentCreatePage() {
 
     setTimerRunning(true);
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       performPhotoCapture();
       setTimerRunning(false);
     }, timerSeconds * 1000);
   };
 
-  // --------------------------------------------------
+  // =====================================================
   // VIDEO RECORDING
-  // --------------------------------------------------
+  // =====================================================
 
-  const getSupportedMimeType = () => {
+  const getMimeType = () => {
     const types = [
       "video/webm;codecs=vp9,opus",
       "video/webm;codecs=vp8,opus",
@@ -626,32 +803,47 @@ export function MomentCreatePage() {
 
     return (
       types.find((type) =>
-        MediaRecorder.isTypeSupported(type)
+        MediaRecorder.isTypeSupported(
+          type
+        )
       ) || ""
     );
   };
 
   const startRecording = () => {
-    const stream = streamRef.current;
+    const stream =
+      streamRef.current;
 
-    if (!stream || isRecording) return;
+    if (
+      !stream ||
+      isRecording
+    ) {
+      return;
+    }
 
     try {
-      recordedChunksRef.current = [];
+      recordedChunksRef.current =
+        [];
 
       const mimeType =
-        getSupportedMimeType();
+        getMimeType();
 
-      const recorder =
-        mimeType
-          ? new MediaRecorder(stream, {
-              mimeType,
-              videoBitsPerSecond: 20_000_000,
-            })
-          : new MediaRecorder(stream);
+      const recorder = mimeType
+        ? new MediaRecorder(stream, {
+            mimeType,
+            videoBitsPerSecond:
+              18_000_000,
+          })
+        : new MediaRecorder(
+            stream
+          );
 
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+      recorder.ondataavailable = (
+        event
+      ) => {
+        if (
+          event.data.size > 0
+        ) {
           recordedChunksRef.current.push(
             event.data
           );
@@ -659,34 +851,39 @@ export function MomentCreatePage() {
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(
-          recordedChunksRef.current,
-          {
-            type:
-              mimeType || "video/webm",
-          }
-        );
+        const blob =
+          new Blob(
+            recordedChunksRef.current,
+            {
+              type:
+                mimeType ||
+                "video/webm",
+            }
+          );
 
         const url =
-          URL.createObjectURL(blob);
+          URL.createObjectURL(
+            blob
+          );
 
         setMediaBlob(blob);
         setMediaUrl(url);
         setIsVideo(true);
+        resetEditor();
         setStep(1);
-
         setRecordingSeconds(0);
       };
 
-      mediaRecorderRef.current = recorder;
+      mediaRecorderRef.current =
+        recorder;
 
-      recorder.start(250);
+      recorder.start(200);
 
       setIsRecording(true);
       setRecordingSeconds(0);
     } catch (error) {
       console.error(
-        "Recording error",
+        "Recording failed",
         error
       );
     }
@@ -699,7 +896,8 @@ export function MomentCreatePage() {
     if (!recorder) return;
 
     if (
-      recorder.state !== "inactive"
+      recorder.state !==
+      "inactive"
     ) {
       recorder.stop();
     }
@@ -707,46 +905,40 @@ export function MomentCreatePage() {
     setIsRecording(false);
   };
 
-  // --------------------------------------------------
-  // RECORDING TIMER
-  // --------------------------------------------------
-
   useEffect(() => {
     if (!isRecording) return;
 
-    const interval = window.setInterval(
-      () => {
+    const interval =
+      window.setInterval(() => {
         setRecordingSeconds(
-          (seconds) => seconds + 1
+          (seconds) =>
+            seconds + 1
         );
-      },
-      1000
-    );
+      }, 1000);
 
     return () =>
-      window.clearInterval(interval);
+      window.clearInterval(
+        interval
+      );
   }, [isRecording]);
 
-  // --------------------------------------------------
-  // CAMERA SHUTTER
-  // --------------------------------------------------
-
   const handleShutter = () => {
-    if (captureMode === "photo") {
+    if (
+      captureMode === "photo"
+    ) {
       capturePhoto();
-      return;
-    }
-
-    if (isRecording) {
-      stopRecording();
     } else {
-      startRecording();
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
     }
   };
 
-  // --------------------------------------------------
+  // =====================================================
   // GALLERY
-  // --------------------------------------------------
+  // =====================================================
 
   const handleMediaUpload = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -757,8 +949,12 @@ export function MomentCreatePage() {
     if (!file) return;
 
     if (
-      !file.type.startsWith("image/") &&
-      !file.type.startsWith("video/")
+      !file.type.startsWith(
+        "image/"
+      ) &&
+      !file.type.startsWith(
+        "video/"
+      )
     ) {
       return;
     }
@@ -769,14 +965,20 @@ export function MomentCreatePage() {
     setMediaBlob(file);
     setMediaUrl(url);
     setIsVideo(
-      file.type.startsWith("video/")
+      file.type.startsWith(
+        "video/"
+      )
     );
+
+    resetEditor();
     setStep(1);
+
+    event.target.value = "";
   };
 
-  // --------------------------------------------------
+  // =====================================================
   // AUDIO
-  // --------------------------------------------------
+  // =====================================================
 
   const handleAudioUpload = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -786,111 +988,581 @@ export function MomentCreatePage() {
 
     if (!file) return;
 
-    setSelectedAudio(file.name);
+    const url =
+      URL.createObjectURL(file);
+
+    if (audioUrl) {
+      URL.revokeObjectURL(
+        audioUrl
+      );
+    }
+
+    setAudioUrl(url);
+    setSelectedAudio(
+      file.name
+    );
+
+    event.target.value = "";
   };
 
-  // --------------------------------------------------
+  // =====================================================
+  // EDITOR RESET
+  // =====================================================
+
+  const resetEditor = () => {
+    setSelectedFilter("normal");
+    setBrightness(100);
+    setContrast(100);
+    setSaturation(100);
+    setCropRatio("original");
+    setRotation(0);
+    setVideoSpeed(1);
+    setVideoMuted(false);
+    setOverlayText("");
+    setCaption("");
+    setStickers([]);
+    setDrawMode(false);
+
+    clearDrawing();
+  };
+
+  // =====================================================
+  // FILTER STYLE
+  // =====================================================
+
+  const getMediaStyle =
+    (): React.CSSProperties => {
+      const filter =
+        FILTERS[selectedFilter]
+          .css;
+
+      return {
+        filter: `${filter} brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
+        transform: `rotate(${rotation}deg)`,
+        transition:
+          "filter .15s ease, transform .2s ease",
+      };
+    };
+
+  // =====================================================
+  // CROP
+  // =====================================================
+
+  const cropClass = () => {
+    switch (cropRatio) {
+      case "9:16":
+        return "aspect-[9/16]";
+
+      case "4:5":
+        return "aspect-[4/5]";
+
+      case "1:1":
+        return "aspect-square";
+
+      default:
+        return "w-full h-full";
+    }
+  };
+
+  // =====================================================
+  // ROTATE
+  // =====================================================
+
+  const rotateMedia = () => {
+    setRotation(
+      (value) =>
+        (value + 90) % 360
+    );
+  };
+
+  // =====================================================
+  // TEXT
+  // =====================================================
+
+  const addText = () => {
+    setShowTextInput(true);
+
+    if (!overlayText) {
+      setOverlayText(
+        "YourWorld"
+      );
+    }
+  };
+
+  // =====================================================
+  // STICKERS
+  // =====================================================
+
+  const addSticker = (
+    emoji: string
+  ) => {
+    setStickers((items) => [
+      ...items,
+      {
+        id: Date.now(),
+        emoji,
+        x: 50,
+        y: 55,
+        size: 55,
+      },
+    ]);
+  };
+
+  const removeSticker = (
+    id: number
+  ) => {
+    setStickers((items) =>
+      items.filter(
+        (item) =>
+          item.id !== id
+      )
+    );
+  };
+
+  // =====================================================
+  // DRAWING
+  // =====================================================
+
+  const setupDrawingCanvas = () => {
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const parent =
+      canvas.parentElement;
+
+    if (!parent) return;
+
+    canvas.width =
+      parent.clientWidth;
+
+    canvas.height =
+      parent.clientHeight;
+
+    clearDrawing();
+  };
+
+  const saveDrawingState = () => {
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const ctx =
+      canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    const data =
+      ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+    drawingHistory.current =
+      drawingHistory.current.slice(
+        0,
+        drawingHistoryIndex.current +
+          1
+      );
+
+    drawingHistory.current.push(
+      data
+    );
+
+    drawingHistoryIndex.current =
+      drawingHistory.current.length -
+      1;
+  };
+
+  const clearDrawing = () => {
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const ctx =
+      canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    drawingHistory.current = [];
+    drawingHistoryIndex.current =
+      -1;
+  };
+
+  const getPointerPosition = (
+    event:
+      | React.MouseEvent
+      | React.TouchEvent
+  ) => {
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) {
+      return {
+        x: 0,
+        y: 0,
+      };
+    }
+
+    const rect =
+      canvas.getBoundingClientRect();
+
+    const clientX =
+      "touches" in event
+        ? event.touches[0]?.clientX
+        : event.clientX;
+
+    const clientY =
+      "touches" in event
+        ? event.touches[0]?.clientY
+        : event.clientY;
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  };
+
+  const startDrawing = (
+    event:
+      | React.MouseEvent
+      | React.TouchEvent
+  ) => {
+    if (!drawMode) return;
+
+    event.preventDefault();
+
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const ctx =
+      canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    const position =
+      getPointerPosition(event);
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      position.x,
+      position.y
+    );
+
+    ctx.lineWidth = drawSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle =
+      drawColor;
+
+    isDrawing.current = true;
+  };
+
+  const draw = (
+    event:
+      | React.MouseEvent
+      | React.TouchEvent
+  ) => {
+    if (
+      !drawMode ||
+      !isDrawing.current
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const ctx =
+      canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    const position =
+      getPointerPosition(event);
+
+    ctx.lineTo(
+      position.x,
+      position.y
+    );
+
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing.current)
+      return;
+
+    isDrawing.current = false;
+
+    saveDrawingState();
+  };
+
+  const undoDrawing = () => {
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const ctx =
+      canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    if (
+      drawingHistoryIndex.current <=
+      0
+    ) {
+      clearDrawing();
+      return;
+    }
+
+    drawingHistoryIndex.current--;
+
+    const data =
+      drawingHistory.current[
+        drawingHistoryIndex.current
+      ];
+
+    ctx.putImageData(
+      data,
+      0,
+      0
+    );
+  };
+
+  const redoDrawing = () => {
+    const canvas =
+      drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const ctx =
+      canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    if (
+      drawingHistoryIndex.current >=
+      drawingHistory.current.length -
+        1
+    ) {
+      return;
+    }
+
+    drawingHistoryIndex.current++;
+
+    const data =
+      drawingHistory.current[
+        drawingHistoryIndex.current
+      ];
+
+    ctx.putImageData(
+      data,
+      0,
+      0
+    );
+  };
+
+  useEffect(() => {
+    if (step !== 1) return;
+
+    const timer =
+      window.setTimeout(() => {
+        setupDrawingCanvas();
+      }, 100);
+
+    return () =>
+      window.clearTimeout(
+        timer
+      );
+  }, [step]);
+
+  // =====================================================
+  // VIDEO EFFECTS
+  // =====================================================
+
+  useEffect(() => {
+    const video =
+      document.querySelector(
+        "video[data-editor-video]"
+      ) as HTMLVideoElement | null;
+
+    if (!video || !isVideo) return;
+
+    video.playbackRate =
+      videoSpeed;
+
+    video.muted =
+      videoMuted;
+  }, [
+    videoSpeed,
+    videoMuted,
+    isVideo,
+    mediaUrl,
+  ]);
+
+  // =====================================================
+  // DOWNLOAD PHOTO
+  // =====================================================
+
+  const downloadPhotoWithEdits =
+    async () => {
+      if (
+        !mediaUrl ||
+        !mediaBlob ||
+        isVideo
+      ) {
+        return;
+      }
+
+      const image =
+        new Image();
+
+      image.src = mediaUrl;
+
+      await new Promise<void>(
+        (resolve) => {
+          image.onload = () =>
+            resolve();
+        }
+      );
+
+      const canvas =
+        document.createElement(
+          "canvas"
+        );
+
+      canvas.width =
+        image.naturalWidth;
+
+      canvas.height =
+        image.naturalHeight;
+
+      const ctx =
+        canvas.getContext("2d");
+
+      if (!ctx) return;
+
+      ctx.save();
+
+      ctx.translate(
+        canvas.width / 2,
+        canvas.height / 2
+      );
+
+      ctx.rotate(
+        (rotation * Math.PI) /
+          180
+      );
+
+      let filter =
+        FILTERS[selectedFilter]
+          .css;
+
+      ctx.filter = `${filter} brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
+
+      ctx.drawImage(
+        image,
+        -canvas.width / 2,
+        -canvas.height / 2,
+        canvas.width,
+        canvas.height
+      );
+
+      ctx.restore();
+
+      const link =
+        document.createElement(
+          "a"
+        );
+
+      link.href =
+        canvas.toDataURL(
+          "image/jpeg",
+          0.98
+        );
+
+      link.download = `yourworld-moment-${Date.now()}.jpg`;
+
+      link.click();
+    };
+
+  // =====================================================
   // DOWNLOAD
-  // --------------------------------------------------
+  // =====================================================
 
-  const handleDownload = () => {
-    if (!mediaUrl) return;
+  const handleDownload =
+    async () => {
+      if (!mediaUrl) return;
 
-    const link =
-      document.createElement("a");
+      if (!isVideo) {
+        await downloadPhotoWithEdits();
+        return;
+      }
 
-    link.href = mediaUrl;
+      const link =
+        document.createElement(
+          "a"
+        );
 
-    link.download =
-      `yourworld-moment-${Date.now()}.${isVideo ? "webm" : "jpg"}`;
+      link.href = mediaUrl;
 
-    document.body.appendChild(link);
+      link.download = `yourworld-moment-${Date.now()}.webm`;
 
-    link.click();
+      link.click();
+    };
 
-    link.remove();
-  };
-
-  // --------------------------------------------------
-  // TEXT DRAGGING
-  // --------------------------------------------------
-
-  const handleTextStart = (
-    event:
-      | React.TouchEvent
-      | React.MouseEvent
-  ) => {
-    setIsDraggingText(true);
-
-    const clientX =
-      "touches" in event
-        ? event.touches[0].clientX
-        : event.clientX;
-
-    const clientY =
-      "touches" in event
-        ? event.touches[0].clientY
-        : event.clientY;
-
-    setDragOffset({
-      x: clientX - textPos.x,
-      y: clientY - textPos.y,
-    });
-  };
-
-  const handleTextMove = (
-    event:
-      | React.TouchEvent
-      | React.MouseEvent
-  ) => {
-    if (!isDraggingText) return;
-
-    const clientX =
-      "touches" in event
-        ? event.touches[0].clientX
-        : event.clientX;
-
-    const clientY =
-      "touches" in event
-        ? event.touches[0].clientY
-        : event.clientY;
-
-    setTextPos({
-      x: clientX - dragOffset.x,
-      y: clientY - dragOffset.y,
-    });
-  };
-
-  const handleTextEnd = () => {
-    setIsDraggingText(false);
-  };
-
-  // --------------------------------------------------
-  // RESET MEDIA
-  // --------------------------------------------------
+  // =====================================================
+  // RETAKE
+  // =====================================================
 
   const retake = () => {
     if (mediaUrl) {
-      URL.revokeObjectURL(mediaUrl);
+      URL.revokeObjectURL(
+        mediaUrl
+      );
+    }
+
+    if (audioUrl) {
+      URL.revokeObjectURL(
+        audioUrl
+      );
     }
 
     setMediaUrl(null);
     setMediaBlob(null);
     setIsVideo(false);
-    setOverlayText("");
-    setCaption("");
     setSelectedAudio(null);
+    setAudioUrl(null);
+
+    resetEditor();
 
     setStep(0);
   };
 
-  // --------------------------------------------------
-  // TEMPORARY LOCAL PUBLISH
-  // --------------------------------------------------
-  //
-  // IMPORTANT:
-  // This will be replaced by Supabase in the next step.
-  //
+  // =====================================================
+  // PUBLISH
+  // =====================================================
 
   const handlePublish = () => {
     if (!mediaUrl) return;
@@ -907,20 +1579,25 @@ export function MomentCreatePage() {
             1000
       );
 
-    const newMoment = {
-      id: crypto.randomUUID
+    const id =
+      typeof crypto !==
+        "undefined" &&
+      "randomUUID" in crypto
         ? crypto.randomUUID()
-        : Date.now().toString(),
+        : Date.now().toString();
+
+    const newMoment = {
+      id,
 
       mediaUrl,
 
-      mediaType:
-        isVideo
-          ? "video"
-          : "image",
+      mediaType: isVideo
+        ? "video"
+        : "image",
 
       caption:
-        caption || overlayText,
+        caption ||
+        overlayText,
 
       audio:
         selectedAudio,
@@ -935,6 +1612,21 @@ export function MomentCreatePage() {
 
       expiresAt:
         expiresAt.toISOString(),
+
+      filter:
+        selectedFilter,
+
+      brightness,
+
+      contrast,
+
+      saturation,
+
+      cropRatio,
+
+      rotation,
+
+      videoSpeed,
 
       allowPoll,
 
@@ -973,145 +1665,79 @@ export function MomentCreatePage() {
     });
   };
 
-  // --------------------------------------------------
-  // UI HELPERS
-  // --------------------------------------------------
+  // =====================================================
+  // CAMERA SCREEN
+  // =====================================================
 
-  const audienceLabel = {
-    everyone: "Everyone",
-    followers: "Followers",
-    close_friends: "Close Friends",
-    only_me: "Only Me",
-  }[audience];
+  if (step === 0) {
+    return (
+      <div
+        className="relative w-full h-screen bg-black text-white overflow-hidden select-none"
+        onTouchStart={
+          handlePinchStart
+        }
+        onTouchMove={
+          handlePinchMove
+        }
+        onTouchEnd={
+          handlePinchEnd
+        }
+      >
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={
+            handleMediaUpload
+          }
+        />
 
-  const audienceIcon = {
-    everyone: <Globe2 size={20} />,
-    followers: <Users size={20} />,
-    close_friends: <Star size={20} />,
-    only_me: <Lock size={20} />,
-  }[audience];
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`absolute inset-0 w-full h-full object-cover ${
+            facingMode === "user"
+              ? "scale-x-[-1]"
+              : ""
+          }`}
+          style={{
+            filter: isNightMode
+              ? "brightness(1.2) contrast(1.1)"
+              : undefined,
+          }}
+        />
 
-  // --------------------------------------------------
-  // RENDER
-  // --------------------------------------------------
+        {/* GRID */}
 
-  return (
-    <div
-      className="relative w-full h-screen bg-black text-white overflow-hidden select-none font-sans"
-      onMouseMove={
-        step === 1
-          ? handleTextMove
-          : undefined
-      }
-      onMouseUp={handleTextEnd}
-      onTouchMove={
-        step === 1
-          ? handleTextMove
-          : undefined
-      }
-      onTouchEnd={handleTextEnd}
-    >
-      {/* ------------------------------------------ */}
-      {/* FILE INPUTS */}
-      {/* ------------------------------------------ */}
+        {isGridOn && (
+          <div className="absolute inset-0 z-10 grid grid-cols-3 grid-rows-3 pointer-events-none">
+            {Array.from({
+              length: 9,
+            }).map((_, i) => (
+              <div
+                key={i}
+                className="border border-white/25"
+              />
+            ))}
+          </div>
+        )}
 
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept="image/*,video/*"
-        className="hidden"
-        onChange={handleMediaUpload}
-      />
+        {/* ERROR */}
 
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/*"
-        className="hidden"
-        onChange={handleAudioUpload}
-      />
-
-      {/* ========================================== */}
-      {/* CAMERA */}
-      {/* ========================================== */}
-
-      {step === 0 && (
-        <div
-          className="relative w-full h-full bg-black overflow-hidden"
-          onTouchStart={handlePinchStart}
-          onTouchMove={handlePinchMove}
-          onTouchEnd={handlePinchEnd}
-          onClick={handleFocus}
-        >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`absolute inset-0 w-full h-full object-cover ${
-              facingMode === "user"
-                ? "scale-x-[-1]"
-                : ""
-            } ${
-              isNightMode
-                ? "brightness-125 contrast-110"
-                : ""
-            }`}
-          />
-
-          {/* Grid */}
-          {isGridOn && (
-            <div className="absolute inset-0 z-10 grid grid-cols-3 grid-rows-3 pointer-events-none">
-              {Array.from({
-                length: 9,
-              }).map((_, index) => (
-                <div
-                  key={index}
-                  className="border border-white/20"
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Recording indicator */}
-          {isRecording && (
-            <div className="absolute top-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-
-              <span className="text-sm font-semibold">
-                {Math.floor(
-                  recordingSeconds / 60
-                )
-                  .toString()
-                  .padStart(2, "0")}
-                :
-                {(recordingSeconds % 60)
-                  .toString()
-                  .padStart(2, "0")}
-              </span>
-            </div>
-          )}
-
-          {/* Timer countdown */}
-          {timerRunning && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-              <div className="text-8xl font-black drop-shadow-2xl">
-                📸
-              </div>
-            </div>
-          )}
-
-          {/* Camera error */}
-          {cameraError && (
-            <div className="absolute inset-x-5 top-1/2 -translate-y-1/2 z-50 rounded-3xl bg-black/85 backdrop-blur-xl p-6 text-center">
+        {cameraError && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/70">
+            <div className="bg-zinc-900 rounded-3xl p-7 text-center max-w-sm">
               <Camera
-                size={42}
+                size={45}
                 className="mx-auto mb-4"
               />
 
-              <p className="text-lg font-semibold mb-2">
+              <h2 className="text-xl font-bold mb-2">
                 Camera unavailable
-              </p>
+              </h2>
 
               <p className="text-sm text-zinc-400 mb-5">
                 {cameraError}
@@ -1119,688 +1745,1164 @@ export function MomentCreatePage() {
 
               <button
                 onClick={startCamera}
-                className="px-6 py-3 rounded-full bg-white text-black font-semibold"
+                className="bg-white text-black rounded-full px-7 py-3 font-bold"
               >
                 Try Again
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Top bar */}
-          <div className="absolute top-0 left-0 right-0 z-30 p-4 pt-5 flex items-center justify-between">
-            <button
-              onClick={() =>
-                navigate({ to: ".." })
-              }
-              className="w-11 h-11 rounded-full bg-black/35 backdrop-blur-xl flex items-center justify-center border border-white/10"
-            >
-              <X size={24} />
-            </button>
+        {/* RECORDING */}
 
-            <div className="flex items-center gap-2">
-              {cameraResolution && (
-                <div className="px-3 py-1.5 rounded-full bg-black/45 backdrop-blur-xl border border-white/10 text-xs font-semibold">
-                  {qualityLabel}
-                </div>
-              )}
+        {isRecording && (
+          <div className="absolute top-5 left-1/2 -translate-x-1/2 z-40 bg-black/65 backdrop-blur-xl rounded-full px-5 py-2 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
 
-              {cameraReady && (
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-              )}
+            <span className="font-semibold">
+              {Math.floor(
+                recordingSeconds / 60
+              )
+                .toString()
+                .padStart(2, "0")}
+              :
+              {(recordingSeconds % 60)
+                .toString()
+                .padStart(2, "0")}
+            </span>
+          </div>
+        )}
+
+        {/* TIMER */}
+
+        {timerRunning && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div className="text-7xl font-black">
+              📸
             </div>
           </div>
+        )}
 
-          {/* Right tools */}
-          <div className="absolute right-3 top-20 z-30 flex flex-col gap-2.5 bg-black/30 backdrop-blur-xl p-2 rounded-3xl border border-white/10">
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
+        {/* TOP */}
 
-                setFacingMode(
-                  (mode) =>
-                    mode === "user"
-                      ? "environment"
-                      : "user"
-                );
-              }}
-              className="w-10 h-10 flex items-center justify-center"
-            >
-              <RefreshCw size={22} />
-            </button>
+        <div className="absolute top-0 left-0 right-0 z-30 p-4 pt-5 flex justify-between items-center">
+          <button
+            onClick={() =>
+              navigate({
+                to: "..",
+              })
+            }
+            className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-xl flex items-center justify-center"
+          >
+            <X size={25} />
+          </button>
 
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                toggleFlash();
-              }}
-              className={`w-10 h-10 flex items-center justify-center ${
-                isFlashOn
-                  ? "text-yellow-300"
-                  : ""
-              }`}
-            >
-              {isFlashOn ? (
-                <Zap size={22} />
-              ) : (
-                <ZapOff size={22} />
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="bg-black/45 backdrop-blur-xl rounded-full px-3 py-1.5 text-xs font-bold">
+              {qualityLabel}
+            </div>
 
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
+            {cameraReady && (
+              <div className="w-2.5 h-2.5 bg-green-400 rounded-full" />
+            )}
+          </div>
+        </div>
 
-                setZoom(
-                  zoom >= maxZoom
-                    ? 1
-                    : Math.min(
-                        maxZoom,
-                        zoom + 0.5
-                      )
-                );
+        {/* RIGHT TOOLS */}
 
-                applyZoom(
-                  zoom >= maxZoom
-                    ? 1
-                    : Math.min(
-                        maxZoom,
-                        zoom + 0.5
-                      )
-                );
-              }}
-              className="w-10 h-10 flex items-center justify-center text-xs font-bold"
-            >
-              {zoom.toFixed(1)}x
-            </button>
+        <div className="absolute right-3 top-20 z-30 flex flex-col gap-2 bg-black/35 backdrop-blur-xl p-2 rounded-3xl">
+          <button
+            onClick={() =>
+              setFacingMode(
+                (value) =>
+                  value === "user"
+                    ? "environment"
+                    : "user"
+              )
+            }
+            className="w-11 h-11 flex items-center justify-center"
+          >
+            <RefreshCw size={22} />
+          </button>
 
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                setIsGridOn(
-                  (value) => !value
-                );
-              }}
-              className={`w-10 h-10 flex items-center justify-center ${
+          <button
+            onClick={toggleFlash}
+            className="w-11 h-11 flex items-center justify-center"
+          >
+            {isFlashOn ? (
+              <Zap className="text-yellow-300" />
+            ) : (
+              <ZapOff />
+            )}
+          </button>
+
+          <button
+            onClick={() =>
+              applyZoom(
+                zoom >= maxZoom
+                  ? 1
+                  : zoom + 0.5
+              )
+            }
+            className="w-11 h-11 text-xs font-bold"
+          >
+            {zoom.toFixed(1)}x
+          </button>
+
+          <button
+            onClick={() =>
+              setIsGridOn(
+                (value) => !value
+              )
+            }
+            className="w-11 h-11 flex items-center justify-center"
+          >
+            <Grid3X3
+              className={
                 isGridOn
                   ? "text-pink-400"
                   : ""
-              }`}
-            >
-              <Grid3X3 size={21} />
-            </button>
+              }
+            />
+          </button>
 
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-
-                setTimerSeconds(
-                  (value) =>
-                    value === null
-                      ? 3
-                      : value === 3
-                      ? 10
-                      : null
-                );
-              }}
-              className={`w-10 h-10 flex items-center justify-center relative ${
+          <button
+            onClick={() =>
+              setTimerSeconds(
+                (value) =>
+                  value === null
+                    ? 3
+                    : value === 3
+                    ? 10
+                    : null
+              )
+            }
+            className="w-11 h-11 flex items-center justify-center"
+          >
+            <Timer
+              className={
                 timerSeconds
-                  ? "text-emerald-400"
+                  ? "text-green-400"
                   : ""
-              }`}
-            >
-              <Timer size={21} />
+              }
+            />
+          </button>
 
-              {timerSeconds && (
-                <span className="absolute -top-1 -right-1 text-[9px] bg-emerald-500 text-black rounded-full px-1.5 py-0.5 font-black">
-                  {timerSeconds}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-
-                setIsNightMode(
-                  (value) => !value
-                );
-              }}
-              className={`w-10 h-10 flex items-center justify-center ${
+          <button
+            onClick={() =>
+              setIsNightMode(
+                (value) => !value
+              )
+            }
+            className="w-11 h-11 flex items-center justify-center"
+          >
+            <Moon
+              className={
                 isNightMode
                   ? "text-blue-400"
                   : ""
-              }`}
-            >
-              <Moon size={21} />
-            </button>
-          </div>
+              }
+            />
+          </button>
+        </div>
 
-          {/* Bottom camera */}
-          <div className="absolute bottom-0 left-0 right-0 z-30 pb-7 pt-16 bg-gradient-to-t from-black/75 to-transparent">
-            {/* Mode switch */}
-            <div className="flex justify-center mb-5">
-              <div className="flex items-center gap-5 bg-black/40 backdrop-blur-xl rounded-full px-5 py-2 border border-white/10">
-                <button
-                  onClick={() =>
-                    setCaptureMode("photo")
-                  }
-                  className={`text-sm font-semibold ${
-                    captureMode === "photo"
-                      ? "text-white"
-                      : "text-white/45"
-                  }`}
-                >
-                  PHOTO
-                </button>
+        {/* BOTTOM CAMERA */}
 
-                <button
-                  onClick={() =>
-                    setCaptureMode("video")
-                  }
-                  className={`text-sm font-semibold ${
-                    captureMode === "video"
-                      ? "text-white"
-                      : "text-white/45"
-                  }`}
-                >
-                  VIDEO
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-around px-7">
-              {/* Gallery */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 pb-8 pt-24 bg-gradient-to-t from-black/90 to-transparent">
+          <div className="flex justify-center mb-5">
+            <div className="flex gap-7 bg-black/45 backdrop-blur-xl px-6 py-2.5 rounded-full">
               <button
                 onClick={() =>
-                  imageInputRef.current?.click()
+                  setCaptureMode(
+                    "photo"
+                  )
                 }
-                className="w-14 h-14 rounded-2xl bg-black/45 backdrop-blur-xl border border-white/15 flex items-center justify-center"
+                className={
+                  captureMode ===
+                  "photo"
+                    ? "font-bold"
+                    : "text-white/45"
+                }
               >
-                <ImageIcon size={25} />
+                PHOTO
               </button>
 
-              {/* Shutter */}
               <button
-                onClick={handleShutter}
-                className={`relative w-24 h-24 rounded-full border-[5px] ${
-                  isRecording
-                    ? "border-red-500"
-                    : "border-white"
-                } p-1 active:scale-90 transition-transform`}
+                onClick={() =>
+                  setCaptureMode(
+                    "video"
+                  )
+                }
+                className={
+                  captureMode ===
+                  "video"
+                    ? "font-bold"
+                    : "text-white/45"
+                }
               >
-                <div
-                  className={`w-full h-full rounded-full ${
-                    isRecording
-                      ? "bg-red-500 scale-75 rounded-2xl"
-                      : "bg-white"
-                  } transition-all`}
-                />
+                VIDEO
               </button>
-
-              {/* Camera info */}
-              <div className="w-14 h-14 rounded-2xl bg-black/45 backdrop-blur-xl border border-white/15 flex flex-col items-center justify-center">
-                <ZoomIn size={19} />
-
-                <span className="text-[9px] mt-0.5">
-                  {zoom.toFixed(1)}x
-                </span>
-              </div>
             </div>
-
-            <p className="text-center text-xs text-white/55 mt-4">
-              {captureMode === "photo"
-                ? "Tap to capture"
-                : "Tap to start / stop recording"}
-            </p>
           </div>
-        </div>
-      )}
 
-      {/* ========================================== */}
-      {/* EDITOR */}
-      {/* ========================================== */}
-
-      {step === 1 && (
-        <div className="relative w-full h-full bg-black overflow-hidden">
-          {/* Media */}
-          {mediaUrl &&
-            (isVideo ? (
-              <video
-                src={mediaUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <img
-                src={mediaUrl}
-                alt="Moment preview"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ))}
-
-          {/* Dark gradient */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/70 to-transparent z-10" />
-
-          <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/85 to-transparent z-10 pointer-events-none" />
-
-          {/* Top */}
-          <div className="absolute top-0 left-0 right-0 z-30 p-4 pt-5 flex justify-between">
+          <div className="flex items-center justify-around px-7">
             <button
-              onClick={retake}
-              className="w-11 h-11 rounded-full bg-black/45 backdrop-blur-xl flex items-center justify-center"
+              onClick={() =>
+                imageInputRef.current?.click()
+              }
+              className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-xl flex items-center justify-center"
             >
-              <X size={23} />
+              <ImageIcon size={25} />
             </button>
 
+            <button
+              onClick={handleShutter}
+              className={`w-24 h-24 rounded-full border-[5px] ${
+                isRecording
+                  ? "border-red-500"
+                  : "border-white"
+              } p-1`}
+            >
+              <div
+                className={`w-full h-full ${
+                  isRecording
+                    ? "bg-red-500 rounded-2xl scale-75"
+                    : "bg-white rounded-full"
+                }`}
+              />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-xl flex flex-col items-center justify-center">
+              <ZoomIn size={20} />
+              <span className="text-[9px]">
+                {zoom.toFixed(1)}x
+              </span>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-white/50 mt-4">
+            {captureMode ===
+            "photo"
+              ? "Tap to capture"
+              : "Tap to start / stop"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // =====================================================
+  // EDITOR SCREEN
+  // =====================================================
+
+  if (step === 1) {
+    return (
+      <div className="relative w-full h-screen bg-black text-white overflow-hidden select-none">
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          onChange={
+            handleAudioUpload
+          }
+        />
+
+        {/* MEDIA */}
+
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          <div
+            className={`relative ${
+              cropRatio ===
+              "original"
+                ? "w-full h-full"
+                : `${cropClass()} w-full max-w-full`
+            }`}
+          >
+            {mediaUrl &&
+              (isVideo ? (
+                <video
+                  data-editor-video
+                  src={mediaUrl}
+                  autoPlay
+                  loop
+                  playsInline
+                  muted={videoMuted}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={
+                    getMediaStyle()
+                  }
+                />
+              ) : (
+                <img
+                  src={mediaUrl}
+                  alt="Moment"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={
+                    getMediaStyle()
+                  }
+                />
+              ))}
+
+            {/* DRAWING */}
+
+            <canvas
+              ref={drawingCanvasRef}
+              className={`absolute inset-0 w-full h-full z-20 ${
+                drawMode
+                  ? "pointer-events-auto"
+                  : "pointer-events-none"
+              }`}
+              onMouseDown={
+                startDrawing
+              }
+              onMouseMove={draw}
+              onMouseUp={
+                stopDrawing
+              }
+              onMouseLeave={
+                stopDrawing
+              }
+              onTouchStart={
+                startDrawing
+              }
+              onTouchMove={draw}
+              onTouchEnd={
+                stopDrawing
+              }
+            />
+
+            {/* TEXT */}
+
+            {overlayText && (
+              <div
+                className="absolute z-30 -translate-x-1/2 -translate-y-1/2 font-black text-center whitespace-nowrap"
+                style={{
+                  left: `${textX}%`,
+                  top: `${textY}%`,
+                  color: textColor,
+                  fontSize: `${textSize}px`,
+                  textShadow:
+                    "0 2px 8px rgba(0,0,0,.7)",
+                }}
+              >
+                {overlayText}
+              </div>
+            )}
+
+            {/* STICKERS */}
+
+            {stickers.map(
+              (sticker) => (
+                <button
+                  key={sticker.id}
+                  onDoubleClick={() =>
+                    removeSticker(
+                      sticker.id
+                    )
+                  }
+                  className="absolute z-30 -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${sticker.x}%`,
+                    top: `${sticker.y}%`,
+                    fontSize: `${sticker.size}px`,
+                  }}
+                >
+                  {sticker.emoji}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* DARK GRADIENT */}
+
+        <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/80 to-transparent z-40 pointer-events-none" />
+
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/95 to-transparent z-40 pointer-events-none" />
+
+        {/* TOP */}
+
+        <div className="absolute top-4 left-4 right-4 z-50 flex justify-between">
+          <button
+            onClick={retake}
+            className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center"
+          >
+            <X />
+          </button>
+
+          <div className="flex gap-2">
             {isVideo && (
-              <div className="px-4 py-2 rounded-full bg-black/55 backdrop-blur-xl text-xs font-semibold">
+              <div className="px-4 py-2 rounded-full bg-black/60 backdrop-blur-xl text-xs font-bold">
                 VIDEO
               </div>
             )}
           </div>
+        </div>
 
-          {/* Text */}
-          {overlayText && (
-            <div
-              onMouseDown={handleTextStart}
-              onTouchStart={handleTextStart}
-              style={{
-                left: textPos.x,
-                top: textPos.y,
-              }}
-              className="absolute z-30 bg-black/60 backdrop-blur-xl border border-white/20 px-5 py-3 rounded-2xl text-xl font-bold touch-none cursor-move"
-            >
-              {overlayText}
-            </div>
-          )}
+        {/* EDITOR TOOLS */}
 
-          {/* Text input */}
-          {showTextInput && (
-            <div className="absolute top-20 left-4 right-20 z-40">
-              <input
-                autoFocus
-                value={overlayText}
-                onChange={(event) =>
-                  setOverlayText(
-                    event.target.value
-                  )
-                }
-                placeholder="Write something..."
-                className="w-full rounded-2xl bg-black/80 backdrop-blur-xl border border-white/20 px-4 py-3 text-white outline-none"
-              />
-            </div>
-          )}
+        <div className="absolute right-3 top-20 z-50 flex flex-col gap-2">
+          <EditorTool
+            icon={<Type />}
+            label="Text"
+            active={showTextInput}
+            onClick={addText}
+          />
 
-          {/* Editor tools */}
-          <div className="absolute right-4 top-20 z-30 flex flex-col gap-3">
-            <button
-              onClick={() =>
-                setShowTextInput(
-                  (value) => !value
-                )
-              }
-              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center font-black"
-            >
-              Aa
-            </button>
+          <EditorTool
+            icon={<Smile />}
+            label="Sticker"
+            onClick={() =>
+              addSticker("❤️")
+            }
+          />
 
-            <button
-              onClick={() =>
-                audioInputRef.current?.click()
-              }
-              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center"
-            >
-              <Music size={21} />
-            </button>
+          <EditorTool
+            icon={<Pencil />}
+            label="Draw"
+            active={drawMode}
+            onClick={() =>
+              setDrawMode(
+                (value) => !value
+              )
+            }
+          />
 
-            <button
-              onClick={handleDownload}
-              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center"
-            >
-              <Download size={21} />
-            </button>
+          <EditorTool
+            icon={<Crop />}
+            label="Crop"
+            onClick={() =>
+              setCropRatio(
+                (value) =>
+                  value ===
+                  "original"
+                    ? "9:16"
+                    : value ===
+                      "9:16"
+                    ? "4:5"
+                    : value ===
+                      "4:5"
+                    ? "1:1"
+                    : "original"
+              )
+            }
+          />
 
-            <button
-              onClick={retake}
-              className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center"
-            >
-              <RotateCcw size={21} />
-            </button>
-          </div>
+          <EditorTool
+            icon={<RotateCcw />}
+            label="Rotate"
+            onClick={rotateMedia}
+          />
 
-          {/* Bottom */}
-          <div className="absolute left-4 right-4 bottom-5 z-30">
-            {selectedAudio && (
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-xl px-4 py-2 text-xs">
-                <Music size={14} />
+          <EditorTool
+            icon={<Music />}
+            label="Music"
+            onClick={() =>
+              audioInputRef.current?.click()
+            }
+          />
 
-                <span className="max-w-40 truncate">
-                  {selectedAudio}
-                </span>
-              </div>
-            )}
+          <EditorTool
+            icon={<Download />}
+            label="Save"
+            onClick={
+              handleDownload
+            }
+          />
+        </div>
 
+        {/* TEXT PANEL */}
+
+        {showTextInput && (
+          <div className="absolute top-20 left-4 right-20 z-[60] bg-black/80 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
             <input
-              value={caption}
-              onChange={(event) =>
-                setCaption(
-                  event.target.value
+              autoFocus
+              value={overlayText}
+              onChange={(e) =>
+                setOverlayText(
+                  e.target.value
                 )
               }
-              placeholder="Add a caption..."
-              className="w-full mb-3 bg-black/60 backdrop-blur-xl border border-white/15 rounded-2xl px-4 py-3 outline-none text-sm"
+              placeholder="Write text..."
+              className="w-full bg-white/10 rounded-xl px-4 py-3 outline-none"
             />
 
-            <button
-              onClick={() => setStep(2)}
-              className="w-full py-4 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 text-white font-bold text-base flex items-center justify-center gap-2"
-            >
-              Next
-              <ChevronRight size={21} />
-            </button>
-          </div>
-        </div>
-      )}
+            <div className="flex items-center gap-2 mt-3">
+              {[
+                "#ffffff",
+                "#ff3b81",
+                "#00e5ff",
+                "#ffd400",
+                "#55ff66",
+              ].map((color) => (
+                <button
+                  key={color}
+                  onClick={() =>
+                    setTextColor(
+                      color
+                    )
+                  }
+                  className="w-8 h-8 rounded-full border-2 border-white/50"
+                  style={{
+                    backgroundColor:
+                      color,
+                  }}
+                />
+              ))}
+            </div>
 
-      {/* ========================================== */}
-      {/* PRIVACY / SHARE */}
-      {/* ========================================== */}
+            <input
+              type="range"
+              min="18"
+              max="60"
+              value={textSize}
+              onChange={(e) =>
+                setTextSize(
+                  Number(
+                    e.target.value
+                  )
+                )
+              }
+              className="w-full mt-3"
+            />
 
-      {step === 2 && (
-        <div className="w-full h-full bg-[#101010] overflow-y-auto">
-          <div className="min-h-full px-5 pt-5 pb-8">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-7">
-              <button
-                onClick={() =>
-                  setStep(1)
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <input
+                type="range"
+                min="10"
+                max="90"
+                value={textX}
+                onChange={(e) =>
+                  setTextX(
+                    Number(
+                      e.target.value
+                    )
+                  )
                 }
-                className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
+              />
+
+              <input
+                type="range"
+                min="10"
+                max="90"
+                value={textY}
+                onChange={(e) =>
+                  setTextY(
+                    Number(
+                      e.target.value
+                    )
+                  )
+                }
+              />
+            </div>
+          </div>
+        )}
+
+        {/* DRAW PANEL */}
+
+        {drawMode && (
+          <div className="absolute top-20 left-4 z-[60] bg-black/80 backdrop-blur-xl rounded-3xl p-4">
+            <div className="flex gap-2 mb-3">
+              {[
+                "#ffffff",
+                "#ff0055",
+                "#00e5ff",
+                "#ffd400",
+                "#55ff55",
+              ].map((color) => (
+                <button
+                  key={color}
+                  onClick={() =>
+                    setDrawColor(
+                      color
+                    )
+                  }
+                  className="w-8 h-8 rounded-full border border-white/50"
+                  style={{
+                    backgroundColor:
+                      color,
+                  }}
+                />
+              ))}
+            </div>
+
+            <input
+              type="range"
+              min="2"
+              max="25"
+              value={drawSize}
+              onChange={(e) =>
+                setDrawSize(
+                  Number(
+                    e.target.value
+                  )
+                )
+              }
+            />
+
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={
+                  undoDrawing
+                }
+                className="p-2 bg-white/10 rounded-xl"
               >
-                <X size={22} />
+                <Undo2 />
               </button>
 
-              <h1 className="text-lg font-bold">
-                Share Moment
-              </h1>
+              <button
+                onClick={
+                  redoDrawing
+                }
+                className="p-2 bg-white/10 rounded-xl"
+              >
+                <Redo2 />
+              </button>
 
-              <div className="w-11" />
+              <button
+                onClick={
+                  clearDrawing
+                }
+                className="px-3 bg-white/10 rounded-xl text-xs"
+              >
+                Clear
+              </button>
             </div>
+          </div>
+        )}
 
-            {/* Preview */}
-            {mediaUrl && (
-              <div className="relative w-28 h-40 rounded-2xl overflow-hidden mx-auto mb-7 border border-white/10">
-                {isVideo ? (
-                  <video
-                    src={mediaUrl}
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <img
-                    src={mediaUrl}
-                    alt="Moment"
-                    className="w-full h-full object-cover"
-                  />
-                )}
+        {/* STICKER PANEL */}
 
-                <div className="absolute inset-0 bg-black/10" />
-
-                {isVideo && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-full bg-black/60 text-[9px]">
-                    VIDEO
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Audience */}
-            <section className="mb-7">
-              <h2 className="text-xs tracking-widest text-zinc-400 font-semibold mb-3">
-                AUDIENCE
-              </h2>
-
-              <div className="grid grid-cols-2 gap-3">
-                <AudienceButton
-                  active={
-                    audience === "everyone"
-                  }
-                  icon={<Globe2 size={20} />}
-                  title="Everyone"
-                  subtitle="Anyone on YourWorld"
-                  onClick={() =>
-                    setAudience(
-                      "everyone"
-                    )
-                  }
-                />
-
-                <AudienceButton
-                  active={
-                    audience === "followers"
-                  }
-                  icon={<Users size={20} />}
-                  title="Followers"
-                  subtitle="People who follow you"
-                  onClick={() =>
-                    setAudience(
-                      "followers"
-                    )
-                  }
-                />
-
-                <AudienceButton
-                  active={
-                    audience ===
-                    "close_friends"
-                  }
-                  icon={<Star size={20} />}
-                  title="Close Friends"
-                  subtitle="Your green-list only"
-                  onClick={() =>
-                    setAudience(
-                      "close_friends"
-                    )
-                  }
-                />
-
-                <AudienceButton
-                  active={
-                    audience === "only_me"
-                  }
-                  icon={<Lock size={20} />}
-                  title="Only Me"
-                  subtitle="Private to you"
-                  onClick={() =>
-                    setAudience(
-                      "only_me"
-                    )
-                  }
-                />
-              </div>
-            </section>
-
-            {/* Duration */}
-            <section className="mb-7">
-              <h2 className="text-xs tracking-widest text-zinc-400 font-semibold mb-3">
-                DURATION
-              </h2>
-
-              <div className="grid grid-cols-2 gap-3">
-                <DurationButton
-                  active={
-                    durationHours === 12
-                  }
-                  title="12 Hours"
-                  onClick={() =>
-                    setDurationHours(12)
-                  }
-                />
-
-                <DurationButton
-                  active={
-                    durationHours === 24
-                  }
-                  title="24 Hours"
-                  onClick={() =>
-                    setDurationHours(24)
-                  }
-                />
-              </div>
-            </section>
-
-            {/* Interaction */}
-            <section className="mb-7">
-              <h2 className="text-xs tracking-widest text-zinc-400 font-semibold mb-3">
-                INTERACTION & SAFETY
-              </h2>
-
-              <div className="space-y-3">
-                <SettingRow
-                  icon={<MessageCircle size={23} />}
-                  title="Add a poll"
-                  subtitle="Let viewers vote on your moment"
-                  checked={allowPoll}
-                  onChange={() =>
-                    setAllowPoll(
-                      (value) => !value
-                    )
-                  }
-                />
-
-                <SettingRow
-                  icon={<Heart size={23} />}
-                  title="Allow reactions"
-                  subtitle="Viewers can react to your moment"
-                  checked={allowReactions}
-                  onChange={() =>
-                    setAllowReactions(
-                      (value) => !value
-                    )
-                  }
-                />
-
-                <SettingRow
-                  icon={<MessageCircle size={23} />}
-                  title="Allow replies"
-                  subtitle="Let viewers reply to your moment"
-                  checked={allowReplies}
-                  onChange={() =>
-                    setAllowReplies(
-                      (value) => !value
-                    )
-                  }
-                />
-
-                <SettingRow
-                  icon={<Zap size={23} />}
-                  title="Screenshot alert"
-                  subtitle="Best-effort alert where the platform allows detection"
-                  checked={screenshotAlert}
-                  onChange={() =>
-                    setScreenshotAlert(
-                      (value) => !value
-                    )
-                  }
-                />
-
-                <SettingRow
-                  icon={<Download size={23} />}
-                  title="Allow downloads"
-                  subtitle="Viewers can save your Moment"
-                  checked={allowDownloads}
-                  onChange={() =>
-                    setAllowDownloads(
-                      (value) => !value
-                    )
-                  }
-                />
-
-                <SettingRow
-                  icon={<Archive size={23} />}
-                  title="Save to archive"
-                  subtitle="Keep a private copy after expiry"
-                  checked={saveToArchive}
-                  onChange={() =>
-                    setSaveToArchive(
-                      (value) => !value
-                    )
-                  }
-                />
-
-                <SettingRow
-                  icon={<MapPin size={23} />}
-                  title="Show location"
-                  subtitle="Share your location with viewers"
-                  checked={showLocation}
-                  onChange={() =>
-                    setShowLocation(
-                      (value) => !value
-                    )
-                  }
-                />
-
-                <SettingRow
-                  icon={<Share2 size={23} />}
-                  title="Allow sharing"
-                  subtitle="Let viewers share this Moment"
-                  checked={allowSharing}
-                  onChange={() =>
-                    setAllowSharing(
-                      (value) => !value
-                    )
-                  }
-                />
-              </div>
-            </section>
-
-            {/* Summary */}
-            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 mb-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {audienceIcon}
-
-                  <div>
-                    <p className="font-semibold text-sm">
-                      {audienceLabel}
-                    </p>
-
-                    <p className="text-xs text-zinc-500">
-                      Your Moment expires in{" "}
-                      {durationHours} hours
-                    </p>
-                  </div>
-                </div>
-
-                <Check
-                  size={20}
-                  className="text-pink-400"
-                />
-              </div>
-            </div>
-
-            {/* Share */}
+        <div className="absolute bottom-32 left-4 right-4 z-50 flex gap-2 overflow-x-auto pb-2">
+          {[
+            "❤️",
+            "😂",
+            "🔥",
+            "😍",
+            "😎",
+            "🥳",
+            "👏",
+            "💯",
+            "⭐",
+            "⚡",
+          ].map((emoji) => (
             <button
-              onClick={handlePublish}
-              className="w-full py-5 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 text-white font-bold text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition"
+              key={emoji}
+              onClick={() =>
+                addSticker(
+                  emoji
+                )
+              }
+              className="min-w-12 h-12 rounded-2xl bg-black/60 backdrop-blur-xl text-2xl"
             >
-              Share Moment
-              <Share2 size={21} />
+              {emoji}
             </button>
+          ))}
+        </div>
+
+        {/* FILTERS */}
+
+        <div className="absolute bottom-48 left-0 right-0 z-50 overflow-x-auto px-4">
+          <div className="flex gap-3">
+            {(
+              Object.keys(
+                FILTERS
+              ) as FilterName[]
+            ).map((filter) => (
+              <button
+                key={filter}
+                onClick={() =>
+                  setSelectedFilter(
+                    filter
+                  )
+                }
+                className={`px-4 py-2 rounded-full whitespace-nowrap text-xs font-bold backdrop-blur-xl ${
+                  selectedFilter ===
+                  filter
+                    ? "bg-white text-black"
+                    : "bg-black/60"
+                }`}
+              >
+                {FILTERS[filter].name}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* ADJUSTMENTS */}
+
+        <div className="absolute bottom-20 left-4 right-4 z-50 flex gap-3 overflow-x-auto">
+          <Adjust
+            icon={<Sun />}
+            value={brightness}
+            min={60}
+            max={140}
+            onChange={
+              setBrightness
+            }
+          />
+
+          <Adjust
+            icon={<Contrast />}
+            value={contrast}
+            min={60}
+            max={140}
+            onChange={
+              setContrast
+            }
+          />
+
+          <Adjust
+            icon={<Palette />}
+            value={saturation}
+            min={0}
+            max={180}
+            onChange={
+              setSaturation
+            }
+          />
+
+          {isVideo && (
+            <>
+              <Adjust
+                icon={<Play />}
+                value={videoSpeed}
+                min={0.5}
+                max={2}
+                step={0.25}
+                onChange={
+                  setVideoSpeed
+                }
+              />
+
+              <button
+                onClick={() =>
+                  setVideoMuted(
+                    (value) =>
+                      !value
+                  )
+                }
+                className="w-12 h-12 rounded-2xl bg-black/60 backdrop-blur-xl flex items-center justify-center"
+              >
+                {videoMuted ? (
+                  <VolumeX />
+                ) : (
+                  <Volume2 />
+                )}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* AUDIO */}
+
+        {selectedAudio && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-black/70 backdrop-blur-xl rounded-full px-4 py-2 text-xs flex items-center gap-2">
+            <Music size={14} />
+
+            <span className="max-w-36 truncate">
+              {selectedAudio}
+            </span>
+          </div>
+        )}
+
+        {/* CAPTION + NEXT */}
+
+        <div className="absolute bottom-4 left-4 right-4 z-[70] flex gap-2">
+          <input
+            value={caption}
+            onChange={(e) =>
+              setCaption(
+                e.target.value
+              )
+            }
+            placeholder="Add a caption..."
+            className="flex-1 bg-black/70 backdrop-blur-xl border border-white/10 rounded-full px-5 py-4 outline-none text-sm"
+          />
+
+          <button
+            onClick={() =>
+              setStep(2)
+            }
+            className="px-6 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black flex items-center gap-1"
+          >
+            Next
+            <ChevronRight
+              size={20}
+            />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // =====================================================
+  // SHARE SCREEN
+  // =====================================================
+
+  return (
+    <div className="w-full h-screen bg-[#101010] text-white overflow-y-auto">
+      <div className="max-w-xl mx-auto px-5 pt-5 pb-10">
+        {/* HEADER */}
+
+        <div className="flex items-center justify-between mb-7">
+          <button
+            onClick={() =>
+              setStep(1)
+            }
+            className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center"
+          >
+            <X />
+          </button>
+
+          <h1 className="text-lg font-bold">
+            Share Moment
+          </h1>
+
+          <div className="w-11" />
+        </div>
+
+        {/* PREVIEW */}
+
+        {mediaUrl && (
+          <div className="relative w-28 h-40 rounded-2xl overflow-hidden mx-auto mb-7">
+            {isVideo ? (
+              <video
+                src={mediaUrl}
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src={mediaUrl}
+                className="w-full h-full object-cover"
+                alt="Moment"
+              />
+            )}
+          </div>
+        )}
+
+        {/* AUDIENCE */}
+
+        <SectionTitle title="AUDIENCE" />
+
+        <div className="grid grid-cols-2 gap-3 mb-7">
+          <AudienceButton
+            active={
+              audience ===
+              "everyone"
+            }
+            icon={<Globe2 />}
+            title="Everyone"
+            subtitle="Anyone on YourWorld"
+            onClick={() =>
+              setAudience(
+                "everyone"
+              )
+            }
+          />
+
+          <AudienceButton
+            active={
+              audience ===
+              "followers"
+            }
+            icon={<Users />}
+            title="Followers"
+            subtitle="People who follow you"
+            onClick={() =>
+              setAudience(
+                "followers"
+              )
+            }
+          />
+
+          <AudienceButton
+            active={
+              audience ===
+              "close_friends"
+            }
+            icon={<Star />}
+            title="Close Friends"
+            subtitle="Your green-list"
+            onClick={() =>
+              setAudience(
+                "close_friends"
+              )
+            }
+          />
+
+          <AudienceButton
+            active={
+              audience ===
+              "only_me"
+            }
+            icon={<Lock />}
+            title="Only Me"
+            subtitle="Private"
+            onClick={() =>
+              setAudience(
+                "only_me"
+              )
+            }
+          />
+        </div>
+
+        {/* DURATION */}
+
+        <SectionTitle title="DURATION" />
+
+        <div className="grid grid-cols-2 gap-3 mb-7">
+          <DurationButton
+            active={
+              durationHours ===
+              12
+            }
+            title="12 Hours"
+            onClick={() =>
+              setDurationHours(
+                12
+              )
+            }
+          />
+
+          <DurationButton
+            active={
+              durationHours ===
+              24
+            }
+            title="24 Hours"
+            onClick={() =>
+              setDurationHours(
+                24
+              )
+            }
+          />
+        </div>
+
+        {/* SETTINGS */}
+
+        <SectionTitle title="INTERACTION & SAFETY" />
+
+        <div className="space-y-3">
+          <SettingRow
+            icon={<MessageCircle />}
+            title="Add a poll"
+            subtitle="Let viewers vote"
+            checked={allowPoll}
+            onChange={() =>
+              setAllowPoll(
+                (v) => !v
+              )
+            }
+          />
+
+          <SettingRow
+            icon={<Heart />}
+            title="Allow reactions"
+            subtitle="Viewers can react"
+            checked={allowReactions}
+            onChange={() =>
+              setAllowReactions(
+                (v) => !v
+              )
+            }
+          />
+
+          <SettingRow
+            icon={<MessageCircle />}
+            title="Allow replies"
+            subtitle="Viewers can reply"
+            checked={allowReplies}
+            onChange={() =>
+              setAllowReplies(
+                (v) => !v
+              )
+            }
+          />
+
+          <SettingRow
+            icon={<Zap />}
+            title="Screenshot alert"
+            subtitle="Best-effort detection"
+            checked={
+              screenshotAlert
+            }
+            onChange={() =>
+              setScreenshotAlert(
+                (v) => !v
+              )
+            }
+          />
+
+          <SettingRow
+            icon={<Download />}
+            title="Allow downloads"
+            subtitle="Viewers can save"
+            checked={
+              allowDownloads
+            }
+            onChange={() =>
+              setAllowDownloads(
+                (v) => !v
+              )
+            }
+          />
+
+          <SettingRow
+            icon={<Archive />}
+            title="Save to archive"
+            subtitle="Keep private copy"
+            checked={
+              saveToArchive
+            }
+            onChange={() =>
+              setSaveToArchive(
+                (v) => !v
+              )
+            }
+          />
+
+          <SettingRow
+            icon={<MapPin />}
+            title="Show location"
+            subtitle="Share location"
+            checked={
+              showLocation
+            }
+            onChange={() =>
+              setShowLocation(
+                (v) => !v
+              )
+            }
+          />
+
+          <SettingRow
+            icon={<Share2 />}
+            title="Allow sharing"
+            subtitle="Let viewers share"
+            checked={
+              allowSharing
+            }
+            onChange={() =>
+              setAllowSharing(
+                (v) => !v
+              )
+            }
+          />
+        </div>
+
+        {/* SHARE */}
+
+        <button
+          onClick={
+            handlePublish
+          }
+          className="w-full mt-7 py-5 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black text-lg flex items-center justify-center gap-2"
+        >
+          Share Moment
+          <Share2 />
+        </button>
+      </div>
     </div>
   );
 }
 
-// ======================================================
-// AUDIENCE BUTTON
-// ======================================================
+// =====================================================
+// EDITOR TOOL
+// =====================================================
+
+function EditorTool({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-12 h-12 rounded-2xl backdrop-blur-xl flex items-center justify-center ${
+        active
+          ? "bg-white text-black"
+          : "bg-black/60 text-white"
+      }`}
+      title={label}
+    >
+      {icon}
+    </button>
+  );
+}
+
+// =====================================================
+// ADJUSTMENT
+// =====================================================
+
+function Adjust({
+  icon,
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (
+    value: number
+  ) => void;
+}) {
+  return (
+    <div className="min-w-[130px] bg-black/65 backdrop-blur-xl rounded-2xl px-3 py-2 flex items-center gap-2">
+      {icon}
+
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) =>
+          onChange(
+            Number(
+              e.target.value
+            )
+          )
+        }
+        className="w-full"
+      />
+    </div>
+  );
+}
+
+// =====================================================
+// SECTION
+// =====================================================
+
+function SectionTitle({
+  title,
+}: {
+  title: string;
+}) {
+  return (
+    <h2 className="text-xs tracking-widest text-zinc-400 font-bold mb-3">
+      {title}
+    </h2>
+  );
+}
+
+// =====================================================
+// AUDIENCE
+// =====================================================
 
 function AudienceButton({
   active,
@@ -1818,13 +2920,13 @@ function AudienceButton({
   return (
     <button
       onClick={onClick}
-      className={`text-left rounded-3xl p-4 border transition ${
+      className={`text-left rounded-3xl p-4 border ${
         active
           ? "border-pink-500 bg-pink-500/10"
           : "border-white/10 bg-white/5"
       }`}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex justify-between mb-3">
         <span
           className={
             active
@@ -1836,14 +2938,11 @@ function AudienceButton({
         </span>
 
         {active && (
-          <Check
-            size={18}
-            className="text-pink-400"
-          />
+          <Check className="text-pink-400" />
         )}
       </div>
 
-      <p className="font-semibold text-sm">
+      <p className="font-bold text-sm">
         {title}
       </p>
 
@@ -1854,9 +2953,9 @@ function AudienceButton({
   );
 }
 
-// ======================================================
-// DURATION BUTTON
-// ======================================================
+// =====================================================
+// DURATION
+// =====================================================
 
 function DurationButton({
   active,
@@ -1870,9 +2969,9 @@ function DurationButton({
   return (
     <button
       onClick={onClick}
-      className={`py-4 rounded-3xl border font-semibold transition ${
+      className={`py-4 rounded-3xl border font-bold ${
         active
-          ? "border-pink-500 bg-pink-500/10 text-white"
+          ? "border-pink-500 bg-pink-500/10"
           : "border-white/10 bg-white/5 text-zinc-400"
       }`}
     >
@@ -1881,9 +2980,9 @@ function DurationButton({
   );
 }
 
-// ======================================================
-// SETTING ROW
-// ======================================================
+// =====================================================
+// SETTING
+// =====================================================
 
 function SettingRow({
   icon,
@@ -1907,8 +3006,8 @@ function SettingRow({
         {icon}
       </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm">
+      <div className="flex-1">
+        <p className="font-bold text-sm">
           {title}
         </p>
 
@@ -1918,10 +3017,10 @@ function SettingRow({
       </div>
 
       <div
-        className={`w-7 h-7 rounded-md flex items-center justify-center transition ${
+        className={`w-7 h-7 rounded-md flex items-center justify-center ${
           checked
-            ? "bg-pink-500 text-white"
-            : "border border-zinc-600 bg-transparent"
+            ? "bg-pink-500"
+            : "border border-zinc-600"
         }`}
       >
         {checked && (
