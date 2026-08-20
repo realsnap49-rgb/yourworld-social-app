@@ -2331,21 +2331,19 @@ export function MomentCreatePage() {
           <EditorTool
             icon={<Crop />}
             label="Crop"
-            onClick={() =>
-              setCropRatio(
-                (value) =>
-                  value ===
-                  "original"
-                    ? "9:16"
-                    : value ===
-                      "9:16"
-                    ? "4:5"
-                    : value ===
-                      "4:5"
-                    ? "1:1"
-                    : "original"
-              )
-            }
+            active={cropMode}
+            onClick={() => {
+              setShowTextInput(
+                false
+              );
+              setDrawMode(false);
+              setCropDraft(
+                cropRect
+              );
+              setCropMode(
+                (value) => !value
+              );
+            }}
           />
 
           <EditorTool
@@ -2378,11 +2376,15 @@ export function MomentCreatePage() {
             <input
               autoFocus
               value={overlayText}
-              onChange={(e) =>
+              onChange={(e) => {
                 setOverlayText(
                   e.target.value
-                )
-              }
+                );
+                updateActiveText({
+                  text: e.target
+                    .value,
+                });
+              }}
               placeholder="Write text..."
               className="w-full bg-white/10 rounded-xl px-4 py-3 outline-none"
             />
@@ -2397,11 +2399,14 @@ export function MomentCreatePage() {
               ].map((color) => (
                 <button
                   key={color}
-                  onClick={() =>
+                  onClick={() => {
                     setTextColor(
                       color
-                    )
-                  }
+                    );
+                    updateActiveText(
+                      { color }
+                    );
+                  }}
                   className="w-8 h-8 rounded-full border-2 border-white/50"
                   style={{
                     backgroundColor:
@@ -2414,15 +2419,18 @@ export function MomentCreatePage() {
             <input
               type="range"
               min="18"
-              max="60"
+              max="120"
               value={textSize}
-              onChange={(e) =>
-                setTextSize(
+              onChange={(e) => {
+                const size =
                   Number(
                     e.target.value
-                  )
-                )
-              }
+                  );
+                setTextSize(size);
+                updateActiveText({
+                  size,
+                });
+              }}
               className="w-full mt-3"
             />
 
@@ -2432,13 +2440,19 @@ export function MomentCreatePage() {
                 min="10"
                 max="90"
                 value={textX}
-                onChange={(e) =>
+                onChange={(e) => {
                   setTextX(
                     Number(
                       e.target.value
                     )
-                  )
-                }
+                  );
+                  updateActiveText({
+                    x: Number(
+                      e.target
+                        .value
+                    ),
+                  });
+                }}
               />
 
               <input
@@ -2446,14 +2460,151 @@ export function MomentCreatePage() {
                 min="10"
                 max="90"
                 value={textY}
-                onChange={(e) =>
+                onChange={(e) => {
                   setTextY(
                     Number(
                       e.target.value
                     )
+                  );
+                  updateActiveText({
+                    y: Number(
+                      e.target
+                        .value
+                    ),
+                  });
+                }}
+              />
+            </div>
+
+            <div className="mt-3">
+              <p className="text-[10px] text-white/50 mb-1">
+                Rotate
+              </p>
+
+              <input
+                type="range"
+                min="-180"
+                max="180"
+                value={
+                  textLayers.find(
+                    (item) =>
+                      item.id ===
+                      activeTextId
+                  )?.rotation ?? 0
+                }
+                onChange={(e) =>
+                  updateActiveText({
+                    rotation:
+                      Number(
+                        e.target
+                          .value
+                      ),
+                  })
+                }
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={addText}
+                className="flex-1 py-2 rounded-xl bg-white/10 text-xs font-bold"
+              >
+                Add text
+              </button>
+
+              <button
+                onClick={() =>
+                  setShowTextInput(
+                    false
                   )
                 }
-              />
+                className="flex-1 py-2 rounded-xl bg-white text-black text-xs font-bold"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CROP PANEL */}
+
+        {cropMode && (
+          <div className="absolute bottom-8 left-4 right-4 z-[70] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+            <p className="text-[11px] text-white/60 mb-3">
+              Drag the corners to crop freely
+            </p>
+
+            <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
+              {(
+                [
+                  "original",
+                  "9:16",
+                  "4:5",
+                  "1:1",
+                ] as CropRatio[]
+              ).map((ratio) => (
+                <button
+                  key={ratio}
+                  onClick={() =>
+                    setCropRatio(
+                      ratio
+                    )
+                  }
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap ${
+                    cropRatio ===
+                    ratio
+                      ? "bg-white text-black"
+                      : "bg-white/10"
+                  }`}
+                >
+                  {ratio}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setCropDraft(
+                    FULL_RECT
+                  );
+                  setCropRect(
+                    FULL_RECT
+                  );
+                }}
+                className="px-4 py-3 rounded-2xl bg-white/10 text-xs font-bold"
+              >
+                Reset
+              </button>
+
+              <button
+                onClick={() => {
+                  setCropDraft(
+                    cropRect
+                  );
+                  setCropMode(
+                    false
+                  );
+                }}
+                className="flex-1 py-3 rounded-2xl bg-white/10 text-xs font-bold"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  setCropRect(
+                    cropDraft
+                  );
+                  setCropMode(
+                    false
+                  );
+                }}
+                className="flex-1 py-3 rounded-2xl bg-white text-black text-xs font-bold"
+              >
+                Apply
+              </button>
             </div>
           </div>
         )}
