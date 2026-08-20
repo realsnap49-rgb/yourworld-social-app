@@ -270,6 +270,63 @@ export function MomentCreatePage() {
   const [textY, setTextY] =
     useState(45);
 
+  type TextLayer = {
+    id: number;
+    text: string;
+    x: number; // %
+    y: number; // %
+    size: number;
+    rotation: number;
+    color: string;
+  };
+
+  const [textLayers, setTextLayers] =
+    useState<TextLayer[]>([]);
+
+  const [activeTextId, setActiveTextId] =
+    useState<number | null>(null);
+
+  const frameRef =
+    useRef<HTMLDivElement>(null);
+
+  const updateActiveText = (
+    patch: Partial<TextLayer>
+  ) =>
+    setTextLayers((items) =>
+      items.map((item) =>
+        item.id === activeTextId
+          ? { ...item, ...patch }
+          : item
+      )
+    );
+
+  // =====================================================
+  // FREE CROP
+  // =====================================================
+
+  type Rect = {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
+
+  const FULL_RECT: Rect = {
+    x: 0,
+    y: 0,
+    w: 1,
+    h: 1,
+  };
+
+  const [cropRect, setCropRect] =
+    useState<Rect>(FULL_RECT);
+
+  const [cropMode, setCropMode] =
+    useState(false);
+
+  const [cropDraft, setCropDraft] =
+    useState<Rect>(FULL_RECT);
+
   // =====================================================
   // STICKERS
   // =====================================================
