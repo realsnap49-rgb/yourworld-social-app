@@ -1678,6 +1678,7 @@ export function MomentCreatePage() {
 
       caption:
         caption ||
+        textLayers[0]?.text ||
         overlayText,
 
       audio:
