@@ -1733,7 +1733,7 @@ export function MomentCreatePage() {
   // PUBLISH
   // =====================================================
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!mediaUrl) return;
 
     const createdAt =
@@ -1748,16 +1748,24 @@ export function MomentCreatePage() {
             1000
       );
 
-    const id =
+    const newId = (suffix: number) =>
       typeof crypto !==
         "undefined" &&
       "randomUUID" in crypto
         ? crypto.randomUUID()
-        : Date.now().toString();
+        : `${Date.now()}-${suffix}`;
 
-    const newMoment = {
-      id,
+    // Editing is finished at this point — now cut long videos into
+    // consecutive parts of at most 20 seconds (60s -> 20 + 20 + 20).
+    const parts = isVideo
+      ? splitIntoParts(
+          await readVideoDuration(
+            mediaUrl
+          )
+        )
+      : [{ start: 0, end: 0 }];
 
+    const base = {
       mediaUrl,
 
       mediaType: isVideo
@@ -1815,6 +1823,25 @@ export function MomentCreatePage() {
       allowSharing,
     };
 
+    const newMoments = parts.map(
+      (part, index) => ({
+        ...base,
+        id: newId(index),
+        trim: isVideo
+          ? {
+              start: part.start,
+              end: part.end,
+            }
+          : undefined,
+        partIndex: index + 1,
+        partCount: parts.length,
+        caption:
+          parts.length > 1
+            ? `${base.caption ? `${base.caption} ` : ""}(${index + 1}/${parts.length})`
+            : base.caption,
+      })
+    );
+
     const existing =
       JSON.parse(
         localStorage.getItem(
@@ -1825,10 +1852,42 @@ export function MomentCreatePage() {
     localStorage.setItem(
       "yw_moments",
       JSON.stringify([
-        newMoment,
+        ...newMoments,
         ...existing,
       ])
     );
+
+    // Publish each part into the live moments feed, oldest part first.
+    for (const part of newMoments) {
+      addMoment({
+        kind: isVideo
+          ? "video"
+          : "photo",
+        media: mediaUrl,
+        mediaType: part.mediaType,
+        text: part.caption ?? "",
+        textBg: "",
+        music:
+          selectedAudio ?? undefined,
+        stickers: [],
+        trim: part.trim,
+        mentions: [],
+        privacy:
+          audience ===
+          "close_friends"
+            ? "close"
+            : audience === "only_me"
+              ? "onlyme"
+              : audience,
+        duration: durationHours,
+        effect: "none",
+        ai: {},
+        allowDownload:
+          allowDownloads,
+        screenshotAlert,
+        poll: null,
+      });
+    }
 
     navigate({
       to: "/moment",
