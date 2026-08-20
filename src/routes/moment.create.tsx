@@ -51,6 +51,33 @@ export const Route = createFileRoute("/moment/create")({
 });
 
 type CameraFacing = "user" | "environment";
+
+type TextLayer = {
+  id: number;
+  text: string;
+  x: number; // %
+  y: number; // %
+  size: number;
+  rotation: number;
+  color: string;
+};
+
+type Rect = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+const FULL_RECT: Rect = {
+  x: 0,
+  y: 0,
+  w: 1,
+  h: 1,
+};
+
+const clamp01 = (v: number) =>
+  Math.min(1, Math.max(0, v));
 type CaptureMode = "photo" | "video";
 type Audience =
   | "everyone"
@@ -270,6 +297,47 @@ export function MomentCreatePage() {
   const [textY, setTextY] =
     useState(45);
 
+  const [textLayers, setTextLayers] =
+    useState<TextLayer[]>([]);
+
+  const [activeTextId, setActiveTextId] =
+    useState<number | null>(null);
+
+  const frameRef =
+    useRef<HTMLDivElement>(null);
+
+  const updateActiveText = (
+    patch: Partial<TextLayer>
+  ) =>
+    setTextLayers((items) =>
+      items.map((item) =>
+        item.id === activeTextId
+          ? { ...item, ...patch }
+          : item
+      )
+    );
+
+  // =====================================================
+  // FREE CROP
+  // =====================================================
+
+  const [cropRect, setCropRect] =
+    useState<Rect>(FULL_RECT);
+
+  const [cropMode, setCropMode] =
+    useState(false);
+
+  const [cropDraft, setCropDraft] =
+    useState<Rect>(FULL_RECT);
+
+  const cropStyle =
+    (): React.CSSProperties => ({
+      left: `${(-cropRect.x / cropRect.w) * 100}%`,
+      top: `${(-cropRect.y / cropRect.h) * 100}%`,
+      width: `${100 / cropRect.w}%`,
+      height: `${100 / cropRect.h}%`,
+    });
+
   // =====================================================
   // STICKERS
   // =====================================================
@@ -365,7 +433,13 @@ export function MomentCreatePage() {
         return null;
       }
 
-      return track.getCapabilities();
+      return track.getCapabilities() as MediaTrackCapabilities & {
+        zoom?: {
+          min?: number;
+          max?: number;
+          step?: number;
+        };
+      };
     } catch {
       return null;
     }
@@ -1022,6 +1096,11 @@ export function MomentCreatePage() {
     setCaption("");
     setStickers([]);
     setDrawMode(false);
+    setTextLayers([]);
+    setActiveTextId(null);
+    setCropRect(FULL_RECT);
+    setCropDraft(FULL_RECT);
+    setCropMode(false);
 
     clearDrawing();
   };
@@ -1081,12 +1160,25 @@ export function MomentCreatePage() {
 
   const addText = () => {
     setShowTextInput(true);
+    setCropMode(false);
 
-    if (!overlayText) {
-      setOverlayText(
-        "YourWorld"
-      );
-    }
+    const layer: TextLayer = {
+      id: Date.now(),
+      text: "YourWorld",
+      x: 50,
+      y: 45,
+      size: 28,
+      rotation: 0,
+      color: textColor,
+    };
+
+    setTextLayers((items) => [
+      ...items,
+      layer,
+    ]);
+
+    setActiveTextId(layer.id);
+    setOverlayText(layer.text);
   };
 
   // =====================================================
@@ -1452,11 +1544,25 @@ export function MomentCreatePage() {
           "canvas"
         );
 
-      canvas.width =
+      const sx =
+        cropRect.x *
         image.naturalWidth;
 
-      canvas.height =
+      const sy =
+        cropRect.y *
         image.naturalHeight;
+
+      const sw =
+        cropRect.w *
+        image.naturalWidth;
+
+      const sh =
+        cropRect.h *
+        image.naturalHeight;
+
+      canvas.width = sw;
+
+      canvas.height = sh;
 
       const ctx =
         canvas.getContext("2d");
@@ -1483,6 +1589,10 @@ export function MomentCreatePage() {
 
       ctx.drawImage(
         image,
+        sx,
+        sy,
+        sw,
+        sh,
         -canvas.width / 2,
         -canvas.height / 2,
         canvas.width,
@@ -1597,6 +1707,7 @@ export function MomentCreatePage() {
 
       caption:
         caption ||
+        textLayers[0]?.text ||
         overlayText,
 
       audio:
@@ -2012,6 +2123,7 @@ export function MomentCreatePage() {
 
         <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
           <div
+            ref={frameRef}
             className={`relative ${
               cropRatio ===
               "original"
@@ -2028,19 +2140,21 @@ export function MomentCreatePage() {
                   loop
                   playsInline
                   muted={videoMuted}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={
-                    getMediaStyle()
-                  }
+                  className="absolute object-cover"
+                  style={{
+                    ...cropStyle(),
+                    ...getMediaStyle(),
+                  }}
                 />
               ) : (
                 <img
                   src={mediaUrl}
                   alt="Moment"
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={
-                    getMediaStyle()
-                  }
+                  className="absolute object-cover"
+                  style={{
+                    ...cropStyle(),
+                    ...getMediaStyle(),
+                  }}
                 />
               ))}
 
@@ -2072,22 +2186,73 @@ export function MomentCreatePage() {
               }
             />
 
-            {/* TEXT */}
+            {/* TEXT LAYERS */}
 
-            {overlayText && (
-              <div
-                className="absolute z-30 -translate-x-1/2 -translate-y-1/2 font-black text-center whitespace-nowrap"
-                style={{
-                  left: `${textX}%`,
-                  top: `${textY}%`,
-                  color: textColor,
-                  fontSize: `${textSize}px`,
-                  textShadow:
-                    "0 2px 8px rgba(0,0,0,.7)",
-                }}
-              >
-                {overlayText}
-              </div>
+            {textLayers.map(
+              (layer) => (
+                <TextLayerView
+                  key={layer.id}
+                  layer={layer}
+                  active={
+                    layer.id ===
+                    activeTextId
+                  }
+                  frameRef={
+                    frameRef
+                  }
+                  locked={
+                    drawMode ||
+                    cropMode
+                  }
+                  onSelect={() => {
+                    setActiveTextId(
+                      layer.id
+                    );
+                    setOverlayText(
+                      layer.text
+                    );
+                    setTextColor(
+                      layer.color
+                    );
+                    setTextSize(
+                      layer.size
+                    );
+                    setShowTextInput(
+                      true
+                    );
+                  }}
+                  onChange={(
+                    patch
+                  ) =>
+                    setTextLayers(
+                      (items) =>
+                        items.map(
+                          (item) =>
+                            item.id ===
+                            layer.id
+                              ? {
+                                  ...item,
+                                  ...patch,
+                                }
+                              : item
+                        )
+                    )
+                  }
+                  onRemove={() => {
+                    setTextLayers(
+                      (items) =>
+                        items.filter(
+                          (item) =>
+                            item.id !==
+                            layer.id
+                        )
+                    );
+                    setActiveTextId(
+                      null
+                    );
+                  }}
+                />
+              )
             )}
 
             {/* STICKERS */}
@@ -2111,6 +2276,18 @@ export function MomentCreatePage() {
                   {sticker.emoji}
                 </button>
               )
+            )}
+
+            {/* FREE CROP OVERLAY */}
+
+            {cropMode && (
+              <CropOverlay
+                rect={cropDraft}
+                onChange={
+                  setCropDraft
+                }
+                frameRef={frameRef}
+              />
             )}
           </div>
         </div>
@@ -2172,21 +2349,19 @@ export function MomentCreatePage() {
           <EditorTool
             icon={<Crop />}
             label="Crop"
-            onClick={() =>
-              setCropRatio(
-                (value) =>
-                  value ===
-                  "original"
-                    ? "9:16"
-                    : value ===
-                      "9:16"
-                    ? "4:5"
-                    : value ===
-                      "4:5"
-                    ? "1:1"
-                    : "original"
-              )
-            }
+            active={cropMode}
+            onClick={() => {
+              setShowTextInput(
+                false
+              );
+              setDrawMode(false);
+              setCropDraft(
+                cropRect
+              );
+              setCropMode(
+                (value) => !value
+              );
+            }}
           />
 
           <EditorTool
@@ -2219,11 +2394,15 @@ export function MomentCreatePage() {
             <input
               autoFocus
               value={overlayText}
-              onChange={(e) =>
+              onChange={(e) => {
                 setOverlayText(
                   e.target.value
-                )
-              }
+                );
+                updateActiveText({
+                  text: e.target
+                    .value,
+                });
+              }}
               placeholder="Write text..."
               className="w-full bg-white/10 rounded-xl px-4 py-3 outline-none"
             />
@@ -2238,11 +2417,14 @@ export function MomentCreatePage() {
               ].map((color) => (
                 <button
                   key={color}
-                  onClick={() =>
+                  onClick={() => {
                     setTextColor(
                       color
-                    )
-                  }
+                    );
+                    updateActiveText(
+                      { color }
+                    );
+                  }}
                   className="w-8 h-8 rounded-full border-2 border-white/50"
                   style={{
                     backgroundColor:
@@ -2255,15 +2437,18 @@ export function MomentCreatePage() {
             <input
               type="range"
               min="18"
-              max="60"
+              max="120"
               value={textSize}
-              onChange={(e) =>
-                setTextSize(
+              onChange={(e) => {
+                const size =
                   Number(
                     e.target.value
-                  )
-                )
-              }
+                  );
+                setTextSize(size);
+                updateActiveText({
+                  size,
+                });
+              }}
               className="w-full mt-3"
             />
 
@@ -2273,13 +2458,19 @@ export function MomentCreatePage() {
                 min="10"
                 max="90"
                 value={textX}
-                onChange={(e) =>
+                onChange={(e) => {
                   setTextX(
                     Number(
                       e.target.value
                     )
-                  )
-                }
+                  );
+                  updateActiveText({
+                    x: Number(
+                      e.target
+                        .value
+                    ),
+                  });
+                }}
               />
 
               <input
@@ -2287,14 +2478,151 @@ export function MomentCreatePage() {
                 min="10"
                 max="90"
                 value={textY}
-                onChange={(e) =>
+                onChange={(e) => {
                   setTextY(
                     Number(
                       e.target.value
                     )
+                  );
+                  updateActiveText({
+                    y: Number(
+                      e.target
+                        .value
+                    ),
+                  });
+                }}
+              />
+            </div>
+
+            <div className="mt-3">
+              <p className="text-[10px] text-white/50 mb-1">
+                Rotate
+              </p>
+
+              <input
+                type="range"
+                min="-180"
+                max="180"
+                value={
+                  textLayers.find(
+                    (item) =>
+                      item.id ===
+                      activeTextId
+                  )?.rotation ?? 0
+                }
+                onChange={(e) =>
+                  updateActiveText({
+                    rotation:
+                      Number(
+                        e.target
+                          .value
+                      ),
+                  })
+                }
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={addText}
+                className="flex-1 py-2 rounded-xl bg-white/10 text-xs font-bold"
+              >
+                Add text
+              </button>
+
+              <button
+                onClick={() =>
+                  setShowTextInput(
+                    false
                   )
                 }
-              />
+                className="flex-1 py-2 rounded-xl bg-white text-black text-xs font-bold"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CROP PANEL */}
+
+        {cropMode && (
+          <div className="absolute bottom-8 left-4 right-4 z-[70] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+            <p className="text-[11px] text-white/60 mb-3">
+              Drag the corners to crop freely
+            </p>
+
+            <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
+              {(
+                [
+                  "original",
+                  "9:16",
+                  "4:5",
+                  "1:1",
+                ] as CropRatio[]
+              ).map((ratio) => (
+                <button
+                  key={ratio}
+                  onClick={() =>
+                    setCropRatio(
+                      ratio
+                    )
+                  }
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap ${
+                    cropRatio ===
+                    ratio
+                      ? "bg-white text-black"
+                      : "bg-white/10"
+                  }`}
+                >
+                  {ratio}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setCropDraft(
+                    FULL_RECT
+                  );
+                  setCropRect(
+                    FULL_RECT
+                  );
+                }}
+                className="px-4 py-3 rounded-2xl bg-white/10 text-xs font-bold"
+              >
+                Reset
+              </button>
+
+              <button
+                onClick={() => {
+                  setCropDraft(
+                    cropRect
+                  );
+                  setCropMode(
+                    false
+                  );
+                }}
+                className="flex-1 py-3 rounded-2xl bg-white/10 text-xs font-bold"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  setCropRect(
+                    cropDraft
+                  );
+                  setCropMode(
+                    false
+                  );
+                }}
+                className="flex-1 py-3 rounded-2xl bg-white text-black text-xs font-bold"
+              >
+                Apply
+              </button>
             </div>
           </div>
         )}
@@ -3028,5 +3356,271 @@ function SettingRow({
         )}
       </div>
     </button>
+  );
+}
+
+// =====================================================
+// TEXT LAYER (move / resize / rotate)
+// =====================================================
+
+function TextLayerView({
+  layer,
+  active,
+  locked,
+  frameRef,
+  onSelect,
+  onChange,
+  onRemove,
+}: {
+  layer: TextLayer;
+  active: boolean;
+  locked?: boolean;
+  frameRef: React.RefObject<HTMLDivElement | null>;
+  onSelect: () => void;
+  onChange: (patch: Partial<TextLayer>) => void;
+  onRemove: () => void;
+}) {
+  const drag = useRef<{
+    mode: "move" | "scale";
+    startX: number;
+    startY: number;
+    size: number;
+    rotation: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const frameRect = () => frameRef.current?.getBoundingClientRect();
+
+  const centerPx = () => {
+    const r = frameRect();
+    if (!r) return { cx: 0, cy: 0 };
+    return {
+      cx: r.left + (layer.x / 100) * r.width,
+      cy: r.top + (layer.y / 100) * r.height,
+    };
+  };
+
+  const start =
+    (mode: "move" | "scale") => (e: React.PointerEvent) => {
+      if (locked) return;
+      e.stopPropagation();
+      e.preventDefault();
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+      onSelect();
+      drag.current = {
+        mode,
+        startX: e.clientX,
+        startY: e.clientY,
+        size: layer.size,
+        rotation: layer.rotation,
+        x: layer.x,
+        y: layer.y,
+      };
+    };
+
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    const r = frameRect();
+    if (!d || !r) return;
+
+    if (d.mode === "move") {
+      onChange({
+        x: Math.min(100, Math.max(0, d.x + ((e.clientX - d.startX) / r.width) * 100)),
+        y: Math.min(100, Math.max(0, d.y + ((e.clientY - d.startY) / r.height) * 100)),
+      });
+      return;
+    }
+
+    const { cx, cy } = centerPx();
+    const startDist = Math.hypot(d.startX - cx, d.startY - cy) || 1;
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    const startAngle = Math.atan2(d.startY - cy, d.startX - cx);
+    const angle = Math.atan2(e.clientY - cy, e.clientX - cx);
+
+    onChange({
+      size: Math.min(140, Math.max(12, Math.round(d.size * (dist / startDist)))),
+      rotation: Math.round(d.rotation + ((angle - startAngle) * 180) / Math.PI),
+    });
+  };
+
+  const end = (e: React.PointerEvent) => {
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    drag.current = null;
+  };
+
+  return (
+    <div
+      className="absolute z-30"
+      style={{
+        left: `${layer.x}%`,
+        top: `${layer.y}%`,
+        transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
+        touchAction: "none",
+        pointerEvents: locked ? "none" : "auto",
+      }}
+      onPointerDown={start("move")}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={end}
+    >
+      <div
+        className={`px-2 py-1 font-black text-center whitespace-nowrap ${
+          active ? "border border-dashed border-white/70 rounded-xl" : ""
+        }`}
+        style={{
+          color: layer.color,
+          fontSize: `${layer.size}px`,
+          textShadow: "0 2px 8px rgba(0,0,0,.7)",
+        }}
+      >
+        {layer.text || " "}
+      </div>
+
+      {active && !locked && (
+        <>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={onRemove}
+            className="absolute -top-3 -left-3 w-7 h-7 rounded-full bg-black/80 border border-white/20 flex items-center justify-center"
+          >
+            <X size={14} />
+          </button>
+
+          <div
+            onPointerDown={start("scale")}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={end}
+            className="absolute -bottom-3 -right-3 w-7 h-7 rounded-full bg-white text-black flex items-center justify-center cursor-nwse-resize"
+            style={{ touchAction: "none" }}
+          >
+            <RotateCcw size={13} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// =====================================================
+// FREE CROP OVERLAY
+// =====================================================
+
+function CropOverlay({
+  rect,
+  onChange,
+  frameRef,
+}: {
+  rect: Rect;
+  onChange: (r: Rect) => void;
+  frameRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const drag = useRef<{
+    handle: "move" | "nw" | "ne" | "sw" | "se";
+    startX: number;
+    startY: number;
+    rect: Rect;
+  } | null>(null);
+
+  const start =
+    (handle: "move" | "nw" | "ne" | "sw" | "se") =>
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+      drag.current = { handle, startX: e.clientX, startY: e.clientY, rect };
+    };
+
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    const r = frameRef.current?.getBoundingClientRect();
+    if (!d || !r) return;
+
+    const dx = (e.clientX - d.startX) / r.width;
+    const dy = (e.clientY - d.startY) / r.height;
+    const b = d.rect;
+    const MIN = 0.1;
+
+    if (d.handle === "move") {
+      onChange({
+        ...b,
+        x: Math.min(1 - b.w, Math.max(0, b.x + dx)),
+        y: Math.min(1 - b.h, Math.max(0, b.y + dy)),
+      });
+      return;
+    }
+
+    let x = b.x;
+    let y = b.y;
+    let w = b.w;
+    let h = b.h;
+    const right = b.x + b.w;
+    const bottom = b.y + b.h;
+
+    if (d.handle === "nw" || d.handle === "sw") {
+      x = clamp01(Math.min(right - MIN, b.x + dx));
+      w = right - x;
+    } else {
+      w = Math.max(MIN, Math.min(1 - b.x, b.w + dx));
+    }
+
+    if (d.handle === "nw" || d.handle === "ne") {
+      y = clamp01(Math.min(bottom - MIN, b.y + dy));
+      h = bottom - y;
+    } else {
+      h = Math.max(MIN, Math.min(1 - b.y, b.h + dy));
+    }
+
+    onChange({ x, y, w, h });
+  };
+
+  const end = (e: React.PointerEvent) => {
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    drag.current = null;
+  };
+
+  const handles: Array<["nw" | "ne" | "sw" | "se", string]> = [
+    ["nw", "-top-2 -left-2 cursor-nwse-resize"],
+    ["ne", "-top-2 -right-2 cursor-nesw-resize"],
+    ["sw", "-bottom-2 -left-2 cursor-nesw-resize"],
+    ["se", "-bottom-2 -right-2 cursor-nwse-resize"],
+  ];
+
+  return (
+    <div
+      className="absolute inset-0 z-[55]"
+      style={{ touchAction: "none" }}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={end}
+    >
+      <div
+        className="absolute border-2 border-white"
+        style={{
+          left: `${rect.x * 100}%`,
+          top: `${rect.y * 100}%`,
+          width: `${rect.w * 100}%`,
+          height: `${rect.h * 100}%`,
+          boxShadow: "0 0 0 9999px rgba(0,0,0,.45)",
+        }}
+        onPointerDown={start("move")}
+      >
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="border border-white/25" />
+          ))}
+        </div>
+
+        {handles.map(([id, cls]) => (
+          <div
+            key={id}
+            onPointerDown={start(id)}
+            className={`absolute w-5 h-5 rounded-full bg-white ${cls}`}
+            style={{ touchAction: "none" }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
