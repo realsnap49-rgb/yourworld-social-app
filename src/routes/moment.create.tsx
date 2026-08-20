@@ -13,6 +13,22 @@ export const Route = createFileRoute("/moment/create")({
 export function MomentCreatePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setCapturedImage(URL.createObjectURL(file));
+      setStep(1);
+    }
+  };
+
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedAudio(e.target.files[0].name);
+    }
+  };
 
   // Flow State
   const [step, setStep] = useState<0 | 1 | 2>(0);
@@ -131,7 +147,7 @@ export function MomentCreatePage() {
 
           <div className="relative z-10 flex flex-col items-center mb-8">
             <div className="flex items-center gap-6 mb-4">
-              <button className="p-2.5 bg-black/40 backdrop-blur-md rounded-xl"><ImageIcon size={22} /></button>
+              <button onClick={() => imageInputRef.current?.click()} className="p-2.5 bg-black/40 backdrop-blur-md rounded-xl"><ImageIcon size={22} /></button>
               <button onClick={capturePhoto} className="relative flex items-center justify-center w-20 h-20 rounded-full border-4 border-white p-1 transition-transform active:scale-90 shadow-lg shadow-white/30">
   <div className="w-full h-full rounded-full bg-white shadow-inner" />
 </button>
@@ -139,6 +155,8 @@ export function MomentCreatePage() {
             </div>
           </div>
         </div>
+      <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleImageUpload} />
+<input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
       )}
 
       {/* STEP 1: EDITOR */}
