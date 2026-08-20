@@ -133,12 +133,11 @@ export function HomePage() {
       
       {/* 1. TOP APP BAR */}
       <div className="sticky top-0 z-40 bg-[#0d0d0f]/90 border-b border-zinc-900/50 backdrop-blur-md px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-black text-xs text-white">
-            YW
-          </div>
-          <h1 className="text-xl font-bold text-white tracking-tight">YourWorld</h1>
-        </div>
+        <div className="flex items-center">
+  <h1 className="text-2xl font-extrabold tracking-wider bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
+    YourWorld
+  </h1>
+</div>
 
         <div className="flex items-center gap-4">
           <Link
@@ -173,7 +172,7 @@ export function HomePage() {
           className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform"
         >
           <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
+            <div className="w-12 h-12 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
               Y
             </div>
             <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#ec4899] border-2 border-[#0d0d0f] flex items-center justify-center text-white">
