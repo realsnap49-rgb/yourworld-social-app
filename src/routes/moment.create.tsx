@@ -1085,6 +1085,11 @@ export function MomentCreatePage() {
     setCaption("");
     setStickers([]);
     setDrawMode(false);
+    setTextLayers([]);
+    setActiveTextId(null);
+    setCropRect(FULL_RECT);
+    setCropDraft(FULL_RECT);
+    setCropMode(false);
 
     clearDrawing();
   };
@@ -1144,12 +1149,25 @@ export function MomentCreatePage() {
 
   const addText = () => {
     setShowTextInput(true);
+    setCropMode(false);
 
-    if (!overlayText) {
-      setOverlayText(
-        "YourWorld"
-      );
-    }
+    const layer: TextLayer = {
+      id: Date.now(),
+      text: "YourWorld",
+      x: 50,
+      y: 45,
+      size: 28,
+      rotation: 0,
+      color: textColor,
+    };
+
+    setTextLayers((items) => [
+      ...items,
+      layer,
+    ]);
+
+    setActiveTextId(layer.id);
+    setOverlayText(layer.text);
   };
 
   // =====================================================
