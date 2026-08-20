@@ -3189,3 +3189,269 @@ function SettingRow({
     </button>
   );
 }
+
+// =====================================================
+// TEXT LAYER (move / resize / rotate)
+// =====================================================
+
+function TextLayerView({
+  layer,
+  active,
+  locked,
+  frameRef,
+  onSelect,
+  onChange,
+  onRemove,
+}: {
+  layer: TextLayer;
+  active: boolean;
+  locked?: boolean;
+  frameRef: React.RefObject<HTMLDivElement | null>;
+  onSelect: () => void;
+  onChange: (patch: Partial<TextLayer>) => void;
+  onRemove: () => void;
+}) {
+  const drag = useRef<{
+    mode: "move" | "scale";
+    startX: number;
+    startY: number;
+    size: number;
+    rotation: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const frameRect = () => frameRef.current?.getBoundingClientRect();
+
+  const centerPx = () => {
+    const r = frameRect();
+    if (!r) return { cx: 0, cy: 0 };
+    return {
+      cx: r.left + (layer.x / 100) * r.width,
+      cy: r.top + (layer.y / 100) * r.height,
+    };
+  };
+
+  const start =
+    (mode: "move" | "scale") => (e: React.PointerEvent) => {
+      if (locked) return;
+      e.stopPropagation();
+      e.preventDefault();
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+      onSelect();
+      drag.current = {
+        mode,
+        startX: e.clientX,
+        startY: e.clientY,
+        size: layer.size,
+        rotation: layer.rotation,
+        x: layer.x,
+        y: layer.y,
+      };
+    };
+
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    const r = frameRect();
+    if (!d || !r) return;
+
+    if (d.mode === "move") {
+      onChange({
+        x: Math.min(100, Math.max(0, d.x + ((e.clientX - d.startX) / r.width) * 100)),
+        y: Math.min(100, Math.max(0, d.y + ((e.clientY - d.startY) / r.height) * 100)),
+      });
+      return;
+    }
+
+    const { cx, cy } = centerPx();
+    const startDist = Math.hypot(d.startX - cx, d.startY - cy) || 1;
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    const startAngle = Math.atan2(d.startY - cy, d.startX - cx);
+    const angle = Math.atan2(e.clientY - cy, e.clientX - cx);
+
+    onChange({
+      size: Math.min(140, Math.max(12, Math.round(d.size * (dist / startDist)))),
+      rotation: Math.round(d.rotation + ((angle - startAngle) * 180) / Math.PI),
+    });
+  };
+
+  const end = (e: React.PointerEvent) => {
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    drag.current = null;
+  };
+
+  return (
+    <div
+      className="absolute z-30"
+      style={{
+        left: `${layer.x}%`,
+        top: `${layer.y}%`,
+        transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
+        touchAction: "none",
+        pointerEvents: locked ? "none" : "auto",
+      }}
+      onPointerDown={start("move")}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={end}
+    >
+      <div
+        className={`px-2 py-1 font-black text-center whitespace-nowrap ${
+          active ? "border border-dashed border-white/70 rounded-xl" : ""
+        }`}
+        style={{
+          color: layer.color,
+          fontSize: `${layer.size}px`,
+          textShadow: "0 2px 8px rgba(0,0,0,.7)",
+        }}
+      >
+        {layer.text || " "}
+      </div>
+
+      {active && !locked && (
+        <>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={onRemove}
+            className="absolute -top-3 -left-3 w-7 h-7 rounded-full bg-black/80 border border-white/20 flex items-center justify-center"
+          >
+            <X size={14} />
+          </button>
+
+          <div
+            onPointerDown={start("scale")}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={end}
+            className="absolute -bottom-3 -right-3 w-7 h-7 rounded-full bg-white text-black flex items-center justify-center cursor-nwse-resize"
+            style={{ touchAction: "none" }}
+          >
+            <RotateCcw size={13} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// =====================================================
+// FREE CROP OVERLAY
+// =====================================================
+
+function CropOverlay({
+  rect,
+  onChange,
+  frameRef,
+}: {
+  rect: Rect;
+  onChange: (r: Rect) => void;
+  frameRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const drag = useRef<{
+    handle: "move" | "nw" | "ne" | "sw" | "se";
+    startX: number;
+    startY: number;
+    rect: Rect;
+  } | null>(null);
+
+  const start =
+    (handle: "move" | "nw" | "ne" | "sw" | "se") =>
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+      drag.current = { handle, startX: e.clientX, startY: e.clientY, rect };
+    };
+
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    const r = frameRef.current?.getBoundingClientRect();
+    if (!d || !r) return;
+
+    const dx = (e.clientX - d.startX) / r.width;
+    const dy = (e.clientY - d.startY) / r.height;
+    const b = d.rect;
+    const MIN = 0.1;
+
+    if (d.handle === "move") {
+      onChange({
+        ...b,
+        x: Math.min(1 - b.w, Math.max(0, b.x + dx)),
+        y: Math.min(1 - b.h, Math.max(0, b.y + dy)),
+      });
+      return;
+    }
+
+    let x = b.x;
+    let y = b.y;
+    let w = b.w;
+    let h = b.h;
+    const right = b.x + b.w;
+    const bottom = b.y + b.h;
+
+    if (d.handle === "nw" || d.handle === "sw") {
+      x = clamp01(Math.min(right - MIN, b.x + dx));
+      w = right - x;
+    } else {
+      w = Math.max(MIN, Math.min(1 - b.x, b.w + dx));
+    }
+
+    if (d.handle === "nw" || d.handle === "ne") {
+      y = clamp01(Math.min(bottom - MIN, b.y + dy));
+      h = bottom - y;
+    } else {
+      h = Math.max(MIN, Math.min(1 - b.y, b.h + dy));
+    }
+
+    onChange({ x, y, w, h });
+  };
+
+  const end = (e: React.PointerEvent) => {
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+    drag.current = null;
+  };
+
+  const handles: Array<["nw" | "ne" | "sw" | "se", string]> = [
+    ["nw", "-top-2 -left-2 cursor-nwse-resize"],
+    ["ne", "-top-2 -right-2 cursor-nesw-resize"],
+    ["sw", "-bottom-2 -left-2 cursor-nesw-resize"],
+    ["se", "-bottom-2 -right-2 cursor-nwse-resize"],
+  ];
+
+  return (
+    <div
+      className="absolute inset-0 z-[55]"
+      style={{ touchAction: "none" }}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={end}
+    >
+      <div
+        className="absolute border-2 border-white"
+        style={{
+          left: `${rect.x * 100}%`,
+          top: `${rect.y * 100}%`,
+          width: `${rect.w * 100}%`,
+          height: `${rect.h * 100}%`,
+          boxShadow: "0 0 0 9999px rgba(0,0,0,.45)",
+        }}
+        onPointerDown={start("move")}
+      >
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="border border-white/25" />
+          ))}
+        </div>
+
+        {handles.map(([id, cls]) => (
+          <div
+            key={id}
+            onPointerDown={start(id)}
+            className={`absolute w-5 h-5 rounded-full bg-white ${cls}`}
+            style={{ touchAction: "none" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
