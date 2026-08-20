@@ -45,6 +45,7 @@ import {
   createFileRoute,
   useNavigate,
 } from "@tanstack/react-router";
+import { useMoments } from "@/lib/moment-store";
 
 export const Route = createFileRoute("/moment/create")({
   component: MomentCreatePage,
