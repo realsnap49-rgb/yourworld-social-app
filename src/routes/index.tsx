@@ -52,12 +52,12 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
     >
       <div className={`p-[2px] rounded-full border-2 ${story.ring}`}>
         <div
-          className={`w-15 h-15 rounded-full ${story.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#0d0d0f]`}
+          className={`w-13 h-13 rounded-full ${story.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#0d0d0f]`}
         >
           {story.letter}
         </div>
       </div>
-      <span className="text-[11px] font-medium text-zinc-300 w-16 truncate text-center">
+      <span className="text-[11px] font-medium text-zinc-300 w-13 truncate text-center">
         {story.name}
       </span>
     </Link>
@@ -172,7 +172,7 @@ export function HomePage() {
           className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform"
         >
           <div className="relative">
-            <div className="w-12 h-12 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
+            <div className="w-13 h-13 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
               Y
             </div>
             <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#ec4899] border-2 border-[#0d0d0f] flex items-center justify-center text-white">
