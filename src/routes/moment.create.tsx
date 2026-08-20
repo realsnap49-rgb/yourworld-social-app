@@ -51,6 +51,33 @@ export const Route = createFileRoute("/moment/create")({
 });
 
 type CameraFacing = "user" | "environment";
+
+type TextLayer = {
+  id: number;
+  text: string;
+  x: number; // %
+  y: number; // %
+  size: number;
+  rotation: number;
+  color: string;
+};
+
+type Rect = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+const FULL_RECT: Rect = {
+  x: 0,
+  y: 0,
+  w: 1,
+  h: 1,
+};
+
+const clamp01 = (v: number) =>
+  Math.min(1, Math.max(0, v));
 type CaptureMode = "photo" | "video";
 type Audience =
   | "everyone"
