@@ -78,6 +78,65 @@ const FULL_RECT: Rect = {
 
 const clamp01 = (v: number) =>
   Math.min(1, Math.max(0, v));
+
+/** Moments are published in chunks of at most this many seconds. */
+const MAX_PART_SECONDS = 20;
+
+/** Reads the duration of a video url (0 when unknown). */
+const readVideoDuration = (
+  url: string
+) =>
+  new Promise<number>(
+    (resolve) => {
+      const probe =
+        document.createElement(
+          "video"
+        );
+      probe.preload = "metadata";
+      probe.muted = true;
+      const done = (v: number) =>
+        resolve(
+          Number.isFinite(v) &&
+          v > 0
+            ? v
+            : 0
+        );
+      probe.onloadedmetadata = () =>
+        done(probe.duration);
+      probe.onerror = () => done(0);
+      probe.src = url;
+    }
+  );
+
+/** Splits a duration into consecutive parts of at most MAX_PART_SECONDS. */
+export const splitIntoParts = (
+  duration: number
+) => {
+  if (
+    !duration ||
+    duration <= MAX_PART_SECONDS
+  ) {
+    return [
+      {
+        start: 0,
+        end: duration || 0,
+      },
+    ];
+  }
+  const count = Math.ceil(
+    duration / MAX_PART_SECONDS
+  );
+  return Array.from(
+    { length: count },
+    (_, i) => ({
+      start: i * MAX_PART_SECONDS,
+      end: Math.min(
+        duration,
+        (i + 1) * MAX_PART_SECONDS
+      ),
+    })
+  );
+};
 type CaptureMode = "photo" | "video";
 type Audience =
   | "everyone"
