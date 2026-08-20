@@ -30,6 +30,11 @@ export function MomentCreatePage() {
     }
   };
 
+  const handlePublish = (mode: "everyone" | "close_friends") => {
+    setPrivacy(mode);
+    setStep(2);
+  };
+
   // Flow State
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
