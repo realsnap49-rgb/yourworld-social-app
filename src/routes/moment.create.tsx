@@ -30,6 +30,11 @@ export function MomentCreatePage() {
     }
   };
 
+  const handlePublish = (mode: "everyone" | "close_friends") => {
+    setPrivacy(mode);
+    setStep(2);
+  };
+
   // Flow State
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
@@ -154,9 +159,10 @@ export function MomentCreatePage() {
               <button className="p-2.5 bg-black/40 backdrop-blur-md rounded-xl"><Sparkles size={22} /></button>
             </div>
           </div>
+
+          <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleImageUpload} />
+          <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
         </div>
-      <input type="file" ref={imageInputRef} className="hidden" accept="image/*,video/*" onChange={handleImageUpload} />
-<input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
       )}
 
       {/* STEP 1: EDITOR */}
