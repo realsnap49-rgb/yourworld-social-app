@@ -68,15 +68,23 @@ function ProfilePage() {
 
   if (!loading && !userId) {
     return (
-      <main className="grid min-h-screen place-items-center px-6 text-center">
-        <div>
-          <p className="text-sm text-muted-foreground">Sign in to see your profile.</p>
-          <Link
-            to="/auth"
-            className="mt-4 inline-block rounded-full bg-foreground px-5 py-2 text-xs font-semibold text-background"
-          >
-            Sign in
+      <main className="relative min-h-screen">
+        <header className="sticky top-0 z-40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border glass px-4 py-3">
+          <h1 className="font-display text-xl font-bold">Profile</h1>
+          <Link to="/settings" aria-label="Settings" className="transition-transform active:scale-90">
+            <Settings className="h-6 w-6" />
           </Link>
+        </header>
+        <div className="grid place-items-center px-6 py-24 text-center">
+          <div>
+            <p className="text-sm text-muted-foreground">Sign in to see your profile.</p>
+            <Link
+              to="/auth"
+              className="mt-4 inline-block rounded-full bg-foreground px-5 py-2 text-xs font-semibold text-background"
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </main>
     );
