@@ -87,7 +87,11 @@ export async function renderReelWithMusic(opts: MuxOptions): Promise<string | nu
     });
 
     const start = Math.max(0, opts.trimStart ?? 0);
-    const end = Math.min(video.duration || 0, opts.trimEnd || video.duration || 0);
+    const requestedEnd = opts.trimEnd;
+    const end = Math.min(
+      video.duration || 0,
+      requestedEnd != null && requestedEnd > start ? requestedEnd : video.duration || 0,
+    );
     const span = Math.max(0.2, end - start);
 
     const canvas = document.createElement("canvas");
@@ -180,7 +184,8 @@ export async function renderReelWithMusic(opts: MuxOptions): Promise<string | nu
     opts.onProgress?.(100);
     if (!blob.size) return null;
     return URL.createObjectURL(blob);
-  } catch {
+  } catch (error) {
+    console.error("Reel music render failed", error);
     cleanup();
     return null;
   }

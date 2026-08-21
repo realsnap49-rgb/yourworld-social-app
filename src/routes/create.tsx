@@ -138,10 +138,11 @@ export function CreateStudioPage() {
     let uploadUrl = url;
     if (audioTrack && canMuxReel()) {
       const t = toast.loading("Adding music to your reel…");
+      const trimEnd = clip?.trimEnd ?? clip?.duration;
       const baked = await renderReelWithMusic({
         videoUrl: url,
         trimStart: clip?.trimStart ?? 0,
-        trimEnd: clip?.trimEnd ?? clip?.duration ?? 0,
+        trimEnd: trimEnd && trimEnd > 0 ? trimEnd : undefined,
         music: {
           url: audioTrack.url,
           start: audioTrack.start,
@@ -150,8 +151,16 @@ export function CreateStudioPage() {
         },
       });
       toast.dismiss(t);
-      if (baked) uploadUrl = baked;
-      else toast.warning("Couldn't bake the music — posting the video as is");
+      if (!baked) {
+        setPosting(false);
+        toast.error("Music could not be added. Reel was not posted—please try again.");
+        return;
+      }
+      uploadUrl = baked;
+    } else if (audioTrack) {
+      setPosting(false);
+      toast.error("This browser cannot export reel audio. Try Chrome or Safari.");
+      return;
     }
 
     const { error } = await publishReel({
