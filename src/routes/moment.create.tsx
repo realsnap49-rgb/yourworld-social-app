@@ -40,6 +40,7 @@ import {
   Volume2,
   VolumeX,
   Play,
+  Pause,
 } from "lucide-react";
 import {
   createFileRoute,
