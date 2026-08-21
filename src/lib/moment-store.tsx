@@ -175,13 +175,20 @@ export function MomentProvider({ children }: { children: ReactNode }) {
       addMoment: (m) => {
         const created: MyMoment = {
           ...m,
-          id: `mm-${Date.now()}`,
+          id: `mm-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           createdAt: Date.now(),
           archived: false,
           viewers: seedViewers(),
           replies: [],
         };
         setMoments((p) => [created, ...p]);
+        // inline blob media so the moment survives a reload
+        void Promise.all([
+          persistableMedia(created.media),
+          created.musicUrl ? persistableMedia(created.musicUrl) : Promise.resolve(undefined),
+        ]).then(([media, musicUrl]) =>
+          update(created.id, (x) => ({ ...x, media, musicUrl: musicUrl ?? x.musicUrl })),
+        );
         return created;
       },
       deleteMoment: (id) => setMoments((p) => p.filter((m) => m.id !== id)),
