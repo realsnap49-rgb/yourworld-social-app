@@ -3268,7 +3268,7 @@ export function MomentCreatePage() {
       <div className="max-w-xl mx-auto px-5 pt-5 pb-10">
         {/* HEADER */}
 
-        <div className="flex items-center justify-between mb-7">
+        <div className="flex items-center justify-between mb-5">
           <button
             onClick={() =>
               setStep(1)
@@ -3288,7 +3288,7 @@ export function MomentCreatePage() {
         {/* PREVIEW */}
 
         {mediaUrl && (
-          <div className="relative w-28 h-40 rounded-2xl overflow-hidden mx-auto mb-7">
+          <div className="relative w-28 h-40 rounded-2xl overflow-hidden mx-auto mb-5">
             {isVideo ? (
               <video
                 src={mediaUrl}
@@ -3310,7 +3310,7 @@ export function MomentCreatePage() {
 
         <SectionTitle title="AUDIENCE" />
 
-        <div className="grid grid-cols-2 gap-3 mb-7">
+        <div className="grid grid-cols-2 gap-2 mb-5">
           <AudienceButton
             active={
               audience ===
@@ -3376,7 +3376,7 @@ export function MomentCreatePage() {
 
         <SectionTitle title="DURATION" />
 
-        <div className="grid grid-cols-2 gap-3 mb-7">
+        <div className="grid grid-cols-2 gap-2 mb-5">
           <DurationButton
             active={
               durationHours ===
@@ -3408,7 +3408,7 @@ export function MomentCreatePage() {
 
         <SectionTitle title="INTERACTION & SAFETY" />
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <SettingRow
             icon={<MessageCircle />}
             title="Add a poll"
