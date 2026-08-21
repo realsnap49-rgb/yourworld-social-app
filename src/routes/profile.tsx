@@ -234,14 +234,20 @@ function ProfilePage() {
 
         <TabsContent value="grid" className="mt-0">
           {grid.length ? (
-            <MediaGrid items={grid.map((p) => ({ src: src(p.media_url), type: p.media_type }))} />
+            <MediaGrid
+              onSelect={openManage}
+              items={grid.map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
+            />
           ) : (
             <Empty text={loading ? "Loading your posts…" : "No posts yet. Create your first one."} />
           )}
         </TabsContent>
         <TabsContent value="reels" className="mt-0">
           {reels.length ? (
-            <MediaGrid items={reels.map((p) => ({ src: src(p.media_url), type: p.media_type }))} />
+            <MediaGrid
+              onSelect={openManage}
+              items={reels.map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
+            />
           ) : (
             <Empty text={loading ? "Loading reels…" : "No reels yet."} />
           )}
@@ -257,6 +263,93 @@ function ProfilePage() {
         </TabsContent>
       </Tabs>
 
+      <Dialog open={!!manage} onOpenChange={(o) => !o && setManage(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{manage?.kind === "reel" ? "Edit reel" : "Edit post"}</DialogTitle>
+          </DialogHeader>
+          {manage ? (
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-xl bg-secondary">
+                {manage.media_type?.startsWith("video") ? (
+                  <video
+                    src={src(manage.media_url)}
+                    controls
+                    playsInline
+                    className="max-h-56 w-full object-contain"
+                  />
+                ) : (
+                  <img src={src(manage.media_url)} alt="" className="max-h-56 w-full object-contain" />
+                )}
+              </div>
+              <Textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Write a caption…"
+                rows={3}
+              />
+            </div>
+          ) : null}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                if (!manage) return;
+                setBusy(true);
+                try {
+                  await updateMyPost(manage.id, { caption });
+                  toast.success("Updated");
+                  setManage(null);
+                  await reload();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Couldn't update");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this {manage?.kind === "reel" ? "reel" : "post"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes it and its media. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!manage) return;
+                try {
+                  await deleteMyPost(manage);
+                  toast.success("Deleted");
+                  setManage(null);
+                  await reload();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Couldn't delete");
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <EditProfileSheet
         open={editOpen}
         onOpenChange={setEditOpen}
@@ -264,6 +357,7 @@ function ProfilePage() {
         value={editValue}
         onSave={save}
       />
+
     </main>
   );
 }
