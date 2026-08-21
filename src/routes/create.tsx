@@ -11,6 +11,8 @@ import { CameraCapture } from "@/components/yw/CameraCapture";
 import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import { publishReel } from "@/lib/social-data";
+import { canMuxReel, renderReelWithMusic } from "@/lib/reel-mux";
+
 import type { AudioTrackState } from "@/components/yw/editor/AudioTrackLane";
 
 export const Route = createFileRoute("/create")({
@@ -123,15 +125,37 @@ export function CreateStudioPage() {
   };
 
   const postReel = async () => {
-    const url = clips[activeClipIndex]?.url || clips[0]?.url;
+    const clip = clips[activeClipIndex] ?? clips[0];
+    const url = clip?.url;
     if (!url) {
       toast.error("Nothing to post yet");
       return;
     }
     setPosting(true);
-    const caption = clips[activeClipIndex]?.textOverlay ?? "";
+    const caption = clip?.textOverlay ?? "";
+
+    // Bake the selected music into the video so the reel plays with sound.
+    let uploadUrl = url;
+    if (audioTrack && canMuxReel()) {
+      const t = toast.loading("Adding music to your reel…");
+      const baked = await renderReelWithMusic({
+        videoUrl: url,
+        trimStart: clip?.trimStart ?? 0,
+        trimEnd: clip?.trimEnd ?? clip?.duration ?? 0,
+        music: {
+          url: audioTrack.url,
+          start: audioTrack.start,
+          clipStart: audioTrack.clipStart,
+          clipEnd: audioTrack.clipEnd,
+        },
+      });
+      toast.dismiss(t);
+      if (baked) uploadUrl = baked;
+      else toast.warning("Couldn't bake the music — posting the video as is");
+    }
+
     const { error } = await publishReel({
-      fileUrl: url,
+      fileUrl: uploadUrl,
       caption,
       audio: audioTrack?.title ?? null,
     });
@@ -144,6 +168,7 @@ export function CreateStudioPage() {
     toast.success("Reel posted");
     navigate({ to: "/reels" });
   };
+
   const [audioTrack, setAudioTrack] = useState<AudioTrackState | null>(null);
 
   // ---- Real undo / redo history (clips + audio track) ----
