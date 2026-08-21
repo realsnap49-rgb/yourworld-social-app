@@ -35,9 +35,10 @@ export function EditProfileSheet({
   onOpenChange: (o: boolean) => void;
   user: User;
   value: ProfileEdit;
-  onSave: (v: ProfileEdit) => void;
+  onSave: (v: ProfileEdit) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState<ProfileEdit>(value);
+  const [saving, setSaving] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
 
@@ -50,7 +51,11 @@ export function EditProfileSheet({
 
   const pick = (file: File | undefined, key: "avatarUrl" | "coverUrl") => {
     if (!file) return;
-    set(key, URL.createObjectURL(file));
+    setDraft((d) => ({
+      ...d,
+      [key]: URL.createObjectURL(file),
+      [key === "avatarUrl" ? "avatarFile" : "coverFile"]: file,
+    }));
   };
 
   return (
