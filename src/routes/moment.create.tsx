@@ -1155,10 +1155,61 @@ export function MomentCreatePage() {
 
     setAudioUrl(url);
     setSelectedAudio(
-      file.name
+      file.name.replace(
+        /\.[^.]+$/,
+        ""
+      )
     );
+    setAudioDuration(0);
+    setAudioStart(0);
+    setAudioEnd(0);
+    setShowMusicPanel(true);
+
+    // probe real duration so the trimmer can show the full track
+    const probe = new Audio();
+    probe.preload = "metadata";
+    probe.src = url;
+    probe.onloadedmetadata = () => {
+      const dur =
+        Number.isFinite(
+          probe.duration
+        ) && probe.duration > 0
+          ? probe.duration
+          : 0;
+      setAudioDuration(dur);
+      setAudioStart(0);
+      setAudioEnd(
+        Math.min(dur, 30) || dur
+      );
+    };
 
     event.target.value = "";
+  };
+
+  const removeAudio = () => {
+    if (audioUrl)
+      URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+    setSelectedAudio(null);
+    setAudioDuration(0);
+    setAudioStart(0);
+    setAudioEnd(0);
+    setAudioPlaying(false);
+    setShowMusicPanel(false);
+  };
+
+  const toggleAudioPreview = () => {
+    const el = previewAudioRef.current;
+    if (!el) return;
+    if (el.paused) {
+      el.currentTime = audioStart;
+      el.volume = audioVolume;
+      void el.play().catch(() => {});
+      setAudioPlaying(true);
+    } else {
+      el.pause();
+      setAudioPlaying(false);
+    }
   };
 
   // =====================================================
