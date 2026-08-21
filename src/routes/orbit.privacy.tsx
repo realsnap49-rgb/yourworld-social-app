@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { orbitProfiles } from "@/lib/orbit-data";
+import { useOrbitProfiles } from "@/lib/orbit-live";
 import { clearSessionUnlock, useOrbit, type OrbitAudience, type OrbitVisibility } from "@/lib/orbit-store";
 
 export const Route = createFileRoute("/orbit/privacy")({
@@ -57,6 +57,7 @@ function OrbitPrivacy() {
   const [pinConfirm, setPinConfirm] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
   const [userQuery, setUserQuery] = useState("");
+  const { profiles: orbitProfiles } = useOrbitProfiles();
   const q = userQuery.trim().toLowerCase();
   const filteredProfiles = q
     ? orbitProfiles.filter(
