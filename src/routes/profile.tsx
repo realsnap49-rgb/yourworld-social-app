@@ -7,17 +7,44 @@ import {
   Play,
   MapPin,
   Link2,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { Bio } from "@/components/yw/Bio";
 import { EditProfileSheet, type ProfileEdit } from "@/components/yw/EditProfileSheet";
 import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
-import { useMyProfile, useResolvedMedia } from "@/lib/profile-data";
+import {
+  useMyProfile,
+  useResolvedMedia,
+  updateMyPost,
+  deleteMyPost,
+} from "@/lib/profile-data";
+import type { DbPost } from "@/lib/social-data";
 import { UserWatermark } from "@/components/yw/UserWatermark";
+
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
