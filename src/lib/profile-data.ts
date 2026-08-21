@@ -160,7 +160,47 @@ export function useMyProfile() {
   };
 }
 
+/** Update a post/reel you own (caption, hashtags, location, download flag). */
+export async function updateMyPost(
+  postId: string,
+  patch: { caption?: string; location?: string | null; allow_download?: boolean },
+) {
+  const next: Record<string, unknown> = {};
+  if (patch.caption !== undefined) {
+    next.caption = patch.caption;
+    next.hashtags = Array.from(
+      new Set((patch.caption.match(/#[\p{L}\p{N}_]+/gu) ?? []).map((h) => h.slice(1))),
+    );
+  }
+  if (patch.location !== undefined) next.location = patch.location;
+  if (patch.allow_download !== undefined) next.allow_download = patch.allow_download;
+
+  const { error } = await supabase.from("posts").update(next).eq("id", postId);
+  if (error) throw new Error(error.message);
+}
+
+/** Permanently delete a post/reel you own, plus its stored media file. */
+export async function deleteMyPost(post: { id: string; media_url: string; kind: string }) {
+  const bucket = post.kind === "reel" ? "reels" : "reels";
+  const url = post.media_url ?? "";
+  if (url && !/^(blob:|data:)/.test(url)) {
+    const path = /^https?:/.test(url)
+      ? url.match(new RegExp(`/storage/v1/object/(?:sign|public)/${bucket}/([^?]+)`))?.[1]
+      : url.replace(/^\/+/, "");
+    if (path) {
+      try {
+        await supabase.storage.from(bucket).remove([decodeURIComponent(path)]);
+      } catch {
+        /* media already gone */
+      }
+    }
+  }
+  const { error } = await supabase.from("posts").delete().eq("id", post.id);
+  if (error) throw new Error(error.message);
+}
+
 /** Resolves a stored media reference to something an <img> can render. */
+
 export function useResolvedMedia(urls: string[], bucket = "reels") {
   const [map, setMap] = useState<Record<string, string>>({});
   const key = urls.join("|");
