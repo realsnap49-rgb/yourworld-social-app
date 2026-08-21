@@ -165,7 +165,13 @@ export async function updateMyPost(
   postId: string,
   patch: { caption?: string; location?: string | null; allow_download?: boolean },
 ) {
-  const next: Record<string, unknown> = {};
+  const next: {
+    caption?: string;
+    hashtags?: string[];
+    location?: string | null;
+    allow_download?: boolean;
+  } = {};
+
   if (patch.caption !== undefined) {
     next.caption = patch.caption;
     next.hashtags = Array.from(
