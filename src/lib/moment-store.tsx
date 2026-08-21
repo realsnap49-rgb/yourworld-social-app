@@ -112,8 +112,54 @@ function seedViewers(): MomentViewer[] {
   }));
 }
 
+const STORAGE_KEY = "yw_moment_store_v1";
+
+/** blob: urls die on reload — inline them so moments survive a refresh */
+async function persistableMedia(src: string): Promise<string> {
+  if (!src || !src.startsWith("blob:")) return src;
+  try {
+    const blob = await (await fetch(src)).blob();
+    if (blob.size > 4_500_000) return src; // too big for localStorage
+    return await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result));
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return src;
+  }
+}
+
+function loadStored(): MyMoment[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw) as MyMoment[];
+    const now = Date.now();
+    return list.filter(
+      (m) => m.archived || m.createdAt + (m.duration ?? 24) * 3600_000 > now,
+    );
+  } catch {
+    return [];
+  }
+}
+
 export function MomentProvider({ children }: { children: ReactNode }) {
   const [moments, setMoments] = useState<MyMoment[]>([]);
+
+  useEffect(() => {
+    setMoments(loadStored());
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(moments));
+    } catch {
+      /* quota — keep in-memory only */
+    }
+  }, [moments]);
 
   const update = useCallback(
     (id: string, fn: (m: MyMoment) => MyMoment) =>
