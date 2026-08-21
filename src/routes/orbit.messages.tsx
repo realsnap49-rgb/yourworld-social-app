@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, Heart, MessageCircle, Search, Sparkle } from "lucide-react";
-import { orbitProfiles } from "@/lib/orbit-data";
+import { useOrbitProfiles } from "@/lib/orbit-live";
 import { useOrbit } from "@/lib/orbit-store";
 
 export const Route = createFileRoute("/orbit/messages")({
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/orbit/messages")({
 function OrbitMessagesPage() {
   const orbit = useOrbit();
   const [showMatches, setShowMatches] = useState(false);
+  const { profiles: orbitProfiles } = useOrbitProfiles();
 
   const threads = useMemo(
     () =>
@@ -37,7 +38,7 @@ function OrbitMessagesPage() {
           !orbit.privacy.blocked.includes(p.id) &&
           !orbit.privacy.hiddenFrom.includes(p.id),
       ),
-    [orbit.connected, orbit.privacy.blocked, orbit.privacy.hiddenFrom],
+    [orbitProfiles, orbit.connected, orbit.privacy.blocked, orbit.privacy.hiddenFrom],
   );
 
   const visible = useMemo(
@@ -46,7 +47,7 @@ function OrbitMessagesPage() {
         (p) =>
           !orbit.privacy.blocked.includes(p.id) && !orbit.privacy.hiddenFrom.includes(p.id),
       ),
-    [orbit.privacy.blocked, orbit.privacy.hiddenFrom],
+    [orbitProfiles, orbit.privacy.blocked, orbit.privacy.hiddenFrom],
   );
 
   const matches = useMemo(

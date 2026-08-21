@@ -22,7 +22,8 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
+import { approxDistance, type OrbitProfile } from "@/lib/orbit-data";
+import { useOrbitProfiles } from "@/lib/orbit-live";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
 import { useNotifications } from "@/lib/notifications-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
@@ -72,6 +73,7 @@ function OrbitBrowse() {
   const [searchOpen, setSearchOpen] = useState(false);
   const live = useLiveLocation();
   const obscured = useScreenCaptureShield(orbit.privacy.screenshotProtection);
+  const { profiles: orbitProfiles } = useOrbitProfiles();
 
   const visible = useMemo(
     () =>
@@ -86,6 +88,7 @@ function OrbitBrowse() {
           ),
       ),
     [
+      orbitProfiles,
       orbit.privacy.blocked,
       orbit.privacy.hiddenFrom,
       orbit.privacy.aiFakeDetection,

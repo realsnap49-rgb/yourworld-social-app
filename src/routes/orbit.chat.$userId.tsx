@@ -27,7 +27,8 @@ import {
   Flag,
 } from "lucide-react";
 import { toast } from "sonner";
-import { orbitById, approxDistance } from "@/lib/orbit-data";
+import { approxDistance } from "@/lib/orbit-data";
+import { useOrbitProfile } from "@/lib/orbit-live";
 import {
   ORBIT_REQUEST_PHOTO_MAX,
   ORBIT_REQUEST_TEXT_MAX,
@@ -132,7 +133,7 @@ function OrbitChatPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
   const orbit = useOrbit();
-  const p = orbitById(userId);
+  const { profile: p } = useOrbitProfile(userId);
   const [text, setText] = useState("");
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const seq = useRef(0);

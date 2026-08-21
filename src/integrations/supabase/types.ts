@@ -50,6 +50,203 @@ export type Database = {
         }
         Relationships: []
       }
+      orbit_chat_requests: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          intro: string | null
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          intro?: string | null
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          intro?: string | null
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      orbit_connections: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      orbit_likes: {
+        Row: {
+          created_at: string
+          id: string
+          target_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          target_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          target_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      orbit_profiles: {
+        Row: {
+          about: string
+          age: number
+          city: string
+          country: string
+          created_at: string
+          gender: string
+          hobbies: string[]
+          looking_for: string
+          mood: string | null
+          name: string
+          orbit_enabled: boolean
+          original_photo_privacy: string
+          photos: Json
+          state: string
+          updated_at: string
+          user_id: string
+          visible: boolean
+        }
+        Insert: {
+          about?: string
+          age: number
+          city?: string
+          country?: string
+          created_at?: string
+          gender?: string
+          hobbies?: string[]
+          looking_for?: string
+          mood?: string | null
+          name: string
+          orbit_enabled?: boolean
+          original_photo_privacy?: string
+          photos?: Json
+          state?: string
+          updated_at?: string
+          user_id: string
+          visible?: boolean
+        }
+        Update: {
+          about?: string
+          age?: number
+          city?: string
+          country?: string
+          created_at?: string
+          gender?: string
+          hobbies?: string[]
+          looking_for?: string
+          mood?: string | null
+          name?: string
+          orbit_enabled?: boolean
+          original_photo_privacy?: string
+          photos?: Json
+          state?: string
+          updated_at?: string
+          user_id?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
+      orbit_request_messages: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          request_id: string
+          sender_id: string
+          text: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          request_id: string
+          sender_id: string
+          text?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          request_id?: string
+          sender_id?: string
+          text?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orbit_request_messages_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "orbit_chat_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orbit_settings: {
+        Row: {
+          created_at: string
+          privacy: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          privacy?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          privacy?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           body: string
