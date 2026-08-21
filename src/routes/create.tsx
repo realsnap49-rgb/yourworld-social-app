@@ -66,6 +66,11 @@ const TOOL_MENU: { id: ToolId; label: string; Icon: React.ComponentType<{ size?:
   { id: "CROP", label: "Crop", Icon: Crop },
 ];
 
+const fmtSec = (s: number) => {
+  const v = Math.max(0, Math.floor(s || 0));
+  return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, "0")}`;
+};
+
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
@@ -140,6 +145,69 @@ export function CreateStudioPage() {
     navigate({ to: "/reels" });
   };
   const [audioTrack, setAudioTrack] = useState<AudioTrackState | null>(null);
+
+  // ---- Real undo / redo history (clips + audio track) ----
+  type EditSnapshot = { clips: ClipItem[]; audioTrack: AudioTrackState | null };
+  const pastRef = useRef<EditSnapshot[]>([]);
+  const futureRef = useRef<EditSnapshot[]>([]);
+  const lastSnapRef = useRef<EditSnapshot>({ clips: [], audioTrack: null });
+  const skipHistoryRef = useRef(false);
+  const [historyVersion, setHistoryVersion] = useState(0);
+
+  useEffect(() => {
+    const snap: EditSnapshot = { clips, audioTrack };
+    if (
+      lastSnapRef.current.clips === clips &&
+      lastSnapRef.current.audioTrack === audioTrack
+    )
+      return;
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false;
+      lastSnapRef.current = snap;
+      setHistoryVersion((v) => v + 1);
+      return;
+    }
+    pastRef.current = [...pastRef.current.slice(-49), lastSnapRef.current];
+    futureRef.current = [];
+    lastSnapRef.current = snap;
+    setHistoryVersion((v) => v + 1);
+  }, [clips, audioTrack]);
+
+  const applySnapshot = (snap: EditSnapshot) => {
+    skipHistoryRef.current = true;
+    setClips(snap.clips);
+    setAudioTrack(snap.audioTrack);
+    setActiveClipIndex((i) => Math.min(i, Math.max(0, snap.clips.length - 1)));
+  };
+
+  const handleUndo = () => {
+    const prev = pastRef.current.pop();
+    if (!prev) {
+      toast("Nothing to undo");
+      setHistoryVersion((v) => v + 1);
+      return;
+    }
+    futureRef.current = [...futureRef.current, lastSnapRef.current];
+    applySnapshot(prev);
+    toast("Undone");
+  };
+
+  const handleRedo = () => {
+    const next = futureRef.current.pop();
+    if (!next) {
+      toast("Nothing to redo");
+      setHistoryVersion((v) => v + 1);
+      return;
+    }
+    pastRef.current = [...pastRef.current, lastSnapRef.current];
+    applySnapshot(next);
+    toast("Redone");
+  };
+
+  const canUndo = pastRef.current.length > 0 && historyVersion >= 0;
+  const canRedo = futureRef.current.length > 0;
+
+
 
   // Load a music file from the device gallery / storage
   const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -341,31 +409,44 @@ export function CreateStudioPage() {
     }
   }, [currentClip, activeClipIndex]);
 
-  // Reload the <video> source whenever the active clip's URL changes
+  // Reload the <video> source whenever the active clip's URL changes,
+  // and keep playing across clip boundaries
   useEffect(() => {
     const v = videoRef.current;
     const url = currentClip?.url;
     if (!v || !url) return;
-    if (loadedUrlRef.current === url) return;
-    loadedUrlRef.current = url;
-    v.src = url;
-    v.load();
-    const onReady = () => {
-      const start = currentClip?.trimStart ?? 0;
-      if (isFinite(start) && Math.abs(v.currentTime - start) > 0.05) {
+    const start = currentClip?.trimStart ?? 0;
+    const end = currentClip?.trimEnd;
+    const ready = () => {
+      if (scrubbingRef.current) return;
+      if (v.currentTime < start - 0.05 || (end != null && v.currentTime > end + 0.05)) {
         try { v.currentTime = start; } catch { /* ignore */ }
       }
       if (isPlaying) void v.play().catch(() => {});
     };
-    if (v.readyState >= 2) onReady();
-    else v.addEventListener("loadeddata", onReady, { once: true });
-    return () => v.removeEventListener("loadeddata", onReady);
-  }, [currentClip?.url, currentClip?.trimStart, isPlaying]);
+    if (loadedUrlRef.current !== url) {
+      loadedUrlRef.current = url;
+      v.src = url;
+      v.load();
+      v.addEventListener("loadeddata", ready, { once: true });
+      return () => v.removeEventListener("loadeddata", ready);
+    }
+    if (v.readyState >= 2) {
+      ready();
+      return;
+    }
+    v.addEventListener("loadeddata", ready, { once: true });
+    return () => v.removeEventListener("loadeddata", ready);
+  }, [currentClip?.url, currentClip?.trimStart, currentClip?.trimEnd, activeClipIndex, isPlaying]);
 
   // Advance to the next clip (loops back to the first)
+  const advancingRef = useRef(0);
   const advanceClip = React.useCallback(() => {
     const v = videoRef.current;
     if (!clips.length) return;
+    const now = Date.now();
+    if (now - advancingRef.current < 400) return;
+    advancingRef.current = now;
     const next = (activeClipIndex + 1) % clips.length;
     const nextClip = clips[next];
     setIsPlaying(true);
@@ -375,6 +456,7 @@ export function CreateStudioPage() {
     }
     setActiveClipIndex(next);
   }, [clips, activeClipIndex, currentClip?.url]);
+
 
   // Sync canvas playback to the selected clip's trim range
   useEffect(() => {
@@ -742,8 +824,23 @@ export function CreateStudioPage() {
               </span>
             </div>
             <div className="flex items-center gap-3 text-muted-foreground">
-              <button onClick={() => updateCurrentClip("rotation", 0)} className="active:scale-90 transition" aria-label="Reset rotation"><Undo2 size={16} /></button>
-              <button onClick={() => updateCurrentClip("filter", "none")} className="active:scale-90 transition" aria-label="Reset filter"><Redo2 size={16} /></button>
+              <button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className={`active:scale-90 transition ${canUndo ? "text-foreground" : "opacity-35"}`}
+                aria-label="Undo"
+              >
+                <Undo2 size={16} />
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className={`active:scale-90 transition ${canRedo ? "text-foreground" : "opacity-35"}`}
+                aria-label="Redo"
+              >
+                <Redo2 size={16} />
+              </button>
+
               <button onClick={handleSplit} className="active:scale-90 transition" aria-label="Split clip at playhead"><SplitSquareHorizontal size={16} /></button>
               <button onClick={handleDuplicate} className="active:scale-90 transition" aria-label="Duplicate clip"><Copy size={16} /></button>
               <button onClick={handleDelete} className="text-destructive active:scale-90 transition" aria-label="Delete clip"><Trash2 size={16} /></button>
@@ -998,6 +1095,91 @@ export function CreateStudioPage() {
             <div className="absolute inset-0 z-[60] bg-foreground/30 flex items-end" onClick={() => setShowMusicPicker(false)}>
               <div className="w-full bg-card border-t border-border rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground mb-3">Music Library</p>
+
+                {/* CapCut-style music trim: choose which part of the song plays */}
+                {audioTrack && (
+                  <div className="mb-3 p-3 rounded-2xl bg-muted/70 border border-border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-black truncate text-foreground">{audioTrack.title}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {fmtSec(audioTrack.clipStart)} → {fmtSec(audioTrack.clipEnd)}
+                      </span>
+                    </div>
+
+                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                      Start in song
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(0.2, audioTrack.duration - 0.2)}
+                      step={0.1}
+                      value={audioTrack.clipStart}
+                      onChange={(e) => {
+                        const s = Number(e.target.value);
+                        setAudioTrack((t) =>
+                          t ? { ...t, clipStart: s, clipEnd: Math.max(s + 0.5, t.clipEnd) } : t,
+                        );
+                      }}
+                      className="w-full accent-orange-500 mb-2"
+                    />
+
+                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                      End in song
+                    </label>
+                    <input
+                      type="range"
+                      min={0.2}
+                      max={audioTrack.duration}
+                      step={0.1}
+                      value={audioTrack.clipEnd}
+                      onChange={(e) => {
+                        const en = Number(e.target.value);
+                        setAudioTrack((t) =>
+                          t ? { ...t, clipEnd: en, clipStart: Math.min(t.clipStart, en - 0.5) } : t,
+                        );
+                      }}
+                      className="w-full accent-orange-500 mb-2"
+                    />
+
+                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                      Place at {fmtSec(audioTrack.start)} on video
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(0.5, totalDuration)}
+                      step={0.1}
+                      value={Math.min(audioTrack.start, Math.max(0.5, totalDuration))}
+                      onChange={(e) =>
+                        setAudioTrack((t) => (t ? { ...t, start: Number(e.target.value) } : t))
+                      }
+                      className="w-full accent-orange-500"
+                    />
+
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          const a = audioElRef.current;
+                          if (!a || !audioTrack) return;
+                          try { a.currentTime = audioTrack.clipStart; } catch { /* ignore */ }
+                          void a.play().catch(() => {});
+                          window.setTimeout(() => a.pause(), 4000);
+                        }}
+                        className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-[11px] font-black uppercase"
+                      >
+                        Preview
+                      </button>
+                      <button
+                        onClick={() => setShowMusicPicker(false)}
+                        className="flex-1 py-2 rounded-xl bg-card border border-border text-[11px] font-black uppercase text-foreground"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => audioInputRef.current?.click()}
                   className="w-full mb-3 flex items-center gap-3 p-3 rounded-2xl border border-dashed border-orange-500/50 bg-orange-500/10 text-left active:scale-[0.99] transition"
