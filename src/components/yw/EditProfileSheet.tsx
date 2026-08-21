@@ -223,13 +223,21 @@ export function EditProfileSheet({
             </Button>
             <Button
               className="h-11 rounded-full"
-              onClick={() => {
-                onSave(draft);
-                onOpenChange(false);
-                toast.success("Profile updated");
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await onSave(draft);
+                  onOpenChange(false);
+                  toast.success("Profile updated");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Could not save profile");
+                } finally {
+                  setSaving(false);
+                }
               }}
             >
-              Save Changes
+              {saving ? "Saving…" : "Save Changes"}
             </Button>
           </div>
         </div>
