@@ -66,6 +66,11 @@ const TOOL_MENU: { id: ToolId; label: string; Icon: React.ComponentType<{ size?:
   { id: "CROP", label: "Crop", Icon: Crop },
 ];
 
+const fmtSec = (s: number) => {
+  const v = Math.max(0, Math.floor(s || 0));
+  return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, "0")}`;
+};
+
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
