@@ -3028,15 +3028,187 @@ export function MomentCreatePage() {
 
         {/* AUDIO */}
 
+        {audioUrl && (
+          <audio
+            ref={previewAudioRef}
+            src={audioUrl}
+            className="hidden"
+            onEnded={() =>
+              setAudioPlaying(false)
+            }
+            onTimeUpdate={(e) => {
+              const el =
+                e.currentTarget;
+              if (
+                audioEnd > audioStart &&
+                el.currentTime >= audioEnd
+              ) {
+                el.currentTime =
+                  audioStart;
+              }
+            }}
+          />
+        )}
+
         {selectedAudio && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-black/70 backdrop-blur-xl rounded-full px-4 py-2 text-xs flex items-center gap-2">
+          <button
+            onClick={() =>
+              setShowMusicPanel(
+                (v) => !v
+              )
+            }
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-black/70 backdrop-blur-xl rounded-full px-4 py-2 text-xs flex items-center gap-2"
+          >
             <Music size={14} />
 
             <span className="max-w-36 truncate">
               {selectedAudio}
             </span>
+
+            <span className="text-[10px] text-white/60 font-mono">
+              {fmtTime(audioStart)}–
+              {fmtTime(audioEnd)}
+            </span>
+          </button>
+        )}
+
+        {/* MUSIC TRIM PANEL */}
+
+        {showMusicPanel && audioUrl && (
+          <div className="absolute bottom-28 left-4 right-4 z-[80] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={
+                  toggleAudioPreview
+                }
+                className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center flex-shrink-0"
+              >
+                {audioPlaying ? (
+                  <Pause size={18} />
+                ) : (
+                  <Play size={18} />
+                )}
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold truncate">
+                  {selectedAudio}
+                </p>
+                <p className="text-[10px] text-white/50 font-mono">
+                  {fmtTime(audioStart)} –{" "}
+                  {fmtTime(audioEnd)} ·{" "}
+                  {(
+                    audioEnd - audioStart
+                  ).toFixed(1)}
+                  s
+                </p>
+              </div>
+
+              <button
+                onClick={() =>
+                  audioInputRef.current?.click()
+                }
+                className="px-3 py-1.5 rounded-full bg-white/10 text-[10px] font-black uppercase"
+              >
+                Change
+              </button>
+
+              <button
+                onClick={removeAudio}
+                className="px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-black uppercase"
+              >
+                Remove
+              </button>
+            </div>
+
+            <label className="block text-[10px] uppercase tracking-wider text-white/50 mb-1">
+              Start
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(
+                0.1,
+                audioDuration
+              )}
+              step={0.1}
+              value={audioStart}
+              onChange={(e) => {
+                const v = Math.min(
+                  Number(e.target.value),
+                  audioEnd - 0.5
+                );
+                setAudioStart(
+                  Math.max(0, v)
+                );
+                if (
+                  previewAudioRef.current
+                ) {
+                  previewAudioRef.current.currentTime =
+                    Math.max(0, v);
+                }
+              }}
+              className="w-full accent-pink-500"
+            />
+
+            <label className="block text-[10px] uppercase tracking-wider text-white/50 mt-2 mb-1">
+              End
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(
+                0.1,
+                audioDuration
+              )}
+              step={0.1}
+              value={audioEnd}
+              onChange={(e) =>
+                setAudioEnd(
+                  Math.max(
+                    audioStart + 0.5,
+                    Number(e.target.value)
+                  )
+                )
+              }
+              className="w-full accent-pink-500"
+            />
+
+            <label className="block text-[10px] uppercase tracking-wider text-white/50 mt-2 mb-1">
+              Volume
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={audioVolume}
+              onChange={(e) => {
+                const v = Number(
+                  e.target.value
+                );
+                setAudioVolume(v);
+                if (
+                  previewAudioRef.current
+                ) {
+                  previewAudioRef.current.volume =
+                    v;
+                }
+              }}
+              className="w-full accent-pink-500"
+            />
+
+            <button
+              onClick={() =>
+                setShowMusicPanel(false)
+              }
+              className="mt-3 w-full py-2 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 text-xs font-black"
+            >
+              Done
+            </button>
           </div>
         )}
+
 
         {/* CAPTION + NEXT */}
 
