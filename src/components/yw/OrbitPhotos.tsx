@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Plus, X, Lock, Camera, Sparkles, Wand2 } from "lucide-react";
+import { Plus, X, Lock, Camera, Sparkles, Wand2, Video } from "lucide-react";
 import {
   ORBIT_PHOTO_MAX,
   type OrbitPhoto,
