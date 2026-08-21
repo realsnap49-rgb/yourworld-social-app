@@ -1951,6 +1951,17 @@ export function MomentCreatePage() {
         textBg: "",
         music:
           selectedAudio ?? undefined,
+        musicUrl:
+          audioUrl ?? undefined,
+        musicStart: audioUrl
+          ? audioStart
+          : undefined,
+        musicEnd: audioUrl
+          ? audioEnd
+          : undefined,
+        musicVolume: audioUrl
+          ? audioVolume
+          : undefined,
         stickers: [],
         trim: part.trim,
         mentions: [],
