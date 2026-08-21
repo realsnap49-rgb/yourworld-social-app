@@ -67,7 +67,6 @@ function StoriesBase() {
       <Dialog open={index !== null} onOpenChange={close}>
         <DialogContent
           className="max-w-md gap-0 overflow-hidden border-none bg-black p-0 text-white"
-          showCloseButton={false}
         >
           <DialogTitle className="sr-only">Moment</DialogTitle>
           {index !== null && moments[index] && (
@@ -165,7 +164,7 @@ function StoryPlayer({
           onTimeUpdate={(e) => {
             const v = e.currentTarget;
             const start = moment.trim?.start ?? 0;
-            const end = moment.trim?.end ?? v.duration || 0;
+            const end = moment.trim?.end ?? (v.duration || 0);
             if (end > start) setProgress(Math.min(1, (v.currentTime - start) / (end - start)));
             if (end && v.currentTime >= end) next();
           }}
