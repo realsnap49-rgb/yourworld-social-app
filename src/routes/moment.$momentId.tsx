@@ -145,6 +145,28 @@ function MomentViewer() {
           className="relative aspect-9/16 w-full overflow-hidden rounded-[28px] border border-border bg-secondary"
           style={moment.kind === "text" ? { background: moment.textBg } : undefined}
         >
+          {moment.musicUrl && (
+            <audio
+              key={moment.id}
+              src={moment.musicUrl}
+              autoPlay
+              loop
+              onLoadedMetadata={(e) => {
+                e.currentTarget.volume = moment.musicVolume ?? 0.8;
+                e.currentTarget.currentTime = moment.musicStart ?? 0;
+                void e.currentTarget.play().catch(() => {});
+              }}
+              onTimeUpdate={(e) => {
+                const a = e.currentTarget;
+                const start = moment.musicStart ?? 0;
+                const end = moment.musicEnd ?? 0;
+                if (end > start && (a.currentTime >= end || a.currentTime < start)) {
+                  a.currentTime = start;
+                }
+              }}
+              className="hidden"
+            />
+          )}
           {moment.kind === "video" && moment.media ? (
             <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>
               <video
