@@ -281,7 +281,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MediaGrid({ items }: { items: { src: string; type: string }[] }) {
+function MediaGrid({
+  items,
+  onSelect,
+}: {
+  items: { src: string; type: string; post?: DbPost }[];
+  onSelect?: (post: DbPost) => void;
+}) {
   return (
     <ul className="grid grid-cols-3 gap-0.5">
       {items.map((it, i) => (
@@ -291,8 +297,21 @@ function MediaGrid({ items }: { items: { src: string; type: string }[] }) {
           ) : (
             <img src={it.src} alt="" loading="lazy" className="h-full w-full object-cover" />
           )}
+          {it.post && onSelect ? (
+            <button
+              type="button"
+              aria-label="Manage post"
+              onClick={() => onSelect(it.post!)}
+              className="absolute inset-0 grid place-items-end justify-items-end p-1.5"
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-background/70 backdrop-blur">
+                <Pencil className="h-3.5 w-3.5" strokeWidth={1.9} />
+              </span>
+            </button>
+          ) : null}
         </li>
       ))}
     </ul>
+
   );
 }
