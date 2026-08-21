@@ -2041,7 +2041,7 @@ export function MomentCreatePage() {
 
         {/* RIGHT TOOLS */}
 
-        <div className="absolute right-3 top-20 z-30 flex flex-col gap-2 bg-black/35 backdrop-blur-xl p-2 rounded-3xl">
+        <div className="absolute right-3 top-20 z-30 flex flex-col gap-1.5 bg-black/35 backdrop-blur-xl p-1.5 rounded-2xl">
           <button
             onClick={() =>
               setFacingMode(
@@ -2051,19 +2051,19 @@ export function MomentCreatePage() {
                     : "user"
               )
             }
-            className="w-11 h-11 flex items-center justify-center"
+            className="w-7 h-7 flex items-center justify-center"
           >
-            <RefreshCw size={22} />
+            <RefreshCw size={16} />
           </button>
 
           <button
             onClick={toggleFlash}
-            className="w-11 h-11 flex items-center justify-center"
+            className="w-7 h-7 flex items-center justify-center"
           >
             {isFlashOn ? (
-              <Zap className="text-yellow-300" />
+              <Zap className="text-yellow-300" size={16} />
             ) : (
-              <ZapOff />
+              <ZapOff size={16} />
             )}
           </button>
 
@@ -2075,7 +2075,7 @@ export function MomentCreatePage() {
                   : zoom + 0.5
               )
             }
-            className="w-11 h-11 text-xs font-bold"
+            className="w-7 h-7 text-[10px] font-bold"
           >
             {zoom.toFixed(1)}x
           </button>
@@ -2086,9 +2086,10 @@ export function MomentCreatePage() {
                 (value) => !value
               )
             }
-            className="w-11 h-11 flex items-center justify-center"
+            className="w-7 h-7 flex items-center justify-center"
           >
             <Grid3X3
+              size={16}
               className={
                 isGridOn
                   ? "text-pink-400"
@@ -2108,9 +2109,10 @@ export function MomentCreatePage() {
                     : null
               )
             }
-            className="w-11 h-11 flex items-center justify-center"
+            className="w-7 h-7 flex items-center justify-center"
           >
             <Timer
+              size={16}
               className={
                 timerSeconds
                   ? "text-green-400"
@@ -2125,9 +2127,10 @@ export function MomentCreatePage() {
                 (value) => !value
               )
             }
-            className="w-11 h-11 flex items-center justify-center"
+            className="w-7 h-7 flex items-center justify-center"
           >
             <Moon
+              size={16}
               className={
                 isNightMode
                   ? "text-blue-400"
@@ -2141,7 +2144,7 @@ export function MomentCreatePage() {
 
         <div className="absolute bottom-0 left-0 right-0 z-30 pb-8 pt-24 bg-gradient-to-t from-black/90 to-transparent">
           <div className="flex justify-center mb-5">
-            <div className="flex gap-7 bg-black/45 backdrop-blur-xl px-6 py-2.5 rounded-full">
+            <div className="flex gap-4 bg-black/45 backdrop-blur-xl px-4 py-1 rounded-full text-[11px]">
               <button
                 onClick={() =>
                   setCaptureMode(
