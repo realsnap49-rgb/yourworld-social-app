@@ -3616,7 +3616,7 @@ function SectionTitle({
   title: string;
 }) {
   return (
-    <h2 className="text-xs tracking-widest text-zinc-400 font-bold mb-3">
+    <h2 className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold mb-2">
       {title}
     </h2>
   );
