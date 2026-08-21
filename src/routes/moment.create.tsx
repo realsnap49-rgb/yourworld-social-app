@@ -3518,15 +3518,31 @@ export function MomentCreatePage() {
 
         {/* SHARE */}
 
-        <button
-          onClick={
-            handlePublish
-          }
-          className="w-full mt-7 py-5 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black text-lg flex items-center justify-center gap-2"
-        >
-          Share Moment
-          <Share2 />
-        </button>
+        <div className="mt-5 flex items-center gap-2.5">
+          <button
+            onClick={
+              handleDownload
+            }
+            aria-label="Save to gallery"
+            className="h-12 w-12 shrink-0 rounded-full border border-white/15 bg-white/[0.06] flex items-center justify-center active:scale-95 transition"
+          >
+            <Download size={18} />
+          </button>
+
+          <button
+            onClick={
+              handlePublish
+            }
+            className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-bold text-[15px] flex items-center justify-center gap-2"
+          >
+            Share Moment
+            <Share2 size={17} />
+          </button>
+        </div>
+
+        <p className="mt-2 text-center text-[10px] text-zinc-500">
+          Save to gallery ya seedha share karein
+        </p>
       </div>
     </div>
   );
