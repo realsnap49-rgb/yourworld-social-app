@@ -333,6 +333,27 @@ export function MomentCreatePage() {
   const [audioUrl, setAudioUrl] =
     useState<string | null>(null);
 
+  const [audioDuration, setAudioDuration] =
+    useState(0);
+
+  const [audioStart, setAudioStart] =
+    useState(0);
+
+  const [audioEnd, setAudioEnd] =
+    useState(0);
+
+  const [audioVolume, setAudioVolume] =
+    useState(0.8);
+
+  const [audioPlaying, setAudioPlaying] =
+    useState(false);
+
+  const [showMusicPanel, setShowMusicPanel] =
+    useState(false);
+
+  const previewAudioRef =
+    useRef<HTMLAudioElement | null>(null);
+
   const [caption, setCaption] =
     useState("");
 
