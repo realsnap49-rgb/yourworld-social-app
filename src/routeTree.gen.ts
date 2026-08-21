@@ -29,6 +29,7 @@ import { Route as ChannelIndexRouteImport } from './routes/channel.index'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
 import { Route as OrbitNotificationsRouteImport } from './routes/orbit.notifications'
 import { Route as OrbitMessagesRouteImport } from './routes/orbit.messages'
+import { Route as OrbitMeRouteImport } from './routes/orbit.me'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as OrbitProfileIdRouteImport } from './routes/orbit.$profileId'
 import { Route as MomentCreateRouteImport } from './routes/moment.create'
@@ -143,6 +144,11 @@ const OrbitMessagesRoute = OrbitMessagesRouteImport.update({
   path: '/messages',
   getParentRoute: () => OrbitRoute,
 } as any)
+const OrbitMeRoute = OrbitMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => OrbitRoute,
+} as any)
 const OrbitCreateRoute = OrbitCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/me': typeof OrbitMeRoute
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/me': typeof OrbitMeRoute
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
+  '/orbit/me': typeof OrbitMeRoute
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
+    | '/orbit/me'
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
+    | '/orbit/me'
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
@@ -416,6 +427,7 @@ export interface FileRouteTypes {
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
+    | '/orbit/me'
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
@@ -589,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrbitMessagesRouteImport
       parentRoute: typeof OrbitRoute
     }
+    '/orbit/me': {
+      id: '/orbit/me'
+      path: '/me'
+      fullPath: '/orbit/me'
+      preLoaderRoute: typeof OrbitMeRouteImport
+      parentRoute: typeof OrbitRoute
+    }
     '/orbit/create': {
       id: '/orbit/create'
       path: '/create'
@@ -731,6 +750,7 @@ const ChannelRouteWithChildren =
 interface OrbitRouteChildren {
   OrbitProfileIdRoute: typeof OrbitProfileIdRoute
   OrbitCreateRoute: typeof OrbitCreateRoute
+  OrbitMeRoute: typeof OrbitMeRoute
   OrbitMessagesRoute: typeof OrbitMessagesRoute
   OrbitNotificationsRoute: typeof OrbitNotificationsRoute
   OrbitPrivacyRoute: typeof OrbitPrivacyRoute
@@ -741,6 +761,7 @@ interface OrbitRouteChildren {
 const OrbitRouteChildren: OrbitRouteChildren = {
   OrbitProfileIdRoute: OrbitProfileIdRoute,
   OrbitCreateRoute: OrbitCreateRoute,
+  OrbitMeRoute: OrbitMeRoute,
   OrbitMessagesRoute: OrbitMessagesRoute,
   OrbitNotificationsRoute: OrbitNotificationsRoute,
   OrbitPrivacyRoute: OrbitPrivacyRoute,

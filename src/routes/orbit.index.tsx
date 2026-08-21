@@ -161,6 +161,13 @@ function OrbitBrowse() {
           <MessageCircle className="h-[15px] w-[15px]" strokeWidth={1.6} />
         </Link>
         <Link
+          to="/orbit/me"
+          aria-label="My Orbit profile"
+          className="grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
+        >
+          <UserRound className="h-[15px] w-[15px]" strokeWidth={1.6} />
+        </Link>
+        <Link
           to="/orbit/privacy"
           aria-label="Orbit privacy & safety"
           className="grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
