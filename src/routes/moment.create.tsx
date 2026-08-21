@@ -40,6 +40,7 @@ import {
   Volume2,
   VolumeX,
   Play,
+  Pause,
 } from "lucide-react";
 import {
   createFileRoute,
@@ -82,6 +83,13 @@ const clamp01 = (v: number) =>
 
 /** Moments are published in chunks of at most this many seconds. */
 const MAX_PART_SECONDS = 20;
+
+const fmtTime = (s: number) => {
+  const total = Math.max(0, Math.floor(s || 0));
+  const m = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+};
 
 /** Reads the duration of a video url (0 when unknown). */
 const readVideoDuration = (
@@ -332,6 +340,27 @@ export function MomentCreatePage() {
 
   const [audioUrl, setAudioUrl] =
     useState<string | null>(null);
+
+  const [audioDuration, setAudioDuration] =
+    useState(0);
+
+  const [audioStart, setAudioStart] =
+    useState(0);
+
+  const [audioEnd, setAudioEnd] =
+    useState(0);
+
+  const [audioVolume, setAudioVolume] =
+    useState(0.8);
+
+  const [audioPlaying, setAudioPlaying] =
+    useState(false);
+
+  const [showMusicPanel, setShowMusicPanel] =
+    useState(false);
+
+  const previewAudioRef =
+    useRef<HTMLAudioElement | null>(null);
 
   const [caption, setCaption] =
     useState("");
@@ -1134,10 +1163,61 @@ export function MomentCreatePage() {
 
     setAudioUrl(url);
     setSelectedAudio(
-      file.name
+      file.name.replace(
+        /\.[^.]+$/,
+        ""
+      )
     );
+    setAudioDuration(0);
+    setAudioStart(0);
+    setAudioEnd(0);
+    setShowMusicPanel(true);
+
+    // probe real duration so the trimmer can show the full track
+    const probe = new Audio();
+    probe.preload = "metadata";
+    probe.src = url;
+    probe.onloadedmetadata = () => {
+      const dur =
+        Number.isFinite(
+          probe.duration
+        ) && probe.duration > 0
+          ? probe.duration
+          : 0;
+      setAudioDuration(dur);
+      setAudioStart(0);
+      setAudioEnd(
+        Math.min(dur, 30) || dur
+      );
+    };
 
     event.target.value = "";
+  };
+
+  const removeAudio = () => {
+    if (audioUrl)
+      URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
+    setSelectedAudio(null);
+    setAudioDuration(0);
+    setAudioStart(0);
+    setAudioEnd(0);
+    setAudioPlaying(false);
+    setShowMusicPanel(false);
+  };
+
+  const toggleAudioPreview = () => {
+    const el = previewAudioRef.current;
+    if (!el) return;
+    if (el.paused) {
+      el.currentTime = audioStart;
+      el.volume = audioVolume;
+      void el.play().catch(() => {});
+      setAudioPlaying(true);
+    } else {
+      el.pause();
+      setAudioPlaying(false);
+    }
   };
 
   // =====================================================
@@ -1871,6 +1951,17 @@ export function MomentCreatePage() {
         textBg: "",
         music:
           selectedAudio ?? undefined,
+        musicUrl:
+          audioUrl ?? undefined,
+        musicStart: audioUrl
+          ? audioStart
+          : undefined,
+        musicEnd: audioUrl
+          ? audioEnd
+          : undefined,
+        musicVolume: audioUrl
+          ? audioVolume
+          : undefined,
         stickers: [],
         trim: part.trim,
         mentions: [],
@@ -2496,10 +2587,18 @@ export function MomentCreatePage() {
           <EditorTool
             icon={<Music />}
             label="Music"
-            onClick={() =>
-              audioInputRef.current?.click()
-            }
+            active={showMusicPanel}
+            onClick={() => {
+              if (audioUrl) {
+                setShowMusicPanel(
+                  (v) => !v
+                );
+              } else {
+                audioInputRef.current?.click();
+              }
+            }}
           />
+
 
           <EditorTool
             icon={<Download />}
@@ -2948,15 +3047,187 @@ export function MomentCreatePage() {
 
         {/* AUDIO */}
 
+        {audioUrl && (
+          <audio
+            ref={previewAudioRef}
+            src={audioUrl}
+            className="hidden"
+            onEnded={() =>
+              setAudioPlaying(false)
+            }
+            onTimeUpdate={(e) => {
+              const el =
+                e.currentTarget;
+              if (
+                audioEnd > audioStart &&
+                el.currentTime >= audioEnd
+              ) {
+                el.currentTime =
+                  audioStart;
+              }
+            }}
+          />
+        )}
+
         {selectedAudio && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-black/70 backdrop-blur-xl rounded-full px-4 py-2 text-xs flex items-center gap-2">
+          <button
+            onClick={() =>
+              setShowMusicPanel(
+                (v) => !v
+              )
+            }
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-black/70 backdrop-blur-xl rounded-full px-4 py-2 text-xs flex items-center gap-2"
+          >
             <Music size={14} />
 
             <span className="max-w-36 truncate">
               {selectedAudio}
             </span>
+
+            <span className="text-[10px] text-white/60 font-mono">
+              {fmtTime(audioStart)}–
+              {fmtTime(audioEnd)}
+            </span>
+          </button>
+        )}
+
+        {/* MUSIC TRIM PANEL */}
+
+        {showMusicPanel && audioUrl && (
+          <div className="absolute bottom-28 left-4 right-4 z-[80] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={
+                  toggleAudioPreview
+                }
+                className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center flex-shrink-0"
+              >
+                {audioPlaying ? (
+                  <Pause size={18} />
+                ) : (
+                  <Play size={18} />
+                )}
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold truncate">
+                  {selectedAudio}
+                </p>
+                <p className="text-[10px] text-white/50 font-mono">
+                  {fmtTime(audioStart)} –{" "}
+                  {fmtTime(audioEnd)} ·{" "}
+                  {(
+                    audioEnd - audioStart
+                  ).toFixed(1)}
+                  s
+                </p>
+              </div>
+
+              <button
+                onClick={() =>
+                  audioInputRef.current?.click()
+                }
+                className="px-3 py-1.5 rounded-full bg-white/10 text-[10px] font-black uppercase"
+              >
+                Change
+              </button>
+
+              <button
+                onClick={removeAudio}
+                className="px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-black uppercase"
+              >
+                Remove
+              </button>
+            </div>
+
+            <label className="block text-[10px] uppercase tracking-wider text-white/50 mb-1">
+              Start
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(
+                0.1,
+                audioDuration
+              )}
+              step={0.1}
+              value={audioStart}
+              onChange={(e) => {
+                const v = Math.min(
+                  Number(e.target.value),
+                  audioEnd - 0.5
+                );
+                setAudioStart(
+                  Math.max(0, v)
+                );
+                if (
+                  previewAudioRef.current
+                ) {
+                  previewAudioRef.current.currentTime =
+                    Math.max(0, v);
+                }
+              }}
+              className="w-full accent-pink-500"
+            />
+
+            <label className="block text-[10px] uppercase tracking-wider text-white/50 mt-2 mb-1">
+              End
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(
+                0.1,
+                audioDuration
+              )}
+              step={0.1}
+              value={audioEnd}
+              onChange={(e) =>
+                setAudioEnd(
+                  Math.max(
+                    audioStart + 0.5,
+                    Number(e.target.value)
+                  )
+                )
+              }
+              className="w-full accent-pink-500"
+            />
+
+            <label className="block text-[10px] uppercase tracking-wider text-white/50 mt-2 mb-1">
+              Volume
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={audioVolume}
+              onChange={(e) => {
+                const v = Number(
+                  e.target.value
+                );
+                setAudioVolume(v);
+                if (
+                  previewAudioRef.current
+                ) {
+                  previewAudioRef.current.volume =
+                    v;
+                }
+              }}
+              className="w-full accent-pink-500"
+            />
+
+            <button
+              onClick={() =>
+                setShowMusicPanel(false)
+              }
+              className="mt-3 w-full py-2 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 text-xs font-black"
+            >
+              Done
+            </button>
           </div>
         )}
+
 
         {/* CAPTION + NEXT */}
 
