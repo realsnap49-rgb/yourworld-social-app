@@ -13,8 +13,12 @@ export type ProfileEdit = {
   username: string;
   category: string;
   bio: string;
+  location?: string;
+  website?: string;
   avatarUrl?: string;
   coverUrl?: string;
+  avatarFile?: File;
+  coverFile?: File;
 };
 
 const CATEGORIES = ["Creator", "Athlete", "Business", "Gamer", "Artist", "Musician", "Photographer"];
