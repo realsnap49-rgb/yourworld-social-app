@@ -32,6 +32,8 @@ export type OrbitPhoto = {
   id: string;
   url: string;
   style: OrbitPhotoStyle;
+  /** "photo" (default) or a short intro video. */
+  kind?: "photo" | "video";
 };
 
 export const ORBIT_PHOTO_MAX = 6;
