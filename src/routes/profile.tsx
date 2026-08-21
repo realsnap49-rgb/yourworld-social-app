@@ -67,9 +67,19 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { saved } = useYw();
-  const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId } =
+  const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId, reload } =
     useMyProfile();
   const [editOpen, setEditOpen] = useState(false);
+  const [manage, setManage] = useState<DbPost | null>(null);
+  const [caption, setCaption] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const openManage = (post: DbPost) => {
+    setManage(post);
+    setCaption(post.caption ?? "");
+  };
+
 
   const savedPosts = posts.filter((p) => saved[p.id]);
   const media = useResolvedMedia([...posts.map((p) => p.media_url)]);
