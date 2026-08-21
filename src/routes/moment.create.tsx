@@ -2568,10 +2568,18 @@ export function MomentCreatePage() {
           <EditorTool
             icon={<Music />}
             label="Music"
-            onClick={() =>
-              audioInputRef.current?.click()
-            }
+            active={showMusicPanel}
+            onClick={() => {
+              if (audioUrl) {
+                setShowMusicPanel(
+                  (v) => !v
+                );
+              } else {
+                audioInputRef.current?.click();
+              }
+            }}
           />
+
 
           <EditorTool
             icon={<Download />}
