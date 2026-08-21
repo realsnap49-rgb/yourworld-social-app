@@ -163,32 +163,44 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          category: string | null
+          cover_url: string | null
           created_at: string
           display_name: string | null
           gender: string | null
           id: string
+          location: string | null
           updated_at: string
           username: string | null
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          category?: string | null
+          cover_url?: string | null
           created_at?: string
           display_name?: string | null
           gender?: string | null
           id: string
+          location?: string | null
           updated_at?: string
           username?: string | null
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          category?: string | null
+          cover_url?: string | null
           created_at?: string
           display_name?: string | null
           gender?: string | null
           id?: string
+          location?: string | null
           updated_at?: string
           username?: string | null
+          website?: string | null
         }
         Relationships: []
       }

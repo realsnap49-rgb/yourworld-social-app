@@ -13,8 +13,12 @@ export type ProfileEdit = {
   username: string;
   category: string;
   bio: string;
+  location?: string;
+  website?: string;
   avatarUrl?: string;
   coverUrl?: string;
+  avatarFile?: File;
+  coverFile?: File;
 };
 
 const CATEGORIES = ["Creator", "Athlete", "Business", "Gamer", "Artist", "Musician", "Photographer"];
@@ -31,9 +35,10 @@ export function EditProfileSheet({
   onOpenChange: (o: boolean) => void;
   user: User;
   value: ProfileEdit;
-  onSave: (v: ProfileEdit) => void;
+  onSave: (v: ProfileEdit) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState<ProfileEdit>(value);
+  const [saving, setSaving] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
 
@@ -46,7 +51,11 @@ export function EditProfileSheet({
 
   const pick = (file: File | undefined, key: "avatarUrl" | "coverUrl") => {
     if (!file) return;
-    set(key, URL.createObjectURL(file));
+    setDraft((d) => ({
+      ...d,
+      [key]: URL.createObjectURL(file),
+      [key === "avatarUrl" ? "avatarFile" : "coverFile"]: file,
+    }));
   };
 
   return (
@@ -214,13 +223,21 @@ export function EditProfileSheet({
             </Button>
             <Button
               className="h-11 rounded-full"
-              onClick={() => {
-                onSave(draft);
-                onOpenChange(false);
-                toast.success("Profile updated");
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await onSave(draft);
+                  onOpenChange(false);
+                  toast.success("Profile updated");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Could not save profile");
+                } finally {
+                  setSaving(false);
+                }
               }}
             >
-              Save Changes
+              {saving ? "Saving…" : "Save Changes"}
             </Button>
           </div>
         </div>
