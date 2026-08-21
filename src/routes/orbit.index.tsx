@@ -11,6 +11,7 @@ import {
   Lock,
   ShieldCheck,
   Settings2,
+  UserRound,
   EyeOff,
   Flag,
   Ban,
