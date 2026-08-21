@@ -7,6 +7,7 @@ import {
   Bookmark,
   Download,
   Music2,
+  Volume2,
   Lock,
   MoreVertical,
   EyeOff,
@@ -150,12 +151,14 @@ function ReelMedia({
   alt,
   active,
   mediaRef,
+  muted,
 }: {
   url: string;
   type: string;
   alt: string;
   active: boolean;
   mediaRef: React.MutableRefObject<HTMLElement | null>;
+  muted: boolean;
 }) {
   const [src, setSrc] = useState(url);
   const [asImage, setAsImage] = useState(!type.startsWith("video"));
@@ -221,7 +224,7 @@ function ReelMedia({
       }}
       src={src}
       playsInline
-      muted
+      muted={muted}
       loop
       preload="metadata"
       onError={handleError}
@@ -252,6 +255,7 @@ function ReelItem({
   const { burst, onDoubleTap } = useDoubleTapLike(reel.id);
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
   const lastTap = useRef(0);
   const isLiked = onDbLike ? !!likedByMe : !!liked[reel.id];
   const isSaved = !!saved[reel.id];
@@ -377,6 +381,7 @@ function ReelItem({
           alt={reel.caption}
           active={active}
           mediaRef={mediaRef}
+          muted={muted}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
       </div>
@@ -387,9 +392,19 @@ function ReelItem({
 
       <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-4">
         <h1 className="font-display text-lg font-bold drop-shadow">Reels</h1>
-        <span className="rounded-full bg-background/40 px-3 py-1 text-xs backdrop-blur">
-          Following
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMuted((value) => !value)}
+            className="grid h-8 w-8 place-items-center rounded-full bg-background/40 backdrop-blur"
+            aria-label={muted ? "Turn sound on" : "Mute reel"}
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+          <span className="rounded-full bg-background/40 px-3 py-1 text-xs backdrop-blur">
+            Following
+          </span>
+        </div>
       </div>
 
       <div className="absolute bottom-4 left-0 right-16 space-y-2 px-4">
