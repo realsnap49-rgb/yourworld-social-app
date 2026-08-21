@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { OrbitMoodId } from "@/lib/orbit-mood";
 import {
+  orbitById,
   orbitProfiles as demoProfiles,
   registerOrbitProfiles,
   type OrbitProfile,
@@ -367,4 +368,40 @@ export async function loadOrbitStateRemote(): Promise<RemoteOrbitState | null> {
     connected,
     requests,
   };
+}
+
+/** Single Orbit profile by user id — falls back to a direct fetch on deep links. */
+export function useOrbitProfile(id: string) {
+  const [profile, setProfile] = useState<OrbitProfile | undefined>(() => orbitById(id));
+  const [loading, setLoading] = useState(!orbitById(id));
+
+  useEffect(() => {
+    let cancelled = false;
+    const known = orbitById(id);
+    setProfile(known);
+    if (known) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    void (async () => {
+      const { data } = await supabase
+        .from("orbit_profiles")
+        .select("*")
+        .eq("user_id", id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        const mapped = rowToOrbitProfile(data as unknown as OrbitProfileRow);
+        registerOrbitProfiles([mapped]);
+        setProfile(mapped);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  return { profile, loading };
 }

@@ -10,7 +10,8 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { orbitById, approxDistance } from "@/lib/orbit-data";
+import { approxDistance } from "@/lib/orbit-data";
+import { useOrbitProfile } from "@/lib/orbit-live";
 import { useOrbit } from "@/lib/orbit-store";
 import { moodById } from "@/lib/orbit-mood";
 import { OrbitCallActions } from "@/components/yw/OrbitCallActions";
@@ -40,7 +41,7 @@ function OrbitProfilePage() {
   const { profileId } = Route.useParams();
   const navigate = useNavigate();
   const orbit = useOrbit();
-  const p = orbitById(profileId);
+  const { profile: p } = useOrbitProfile(profileId);
 
   if (!p) {
     return (
