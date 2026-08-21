@@ -255,9 +255,14 @@ function OrbitCreate() {
           <Button
             className="h-11 rounded-full"
             disabled={!valid}
-            onClick={() => {
+            onClick={async () => {
               orbit.saveProfile(draft);
-              toast.success("Orbit Profile created — all features unlocked");
+              const { data } = await supabase.auth.getUser();
+              if (data.user) {
+                toast.success("Orbit Profile created — all features unlocked");
+              } else {
+                toast.warning("Saved on this device — sign in so others can find your Orbit ID");
+              }
               navigate({ to: "/orbit" });
             }}
           >
