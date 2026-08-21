@@ -7,17 +7,44 @@ import {
   Play,
   MapPin,
   Link2,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { Bio } from "@/components/yw/Bio";
 import { EditProfileSheet, type ProfileEdit } from "@/components/yw/EditProfileSheet";
 import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
-import { useMyProfile, useResolvedMedia } from "@/lib/profile-data";
+import {
+  useMyProfile,
+  useResolvedMedia,
+  updateMyPost,
+  deleteMyPost,
+} from "@/lib/profile-data";
+import type { DbPost } from "@/lib/social-data";
 import { UserWatermark } from "@/components/yw/UserWatermark";
+
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -40,9 +67,19 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { saved } = useYw();
-  const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId } =
+  const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId, reload } =
     useMyProfile();
   const [editOpen, setEditOpen] = useState(false);
+  const [manage, setManage] = useState<DbPost | null>(null);
+  const [caption, setCaption] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const openManage = (post: DbPost) => {
+    setManage(post);
+    setCaption(post.caption ?? "");
+  };
+
 
   const savedPosts = posts.filter((p) => saved[p.id]);
   const media = useResolvedMedia([...posts.map((p) => p.media_url)]);
@@ -207,14 +244,20 @@ function ProfilePage() {
 
         <TabsContent value="grid" className="mt-0">
           {grid.length ? (
-            <MediaGrid items={grid.map((p) => ({ src: src(p.media_url), type: p.media_type }))} />
+            <MediaGrid
+              onSelect={openManage}
+              items={grid.map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
+            />
           ) : (
             <Empty text={loading ? "Loading your posts…" : "No posts yet. Create your first one."} />
           )}
         </TabsContent>
         <TabsContent value="reels" className="mt-0">
           {reels.length ? (
-            <MediaGrid items={reels.map((p) => ({ src: src(p.media_url), type: p.media_type }))} />
+            <MediaGrid
+              onSelect={openManage}
+              items={reels.map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
+            />
           ) : (
             <Empty text={loading ? "Loading reels…" : "No reels yet."} />
           )}
@@ -230,6 +273,93 @@ function ProfilePage() {
         </TabsContent>
       </Tabs>
 
+      <Dialog open={!!manage} onOpenChange={(o) => !o && setManage(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{manage?.kind === "reel" ? "Edit reel" : "Edit post"}</DialogTitle>
+          </DialogHeader>
+          {manage ? (
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-xl bg-secondary">
+                {manage.media_type?.startsWith("video") ? (
+                  <video
+                    src={src(manage.media_url)}
+                    controls
+                    playsInline
+                    className="max-h-56 w-full object-contain"
+                  />
+                ) : (
+                  <img src={src(manage.media_url)} alt="" className="max-h-56 w-full object-contain" />
+                )}
+              </div>
+              <Textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Write a caption…"
+                rows={3}
+              />
+            </div>
+          ) : null}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                if (!manage) return;
+                setBusy(true);
+                try {
+                  await updateMyPost(manage.id, { caption });
+                  toast.success("Updated");
+                  setManage(null);
+                  await reload();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Couldn't update");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this {manage?.kind === "reel" ? "reel" : "post"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes it and its media. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!manage) return;
+                try {
+                  await deleteMyPost(manage);
+                  toast.success("Deleted");
+                  setManage(null);
+                  await reload();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Couldn't delete");
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <EditProfileSheet
         open={editOpen}
         onOpenChange={setEditOpen}
@@ -237,6 +367,7 @@ function ProfilePage() {
         value={editValue}
         onSave={save}
       />
+
     </main>
   );
 }
@@ -254,7 +385,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MediaGrid({ items }: { items: { src: string; type: string }[] }) {
+function MediaGrid({
+  items,
+  onSelect,
+}: {
+  items: { src: string; type: string; post?: DbPost }[];
+  onSelect?: (post: DbPost) => void;
+}) {
   return (
     <ul className="grid grid-cols-3 gap-0.5">
       {items.map((it, i) => (
@@ -264,8 +401,21 @@ function MediaGrid({ items }: { items: { src: string; type: string }[] }) {
           ) : (
             <img src={it.src} alt="" loading="lazy" className="h-full w-full object-cover" />
           )}
+          {it.post && onSelect ? (
+            <button
+              type="button"
+              aria-label="Manage post"
+              onClick={() => onSelect(it.post!)}
+              className="absolute inset-0 grid place-items-end justify-items-end p-1.5"
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-background/70 backdrop-blur">
+                <Pencil className="h-3.5 w-3.5" strokeWidth={1.9} />
+              </span>
+            </button>
+          ) : null}
         </li>
       ))}
     </ul>
+
   );
 }
