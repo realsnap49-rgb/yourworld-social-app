@@ -5,25 +5,18 @@ import {
   Grid3x3,
   Bookmark,
   Play,
-  BadgeCheck,
   MapPin,
   Link2,
-  Pin,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { Bio } from "@/components/yw/Bio";
 import { EditProfileSheet, type ProfileEdit } from "@/components/yw/EditProfileSheet";
-import {
-  currentUser,
-  formatCount,
-  pinnedPostIds,
-  posts,
-  profileStats,
-  reels,
-} from "@/lib/yw-data";
+import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
+import { useMyProfile, useResolvedMedia } from "@/lib/profile-data";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 
 export const Route = createFileRoute("/profile")({
@@ -47,46 +40,63 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { saved } = useYw();
-  const savedPosts = posts.filter((p) => saved[p.id]);
+  const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId } =
+    useMyProfile();
   const [editOpen, setEditOpen] = useState(false);
-  const [profile, setProfile] = useState<ProfileEdit>({
-    name: currentUser.name,
-    username: currentUser.username,
-    category: currentUser.category ?? "",
-    bio: currentUser.bio ?? "",
-  });
 
-  const pinned = pinnedPostIds.slice(0, 3);
-  const gridPosts = [
-    ...pinned.map((id) => posts.find((p) => p.id === id)).filter(Boolean),
-    ...posts.filter((p) => !pinned.includes(p.id)),
-  ] as typeof posts;
+  const savedPosts = posts.filter((p) => saved[p.id]);
+  const media = useResolvedMedia([...posts.map((p) => p.media_url)]);
+  const src = (u: string) => media[u] ?? u;
+
+  const avatarUser = {
+    id: userId ?? "me",
+    username: profile.username || "you",
+    name: profile.display_name || profile.username || "You",
+    hue: 280,
+  };
+
+  const editValue: ProfileEdit = {
+    name: profile.display_name,
+    username: profile.username,
+    category: profile.category,
+    bio: profile.bio,
+    location: profile.location,
+    website: profile.website,
+    avatarUrl: avatarSrc ?? undefined,
+    coverUrl: coverSrc ?? undefined,
+  };
+
+  if (!loading && !userId) {
+    return (
+      <main className="grid min-h-screen place-items-center px-6 text-center">
+        <div>
+          <p className="text-sm text-muted-foreground">Sign in to see your profile.</p>
+          <Link
+            to="/auth"
+            className="mt-4 inline-block rounded-full bg-foreground px-5 py-2 text-xs font-semibold text-background"
+          >
+            Sign in
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative pb-6">
       <UserWatermark username={profile.username} />
       <header className="sticky top-0 z-40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border glass px-4 py-3">
         <h1 className="flex min-w-0 items-center gap-1.5 font-display text-xl font-bold">
-          <span className="truncate">@{profile.username}</span>
-          {currentUser.verified ? (
-            <BadgeCheck
-              className="h-5 w-5 shrink-0 fill-[oklch(0.62_0.17_255)] text-background"
-              aria-label="Verified account"
-            />
-          ) : null}
+          <span className="truncate">@{profile.username || "…"}</span>
         </h1>
-        <Link
-          to="/settings"
-          aria-label="Settings"
-          className="transition-transform active:scale-90"
-        >
+        <Link to="/settings" aria-label="Settings" className="transition-transform active:scale-90">
           <Settings className="h-6 w-6" />
         </Link>
       </header>
 
-      {profile.coverUrl ? (
+      {coverSrc ? (
         <div className="h-32 w-full overflow-hidden">
-          <img src={profile.coverUrl} alt="" className="h-full w-full object-cover" />
+          <img src={coverSrc} alt="" className="h-full w-full object-cover" />
         </div>
       ) : null}
 
@@ -94,51 +104,51 @@ function ProfilePage() {
         <div className="flex items-center gap-5">
           <span className="grid h-[86px] w-[86px] shrink-0 place-items-center rounded-full p-[3px] ring-story">
             <span className="grid h-full w-full place-items-center rounded-full bg-background p-[2px]">
-              {profile.avatarUrl ? (
+              {avatarSrc ? (
                 <img
-                  src={profile.avatarUrl}
+                  src={avatarSrc}
                   alt=""
                   className="h-[74px] w-[74px] rounded-full object-cover"
                 />
               ) : (
-                <YwAvatar user={currentUser} size={74} />
+                <YwAvatar user={avatarUser} size={74} />
               )}
             </span>
           </span>
           <dl className="grid flex-1 grid-cols-3 text-center">
-            <Stat label="Posts" value={formatCount(profileStats.posts)} />
-            <Stat label="Followers" value={formatCount(profileStats.followers)} />
-            <Stat label="Following" value={formatCount(profileStats.following)} />
+            <Stat label="Posts" value={formatCount(posts.length)} />
+            <Stat label="Reels" value={formatCount(reels.length)} />
+            <Stat label="Saved" value={formatCount(savedPosts.length)} />
           </dl>
         </div>
 
         <div className="pt-3">
-          <p className="font-semibold">{profile.name}</p>
+          <p className="font-semibold">{profile.display_name || "Add your name"}</p>
           {profile.category ? (
             <p className="text-xs text-muted-foreground">{profile.category}</p>
           ) : null}
           {profile.bio ? <Bio text={profile.bio} /> : null}
-          {(currentUser.location || currentUser.website) && (
+          {(profile.location || profile.website) && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1.5 text-xs">
-              {currentUser.location ? (
+              {profile.location ? (
                 <span className="flex items-center gap-1 text-muted-foreground">
                   <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  {currentUser.location}
+                  {profile.location}
                 </span>
               ) : null}
-              {currentUser.website ? (
+              {profile.website ? (
                 <a
                   href={
-                    currentUser.website.startsWith("http")
-                      ? currentUser.website
-                      : `https://${currentUser.website}`
+                    profile.website.startsWith("http")
+                      ? profile.website
+                      : `https://${profile.website}`
                   }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
                 >
                   <Link2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  {currentUser.website.replace(/^https?:\/\//, "")}
+                  {profile.website.replace(/^https?:\/\//, "")}
                 </a>
               ) : null}
             </div>
@@ -153,7 +163,22 @@ function ProfilePage() {
           >
             Edit profile
           </Button>
-          <Button variant="secondary" className="h-10 rounded-full">
+          <Button
+            variant="secondary"
+            className="h-10 rounded-full"
+            onClick={async () => {
+              const url = `${window.location.origin}/profile`;
+              try {
+                if (navigator.share) await navigator.share({ title: profile.username, url });
+                else {
+                  await navigator.clipboard.writeText(url);
+                  toast.success("Profile link copied");
+                }
+              } catch {
+                /* user cancelled */
+              }
+            }}
+          >
             Share profile
           </Button>
         </div>
@@ -173,21 +198,26 @@ function ProfilePage() {
         </TabsList>
 
         <TabsContent value="grid" className="mt-0">
-          <MediaGrid
-            images={gridPosts.map((p) => p.image)}
-            pinnedCount={pinned.length}
-          />
+          {grid.length ? (
+            <MediaGrid items={grid.map((p) => ({ src: src(p.media_url), type: p.media_type }))} />
+          ) : (
+            <Empty text={loading ? "Loading your posts…" : "No posts yet. Create your first one."} />
+          )}
         </TabsContent>
         <TabsContent value="reels" className="mt-0">
-          <MediaGrid images={reels.map((r) => r.poster)} />
+          {reels.length ? (
+            <MediaGrid items={reels.map((p) => ({ src: src(p.media_url), type: p.media_type }))} />
+          ) : (
+            <Empty text={loading ? "Loading reels…" : "No reels yet."} />
+          )}
         </TabsContent>
         <TabsContent value="saved" className="mt-0">
           {savedPosts.length ? (
-            <MediaGrid images={savedPosts.map((p) => p.image)} />
+            <MediaGrid
+              items={savedPosts.map((p) => ({ src: src(p.media_url), type: p.media_type }))}
+            />
           ) : (
-            <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-              Nothing saved yet. Tap the bookmark on a post to keep it here.
-            </p>
+            <Empty text="Nothing saved yet. Tap the bookmark on a post to keep it here." />
           )}
         </TabsContent>
       </Tabs>
@@ -195,12 +225,16 @@ function ProfilePage() {
       <EditProfileSheet
         open={editOpen}
         onOpenChange={setEditOpen}
-        user={currentUser}
-        value={profile}
-        onSave={setProfile}
+        user={avatarUser}
+        value={editValue}
+        onSave={save}
       />
     </main>
   );
+}
+
+function Empty({ text }: { text: string }) {
+  return <p className="px-4 py-10 text-center text-sm text-muted-foreground">{text}</p>;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -212,20 +246,16 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MediaGrid({ images, pinnedCount = 0 }: { images: string[]; pinnedCount?: number }) {
+function MediaGrid({ items }: { items: { src: string; type: string }[] }) {
   return (
     <ul className="grid grid-cols-3 gap-0.5">
-      {images.map((src, i) => (
-        <li key={`${src}-${i}`} className="relative aspect-square overflow-hidden bg-secondary">
-          <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
-          {i < pinnedCount ? (
-            <span
-              className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-background/60 backdrop-blur-sm"
-              aria-label="Pinned post"
-            >
-              <Pin className="h-3 w-3 fill-current text-foreground" strokeWidth={1.8} />
-            </span>
-          ) : null}
+      {items.map((it, i) => (
+        <li key={`${it.src}-${i}`} className="relative aspect-square overflow-hidden bg-secondary">
+          {it.type?.startsWith("video") ? (
+            <video src={it.src} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+          ) : (
+            <img src={it.src} alt="" loading="lazy" className="h-full w-full object-cover" />
+          )}
         </li>
       ))}
     </ul>
