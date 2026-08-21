@@ -1090,6 +1090,91 @@ export function CreateStudioPage() {
             <div className="absolute inset-0 z-[60] bg-foreground/30 flex items-end" onClick={() => setShowMusicPicker(false)}>
               <div className="w-full bg-card border-t border-border rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground mb-3">Music Library</p>
+
+                {/* CapCut-style music trim: choose which part of the song plays */}
+                {audioTrack && (
+                  <div className="mb-3 p-3 rounded-2xl bg-muted/70 border border-border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-black truncate text-foreground">{audioTrack.title}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {fmtSec(audioTrack.clipStart)} → {fmtSec(audioTrack.clipEnd)}
+                      </span>
+                    </div>
+
+                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                      Start in song
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(0.2, audioTrack.duration - 0.2)}
+                      step={0.1}
+                      value={audioTrack.clipStart}
+                      onChange={(e) => {
+                        const s = Number(e.target.value);
+                        setAudioTrack((t) =>
+                          t ? { ...t, clipStart: s, clipEnd: Math.max(s + 0.5, t.clipEnd) } : t,
+                        );
+                      }}
+                      className="w-full accent-orange-500 mb-2"
+                    />
+
+                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                      End in song
+                    </label>
+                    <input
+                      type="range"
+                      min={0.2}
+                      max={audioTrack.duration}
+                      step={0.1}
+                      value={audioTrack.clipEnd}
+                      onChange={(e) => {
+                        const en = Number(e.target.value);
+                        setAudioTrack((t) =>
+                          t ? { ...t, clipEnd: en, clipStart: Math.min(t.clipStart, en - 0.5) } : t,
+                        );
+                      }}
+                      className="w-full accent-orange-500 mb-2"
+                    />
+
+                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                      Place at {fmtSec(audioTrack.start)} on video
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={Math.max(0.5, totalDuration)}
+                      step={0.1}
+                      value={Math.min(audioTrack.start, Math.max(0.5, totalDuration))}
+                      onChange={(e) =>
+                        setAudioTrack((t) => (t ? { ...t, start: Number(e.target.value) } : t))
+                      }
+                      className="w-full accent-orange-500"
+                    />
+
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          const a = audioElRef.current;
+                          if (!a || !audioTrack) return;
+                          try { a.currentTime = audioTrack.clipStart; } catch { /* ignore */ }
+                          void a.play().catch(() => {});
+                          window.setTimeout(() => a.pause(), 4000);
+                        }}
+                        className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-[11px] font-black uppercase"
+                      >
+                        Preview
+                      </button>
+                      <button
+                        onClick={() => setShowMusicPicker(false)}
+                        className="flex-1 py-2 rounded-xl bg-card border border-border text-[11px] font-black uppercase text-foreground"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => audioInputRef.current?.click()}
                   className="w-full mb-3 flex items-center gap-3 p-3 rounded-2xl border border-dashed border-orange-500/50 bg-orange-500/10 text-left active:scale-[0.99] transition"
