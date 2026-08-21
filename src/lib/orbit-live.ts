@@ -164,10 +164,15 @@ async function uid() {
 
 export async function saveOrbitProfileRemote(p: OrbitProfileDraft, privacy: OrbitPrivacy) {
   const id = await uid();
-  if (!id) return;
-  await supabase.from("orbit_profiles").upsert(draftToRow(id, p, privacy) as never, {
-    onConflict: "user_id",
-  });
+  if (!id) return { ok: false as const, reason: "signed-out" as const };
+  const { error } = await supabase
+    .from("orbit_profiles")
+    .upsert(draftToRow(id, p, privacy) as never, { onConflict: "user_id" });
+  if (error) {
+    console.error("[orbit] profile save failed", error.message);
+    return { ok: false as const, reason: "error" as const, message: error.message };
+  }
+  return { ok: true as const };
 }
 
 export async function saveOrbitPrivacyRemote(privacy: OrbitPrivacy) {
