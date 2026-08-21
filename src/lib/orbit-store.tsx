@@ -319,14 +319,18 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
     const pull = async () => {
       const remote = await loadOrbitStateRemote();
       if (cancelled || !remote) return;
-      setState((s) => ({
-        ...s,
-        profile: remote.profile ?? s.profile,
-        privacy: { ...s.privacy, ...(remote.privacy ?? {}) },
-        liked: remote.liked,
-        connected: remote.connected,
-        requests: Object.keys(remote.requests).length ? remote.requests : s.requests,
-      }));
+      setState((s) => {
+        // Orbit ID created while signed out — push it up so others can find it.
+        if (!remote.profile && s.profile) void saveOrbitProfileRemote(s.profile, s.privacy);
+        return {
+          ...s,
+          profile: remote.profile ?? s.profile,
+          privacy: { ...s.privacy, ...(remote.privacy ?? {}) },
+          liked: remote.liked,
+          connected: remote.connected,
+          requests: Object.keys(remote.requests).length ? remote.requests : s.requests,
+        };
+      });
     };
     void pull();
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
