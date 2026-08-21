@@ -84,6 +84,13 @@ const clamp01 = (v: number) =>
 /** Moments are published in chunks of at most this many seconds. */
 const MAX_PART_SECONDS = 20;
 
+const fmtTime = (s: number) => {
+  const total = Math.max(0, Math.floor(s || 0));
+  const m = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+};
+
 /** Reads the duration of a video url (0 when unknown). */
 const readVideoDuration = (
   url: string
