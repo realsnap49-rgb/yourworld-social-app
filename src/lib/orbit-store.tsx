@@ -9,6 +9,17 @@ import {
 } from "react";
 import type { OrbitMoodId } from "@/lib/orbit-mood";
 import { ORBIT_KEY, notifyOrbitPrefsChanged } from "@/lib/orbit-prefs";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  loadOrbitStateRemote,
+  saveOrbitPrivacyRemote,
+  saveOrbitProfileRemote,
+  sendOrbitChatRequestRemote,
+  sendOrbitRequestMessageRemote,
+  setOrbitConnectionRemote,
+  setOrbitLikeRemote,
+  setOrbitRequestStatusRemote,
+} from "@/lib/orbit-live";
 
 export type OrbitVisibility = "public" | "friends" | "hidden";
 export type OrbitAudience = "everyone" | "connections" | "nobody";
@@ -302,6 +313,31 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
+  /** Pull the signed-in user's real Orbit data and keep local state in sync. */
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      const remote = await loadOrbitStateRemote();
+      if (cancelled || !remote) return;
+      setState((s) => ({
+        ...s,
+        profile: remote.profile ?? s.profile,
+        privacy: { ...s.privacy, ...(remote.privacy ?? {}) },
+        liked: remote.liked,
+        connected: remote.connected,
+        requests: Object.keys(remote.requests).length ? remote.requests : s.requests,
+      }));
+    };
+    void pull();
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") void pull();
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     if (!hydrated) return;
     try {
@@ -314,7 +350,11 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
 
   const setPrivacy = useCallback(
     (patch: Partial<OrbitPrivacy>) =>
-      setState((s) => ({ ...s, privacy: { ...s.privacy, ...patch } })),
+      setState((s) => {
+        const privacy = { ...s.privacy, ...patch };
+        void saveOrbitPrivacyRemote(privacy);
+        return { ...s, privacy };
+      }),
     [],
   );
 
@@ -326,9 +366,18 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
       ...state,
       hydrated,
       hasProfile: state.profile !== null,
-      saveProfile: (p) => setState((s) => ({ ...s, profile: p })),
+      saveProfile: (p) =>
+        setState((s) => {
+          void saveOrbitProfileRemote(p, s.privacy);
+          return { ...s, profile: p };
+        }),
       setMood: (mood) =>
-        setState((s) => (s.profile ? { ...s, profile: { ...s.profile, mood } } : s)),
+        setState((s) => {
+          if (!s.profile) return s;
+          const profile = { ...s.profile, mood };
+          void saveOrbitProfileRemote(profile, s.privacy);
+          return { ...s, profile };
+        }),
       setPrivacy,
       setOrbitPin: async (pin: string) => {
         const salt = randomSalt();
@@ -359,7 +408,8 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
           ...s,
           privacy: { ...s.privacy, blocked: toggleIn(s.privacy.blocked, id) },
         })),
-      sendChatRequest: (id, intro) =>
+      sendChatRequest: (id, intro) => {
+        void sendOrbitChatRequestRemote(id, intro);
         setState((s) =>
           s.requests[id]
             ? s
@@ -375,13 +425,15 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
                   },
                 },
               },
-        ),
+        );
+      },
       sendRequestMessage: (id, msg) => {
         const existing = state.requests[id];
         if (existing?.status === "declined") return false;
         const { texts, photos } = countRequestMessages(existing);
         if (msg.kind === "text" && texts >= ORBIT_REQUEST_TEXT_MAX) return false;
         if (msg.kind === "photo" && photos >= ORBIT_REQUEST_PHOTO_MAX) return false;
+        void sendOrbitRequestMessageRemote(id, msg);
         setState((s) => {
           const req: OrbitChatRequest = s.requests[id] ?? { direction: "outgoing", status: "pending" };
           const messages = [
@@ -398,26 +450,39 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
         });
         return true;
       },
-      acceptRequest: (id) =>
-        setState((s) => ({
+      acceptRequest: (id) => {
+        void setOrbitRequestStatusRemote(id, "accepted");
+        return setState((s) => ({
           ...s,
           connected: { ...s.connected, [id]: true },
           requests: {
             ...s.requests,
             [id]: { ...(s.requests[id] ?? { direction: "incoming" as const }), status: "accepted" },
           },
-        })),
-      declineRequest: (id) =>
-        setState((s) => ({
+        }));
+      },
+      declineRequest: (id) => {
+        void setOrbitRequestStatusRemote(id, "declined");
+        return setState((s) => ({
           ...s,
           requests: {
             ...s.requests,
             [id]: { ...(s.requests[id] ?? { direction: "incoming" as const }), status: "declined" },
           },
-        })),
-      toggleLike: (id) => setState((s) => ({ ...s, liked: { ...s.liked, [id]: !s.liked[id] } })),
+        }));
+      },
+      toggleLike: (id) =>
+        setState((s) => {
+          const next = !s.liked[id];
+          void setOrbitLikeRemote(id, next);
+          return { ...s, liked: { ...s.liked, [id]: next } };
+        }),
       toggleConnect: (id) =>
-        setState((s) => ({ ...s, connected: { ...s.connected, [id]: !s.connected[id] } })),
+        setState((s) => {
+          const next = !s.connected[id];
+          void setOrbitConnectionRemote(id, next);
+          return { ...s, connected: { ...s.connected, [id]: next } };
+        }),
     }),
     [state, hydrated, setPrivacy],
   );
