@@ -819,8 +819,23 @@ export function CreateStudioPage() {
               </span>
             </div>
             <div className="flex items-center gap-3 text-muted-foreground">
-              <button onClick={() => updateCurrentClip("rotation", 0)} className="active:scale-90 transition" aria-label="Reset rotation"><Undo2 size={16} /></button>
-              <button onClick={() => updateCurrentClip("filter", "none")} className="active:scale-90 transition" aria-label="Reset filter"><Redo2 size={16} /></button>
+              <button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className={`active:scale-90 transition ${canUndo ? "text-foreground" : "opacity-35"}`}
+                aria-label="Undo"
+              >
+                <Undo2 size={16} />
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className={`active:scale-90 transition ${canRedo ? "text-foreground" : "opacity-35"}`}
+                aria-label="Redo"
+              >
+                <Redo2 size={16} />
+              </button>
+
               <button onClick={handleSplit} className="active:scale-90 transition" aria-label="Split clip at playhead"><SplitSquareHorizontal size={16} /></button>
               <button onClick={handleDuplicate} className="active:scale-90 transition" aria-label="Duplicate clip"><Copy size={16} /></button>
               <button onClick={handleDelete} className="text-destructive active:scale-90 transition" aria-label="Delete clip"><Trash2 size={16} /></button>
