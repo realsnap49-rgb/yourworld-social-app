@@ -3616,7 +3616,7 @@ function SectionTitle({
   title: string;
 }) {
   return (
-    <h2 className="text-xs tracking-widest text-zinc-400 font-bold mb-3">
+    <h2 className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold mb-2">
       {title}
     </h2>
   );
@@ -3642,33 +3642,36 @@ function AudienceButton({
   return (
     <button
       onClick={onClick}
-      className={`text-left rounded-3xl p-4 border ${
+      className={`text-left rounded-2xl px-3 py-2.5 border transition-colors ${
         active
-          ? "border-pink-500 bg-pink-500/10"
-          : "border-white/10 bg-white/5"
+          ? "border-pink-500/70 bg-pink-500/10"
+          : "border-white/10 bg-white/[0.04]"
       }`}
     >
-      <div className="flex justify-between mb-3">
+      <div className="flex items-center justify-between mb-1.5">
         <span
-          className={
+          className={`[&>svg]:h-4 [&>svg]:w-4 ${
             active
               ? "text-pink-400"
               : "text-zinc-400"
-          }
+          }`}
         >
           {icon}
         </span>
 
         {active && (
-          <Check className="text-pink-400" />
+          <Check
+            size={13}
+            className="text-pink-400"
+          />
         )}
       </div>
 
-      <p className="font-bold text-sm">
+      <p className="font-semibold text-[12px] leading-tight">
         {title}
       </p>
 
-      <p className="text-xs text-zinc-500 mt-1">
+      <p className="text-[10px] text-zinc-500 mt-0.5 leading-tight">
         {subtitle}
       </p>
     </button>
