@@ -3694,10 +3694,10 @@ function DurationButton({
   return (
     <button
       onClick={onClick}
-      className={`py-4 rounded-3xl border font-bold ${
+      className={`py-2.5 rounded-2xl border text-[12px] font-semibold transition-colors ${
         active
-          ? "border-pink-500 bg-pink-500/10"
-          : "border-white/10 bg-white/5 text-zinc-400"
+          ? "border-pink-500/70 bg-pink-500/10"
+          : "border-white/10 bg-white/[0.04] text-zinc-400"
       }`}
     >
       {title}
