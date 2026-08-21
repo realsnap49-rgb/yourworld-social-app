@@ -3725,31 +3725,31 @@ function SettingRow({
   return (
     <button
       onClick={onChange}
-      className="w-full rounded-3xl bg-white/5 border border-white/10 p-4 flex items-center gap-4 text-left"
+      className="w-full rounded-2xl bg-white/[0.04] border border-white/10 px-3 py-2.5 flex items-center gap-3 text-left"
     >
-      <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-zinc-400">
+      <div className="w-7 h-7 shrink-0 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400 [&>svg]:h-3.5 [&>svg]:w-3.5">
         {icon}
       </div>
 
-      <div className="flex-1">
-        <p className="font-bold text-sm">
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-[12px] leading-tight">
           {title}
         </p>
 
-        <p className="text-xs text-zinc-500 mt-1">
+        <p className="text-[10px] text-zinc-500 mt-0.5 leading-tight">
           {subtitle}
         </p>
       </div>
 
       <div
-        className={`w-7 h-7 rounded-md flex items-center justify-center ${
+        className={`w-5 h-5 shrink-0 rounded-md flex items-center justify-center ${
           checked
             ? "bg-pink-500"
             : "border border-zinc-600"
         }`}
       >
         {checked && (
-          <Check size={17} />
+          <Check size={13} />
         )}
       </div>
     </button>
