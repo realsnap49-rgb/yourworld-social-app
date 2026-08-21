@@ -341,31 +341,44 @@ export function CreateStudioPage() {
     }
   }, [currentClip, activeClipIndex]);
 
-  // Reload the <video> source whenever the active clip's URL changes
+  // Reload the <video> source whenever the active clip's URL changes,
+  // and keep playing across clip boundaries
   useEffect(() => {
     const v = videoRef.current;
     const url = currentClip?.url;
     if (!v || !url) return;
-    if (loadedUrlRef.current === url) return;
-    loadedUrlRef.current = url;
-    v.src = url;
-    v.load();
-    const onReady = () => {
-      const start = currentClip?.trimStart ?? 0;
-      if (isFinite(start) && Math.abs(v.currentTime - start) > 0.05) {
+    const start = currentClip?.trimStart ?? 0;
+    const end = currentClip?.trimEnd;
+    const ready = () => {
+      if (scrubbingRef.current) return;
+      if (v.currentTime < start - 0.05 || (end != null && v.currentTime > end + 0.05)) {
         try { v.currentTime = start; } catch { /* ignore */ }
       }
       if (isPlaying) void v.play().catch(() => {});
     };
-    if (v.readyState >= 2) onReady();
-    else v.addEventListener("loadeddata", onReady, { once: true });
-    return () => v.removeEventListener("loadeddata", onReady);
-  }, [currentClip?.url, currentClip?.trimStart, isPlaying]);
+    if (loadedUrlRef.current !== url) {
+      loadedUrlRef.current = url;
+      v.src = url;
+      v.load();
+      v.addEventListener("loadeddata", ready, { once: true });
+      return () => v.removeEventListener("loadeddata", ready);
+    }
+    if (v.readyState >= 2) {
+      ready();
+      return;
+    }
+    v.addEventListener("loadeddata", ready, { once: true });
+    return () => v.removeEventListener("loadeddata", ready);
+  }, [currentClip?.url, currentClip?.trimStart, currentClip?.trimEnd, activeClipIndex, isPlaying]);
 
   // Advance to the next clip (loops back to the first)
+  const advancingRef = useRef(0);
   const advanceClip = React.useCallback(() => {
     const v = videoRef.current;
     if (!clips.length) return;
+    const now = Date.now();
+    if (now - advancingRef.current < 400) return;
+    advancingRef.current = now;
     const next = (activeClipIndex + 1) % clips.length;
     const nextClip = clips[next];
     setIsPlaying(true);
@@ -375,6 +388,7 @@ export function CreateStudioPage() {
     }
     setActiveClipIndex(next);
   }, [clips, activeClipIndex, currentClip?.url]);
+
 
   // Sync canvas playback to the selected clip's trim range
   useEffect(() => {
