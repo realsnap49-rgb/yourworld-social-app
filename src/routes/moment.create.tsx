@@ -3268,7 +3268,7 @@ export function MomentCreatePage() {
       <div className="max-w-xl mx-auto px-5 pt-5 pb-10">
         {/* HEADER */}
 
-        <div className="flex items-center justify-between mb-7">
+        <div className="flex items-center justify-between mb-5">
           <button
             onClick={() =>
               setStep(1)
@@ -3288,7 +3288,7 @@ export function MomentCreatePage() {
         {/* PREVIEW */}
 
         {mediaUrl && (
-          <div className="relative w-28 h-40 rounded-2xl overflow-hidden mx-auto mb-7">
+          <div className="relative w-28 h-40 rounded-2xl overflow-hidden mx-auto mb-5">
             {isVideo ? (
               <video
                 src={mediaUrl}
@@ -3310,7 +3310,7 @@ export function MomentCreatePage() {
 
         <SectionTitle title="AUDIENCE" />
 
-        <div className="grid grid-cols-2 gap-3 mb-7">
+        <div className="grid grid-cols-2 gap-2 mb-5">
           <AudienceButton
             active={
               audience ===
@@ -3376,7 +3376,7 @@ export function MomentCreatePage() {
 
         <SectionTitle title="DURATION" />
 
-        <div className="grid grid-cols-2 gap-3 mb-7">
+        <div className="grid grid-cols-2 gap-2 mb-5">
           <DurationButton
             active={
               durationHours ===
@@ -3408,7 +3408,7 @@ export function MomentCreatePage() {
 
         <SectionTitle title="INTERACTION & SAFETY" />
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <SettingRow
             icon={<MessageCircle />}
             title="Add a poll"
@@ -3518,15 +3518,31 @@ export function MomentCreatePage() {
 
         {/* SHARE */}
 
-        <button
-          onClick={
-            handlePublish
-          }
-          className="w-full mt-7 py-5 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black text-lg flex items-center justify-center gap-2"
-        >
-          Share Moment
-          <Share2 />
-        </button>
+        <div className="mt-5 flex items-center gap-2.5">
+          <button
+            onClick={
+              handleDownload
+            }
+            aria-label="Save to gallery"
+            className="h-12 w-12 shrink-0 rounded-full border border-white/15 bg-white/[0.06] flex items-center justify-center active:scale-95 transition"
+          >
+            <Download size={18} />
+          </button>
+
+          <button
+            onClick={
+              handlePublish
+            }
+            className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-bold text-[15px] flex items-center justify-center gap-2"
+          >
+            Share Moment
+            <Share2 size={17} />
+          </button>
+        </div>
+
+        <p className="mt-2 text-center text-[10px] text-zinc-500">
+          Save to gallery ya seedha share karein
+        </p>
       </div>
     </div>
   );
@@ -3694,10 +3710,10 @@ function DurationButton({
   return (
     <button
       onClick={onClick}
-      className={`py-4 rounded-3xl border font-bold ${
+      className={`py-2.5 rounded-2xl border text-[12px] font-semibold transition-colors ${
         active
-          ? "border-pink-500 bg-pink-500/10"
-          : "border-white/10 bg-white/5 text-zinc-400"
+          ? "border-pink-500/70 bg-pink-500/10"
+          : "border-white/10 bg-white/[0.04] text-zinc-400"
       }`}
     >
       {title}
@@ -3725,31 +3741,31 @@ function SettingRow({
   return (
     <button
       onClick={onChange}
-      className="w-full rounded-3xl bg-white/5 border border-white/10 p-4 flex items-center gap-4 text-left"
+      className="w-full rounded-2xl bg-white/[0.04] border border-white/10 px-3 py-2.5 flex items-center gap-3 text-left"
     >
-      <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-zinc-400">
+      <div className="w-7 h-7 shrink-0 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400 [&>svg]:h-3.5 [&>svg]:w-3.5">
         {icon}
       </div>
 
-      <div className="flex-1">
-        <p className="font-bold text-sm">
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-[12px] leading-tight">
           {title}
         </p>
 
-        <p className="text-xs text-zinc-500 mt-1">
+        <p className="text-[10px] text-zinc-500 mt-0.5 leading-tight">
           {subtitle}
         </p>
       </div>
 
       <div
-        className={`w-7 h-7 rounded-md flex items-center justify-center ${
+        className={`w-5 h-5 shrink-0 rounded-md flex items-center justify-center ${
           checked
             ? "bg-pink-500"
             : "border border-zinc-600"
         }`}
       >
         {checked && (
-          <Check size={17} />
+          <Check size={13} />
         )}
       </div>
     </button>
