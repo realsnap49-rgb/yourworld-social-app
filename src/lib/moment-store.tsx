@@ -46,6 +46,12 @@ export type MyMoment = {
   text: string;
   textBg: string;
   music?: string;
+  /** real playable audio source picked in the editor */
+  musicUrl?: string;
+  /** trim window inside the audio file (seconds) */
+  musicStart?: number;
+  musicEnd?: number;
+  musicVolume?: number;
   stickers: Sticker[];
   /** transparent PNG data url from the drawing tool */
   drawing?: string;
