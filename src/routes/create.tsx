@@ -141,6 +141,69 @@ export function CreateStudioPage() {
   };
   const [audioTrack, setAudioTrack] = useState<AudioTrackState | null>(null);
 
+  // ---- Real undo / redo history (clips + audio track) ----
+  type EditSnapshot = { clips: ClipItem[]; audioTrack: AudioTrackState | null };
+  const pastRef = useRef<EditSnapshot[]>([]);
+  const futureRef = useRef<EditSnapshot[]>([]);
+  const lastSnapRef = useRef<EditSnapshot>({ clips: [], audioTrack: null });
+  const skipHistoryRef = useRef(false);
+  const [historyVersion, setHistoryVersion] = useState(0);
+
+  useEffect(() => {
+    const snap: EditSnapshot = { clips, audioTrack };
+    if (
+      lastSnapRef.current.clips === clips &&
+      lastSnapRef.current.audioTrack === audioTrack
+    )
+      return;
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false;
+      lastSnapRef.current = snap;
+      setHistoryVersion((v) => v + 1);
+      return;
+    }
+    pastRef.current = [...pastRef.current.slice(-49), lastSnapRef.current];
+    futureRef.current = [];
+    lastSnapRef.current = snap;
+    setHistoryVersion((v) => v + 1);
+  }, [clips, audioTrack]);
+
+  const applySnapshot = (snap: EditSnapshot) => {
+    skipHistoryRef.current = true;
+    setClips(snap.clips);
+    setAudioTrack(snap.audioTrack);
+    setActiveClipIndex((i) => Math.min(i, Math.max(0, snap.clips.length - 1)));
+  };
+
+  const handleUndo = () => {
+    const prev = pastRef.current.pop();
+    if (!prev) {
+      toast("Nothing to undo");
+      setHistoryVersion((v) => v + 1);
+      return;
+    }
+    futureRef.current = [...futureRef.current, lastSnapRef.current];
+    applySnapshot(prev);
+    toast("Undone");
+  };
+
+  const handleRedo = () => {
+    const next = futureRef.current.pop();
+    if (!next) {
+      toast("Nothing to redo");
+      setHistoryVersion((v) => v + 1);
+      return;
+    }
+    pastRef.current = [...pastRef.current, lastSnapRef.current];
+    applySnapshot(next);
+    toast("Redone");
+  };
+
+  const canUndo = pastRef.current.length > 0 && historyVersion >= 0;
+  const canRedo = futureRef.current.length > 0;
+
+
+
   // Load a music file from the device gallery / storage
   const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
