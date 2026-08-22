@@ -454,6 +454,39 @@ export function CreateStudioPage() {
     window.addEventListener("pointerup", end);
   };
 
+  // Aspect-ratio presets: fit the largest box of `ratio` (w/h) inside the
+  // visible video area, expressed in stage percentages.
+  const applyAspect = (ratio: number | null) => {
+    if (ratio === null) {
+      setClips((prev) =>
+        prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: undefined } : c)),
+      );
+      return;
+    }
+    const stage = stageRef.current?.getBoundingClientRect();
+    const vid = videoRef.current?.getBoundingClientRect();
+    if (!stage || !vid || !stage.width || !stage.height) return;
+    // video box in stage %
+    const vx = ((vid.left - stage.left) / stage.width) * 100;
+    const vy = ((vid.top - stage.top) / stage.height) * 100;
+    const vw = (vid.width / stage.width) * 100;
+    const vh = (vid.height / stage.height) * 100;
+    // px-space fit, then convert back to %
+    let boxWpx = vid.width;
+    let boxHpx = boxWpx / ratio;
+    if (boxHpx > vid.height) {
+      boxHpx = vid.height;
+      boxWpx = boxHpx * ratio;
+    }
+    const w = (boxWpx / vid.width) * vw;
+    const h = (boxHpx / vid.height) * vh;
+    const next = { x: vx + (vw - w) / 2, y: vy + (vh - h) / 2, w, h };
+    setClips((prev) =>
+      prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: next } : c)),
+    );
+  };
+
+
   // ---- 60fps playhead: read the video on every frame, commit state only when
   // it visibly changes so the timeline glides instead of stepping. ----
   const lastSyncRef = useRef({ frac: -1, time: -1 });
@@ -834,7 +867,7 @@ export function CreateStudioPage() {
 
 
           {/* FULL-WIDTH VIDEO CANVAS */}
-          <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-white overflow-hidden">
+          <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-black overflow-hidden">
             <div ref={stageRef} className="relative h-full w-full flex items-center justify-center touch-none">
               <video
                 ref={videoRef}
@@ -1011,20 +1044,44 @@ export function CreateStudioPage() {
               )}
 
               {activeToolPanel === "CROP" && currentClip && (
-                <label className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
-                  <Crop size={14} className="text-orange-500" />
-                  <input
-                    type="range"
-                    min={1}
-                    max={3}
-                    step={0.05}
-                    value={currentClip.crop ?? 1}
-                    onChange={(e) => updateCurrentClip("crop", Number(e.target.value))}
-                    className="flex-1 accent-orange-500"
-                  />
-                  <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
-                </label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    {([
+                      { label: "Free", r: null },
+                      { label: "9:16", r: 9 / 16 },
+                      { label: "4:5", r: 4 / 5 },
+                      { label: "1:1", r: 1 },
+                      { label: "4:3", r: 4 / 3 },
+                      { label: "16:9", r: 16 / 9 },
+                    ] as const).map((a) => (
+                      <button
+                        key={a.label}
+                        onClick={() => applyAspect(a.r)}
+                        className="px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase border border-border bg-muted text-foreground flex-shrink-0 active:scale-95 transition"
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] font-semibold text-muted-foreground">
+                    Drag the box on the video to crop freely.
+                  </p>
+                  <label className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
+                    <Crop size={14} className="text-orange-500" />
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.05}
+                      value={currentClip.crop ?? 1}
+                      onChange={(e) => updateCurrentClip("crop", Number(e.target.value))}
+                      className="flex-1 accent-orange-500"
+                    />
+                    <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
+                  </label>
+                </div>
               )}
+
 
               {activeToolPanel === "FILTER" && (
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
