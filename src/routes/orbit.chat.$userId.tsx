@@ -647,8 +647,8 @@ function OrbitChatPage() {
                   ) : m.audio ? (
                     <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
                   ) : m.url ? (
-                    viewOnce[m.id] ? (
-                      <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
+                    m.viewOnce ? (
+                      <OrbitViewOnce src={m.url} seconds={5} />
                     ) : (
                       <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
                     )
