@@ -73,6 +73,7 @@ type Msg = {
   me: boolean;
   text?: string;
   url?: string;
+  video?: boolean;
   audio?: string;
   invite?: InviteCard;
   system?: boolean;
