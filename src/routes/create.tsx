@@ -882,7 +882,7 @@ export function CreateStudioPage() {
                   if (isFinite(d) && d > 0 && !currentClip?.duration) updateCurrentClip("duration", d);
                 }}
                 onEmptied={() => { loadedUrlRef.current = null; }}
-                className="h-full max-h-full max-w-full object-contain will-change-transform"
+                className="h-full w-full object-cover will-change-transform"
                 style={{
                   transform: `translateZ(0) rotate(${currentClip?.rotation || 0}deg) scale(${currentClip?.crop ?? 1})`,
                   clipPath: currentClip?.cropBox
