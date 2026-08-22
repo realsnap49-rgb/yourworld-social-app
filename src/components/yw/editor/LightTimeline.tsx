@@ -334,14 +334,21 @@ export function LightTimeline({
                   }}
                   style={{
                     width: CELL,
-                    transform: dragIndex === i ? `translateX(${dragOffset}px) scale(1.06)` : undefined,
+                    transform:
+                      dragIndex === i
+                        ? `translate3d(${dragOffset}px,0,0) scale(1.06)`
+                        : "translate3d(0,0,0)",
                     zIndex: dragIndex === i ? 30 : undefined,
                     touchAction: dragIndex === i ? "none" : undefined,
+                    willChange: dragIndex === i ? "transform" : undefined,
+                    transitionTimingFunction: "cubic-bezier(0.22,1,0.36,1)",
                   }}
-                  className={`relative h-16 flex-shrink-0 bg-muted overflow-hidden cursor-pointer transition-opacity ${
-                    dragIndex === i ? "shadow-xl ring-2 ring-inset ring-orange-500 opacity-100" : ""
+                  className={`relative h-16 flex-shrink-0 bg-muted overflow-hidden cursor-pointer duration-200 [transition-property:opacity,transform,box-shadow] ${
+                    dragIndex === i ? "shadow-2xl ring-2 ring-inset ring-orange-500 opacity-100" : ""
                   } ${
-                    selected ? "opacity-100 ring-2 ring-inset ring-orange-500 z-10" : "opacity-50"
+                    selected
+                      ? "opacity-100 ring-2 ring-inset ring-orange-500 z-10 shadow-[0_6px_18px_-8px_rgba(249,115,22,0.8)]"
+                      : "opacity-45"
                   }`}
                 >
                   {thumbs[clip.id] && (
@@ -349,11 +356,14 @@ export function LightTimeline({
                       src={thumbs[clip.id]}
                       alt=""
                       draggable={false}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                     />
                   )}
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
-                    <span className="text-[9px] font-black text-foreground/80">
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-background/55 backdrop-blur-[2px]">
+                    <span className="text-[9px] font-black tabular-nums text-foreground/80">
                       #{i + 1} · {clipLen(clip).toFixed(1)}s
                     </span>
                   </div>
@@ -367,14 +377,14 @@ export function LightTimeline({
                     <>
                       <div
                         onPointerDown={trimDrag("start")}
-                        className="absolute inset-y-0 w-3 bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20"
+                        className="absolute inset-y-0 w-3 rounded-l-md bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20 shadow-md"
                         style={{ left: `${startPct}%` }}
                       >
                         <span className="h-5 w-[2px] bg-white/90 rounded" />
                       </div>
                       <div
                         onPointerDown={trimDrag("end")}
-                        className="absolute inset-y-0 w-3 -translate-x-full bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20"
+                        className="absolute inset-y-0 w-3 -translate-x-full rounded-r-md bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20 shadow-md"
                         style={{ left: `${endPct}%` }}
                       >
                         <span className="h-5 w-[2px] bg-white/90 rounded" />
@@ -383,6 +393,7 @@ export function LightTimeline({
                   )}
                 </div>
               );
+
             })}
           </div>
 
