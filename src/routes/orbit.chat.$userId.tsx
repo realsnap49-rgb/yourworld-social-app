@@ -83,6 +83,17 @@ type Msg = {
 /** Invites travel as a tagged text message so both sides see the same card. */
 const INVITE_PREFIX = "orbit-invite:";
 
+function randomPinSalt() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function hashPin(salt: string, pin: string) {
+  const bytes = new TextEncoder().encode(`${salt}:${pin}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 function toUiMsg(m: OrbitMessage): Msg {
   if (m.kind === "text" && m.text?.startsWith(INVITE_PREFIX)) {
     try {
@@ -481,6 +492,57 @@ function OrbitChatPage() {
     toast.success("Chat cleared");
   };
 
+  const toggleSecretLock = async () => {
+    if (secretLock) {
+      const pin = window.prompt("Enter the chat PIN to remove Secret Lock:");
+      if (!pin || !secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, pin)) !== secretPinHash) {
+        toast.error("Incorrect PIN");
+        return;
+      }
+      setSecretLock(false);
+      setSecretPinSalt(null);
+      setSecretPinHash(null);
+      setChatUnlocked(true);
+      toast.success("Secret Lock removed");
+      return;
+    }
+    const pin = window.prompt("Create a 4–8 digit PIN for this chat:");
+    if (!pin || !/^\d{4,8}$/.test(pin)) {
+      toast.error("Use a 4–8 digit PIN");
+      return;
+    }
+    const salt = randomPinSalt();
+    setSecretPinSalt(salt);
+    setSecretPinHash(await hashPin(salt, pin));
+    setSecretLock(true);
+    setChatUnlocked(true);
+    toast.success("Secret Lock enabled");
+  };
+
+  const reportUser = async () => {
+    if (reported) {
+      toast.info("This report is already under review");
+      return;
+    }
+    const reason = window.prompt("Tell us what happened:");
+    if (!reason?.trim() || reason.trim().length < 3) return;
+    const { data: auth } = await supabase.auth.getUser();
+    const reporterId = auth.user?.id;
+    if (!reporterId) return;
+    const { error } = await supabase.from("orbit_reports").upsert({
+      reporter_id: reporterId,
+      reported_user_id: userId,
+      reason: reason.trim().slice(0, 500),
+      status: "pending",
+    } as never, { onConflict: "reporter_id,reported_user_id" });
+    if (error) {
+      toast.error("Report could not be sent");
+      return;
+    }
+    setReported(true);
+    toast.success("Report sent for review");
+  };
+
   const blocked = orbit.privacy.blocked.includes(userId);
   const name = displayName ?? p.name;
 
@@ -574,10 +636,7 @@ function OrbitChatPage() {
                 label="Secret Lock Chat"
                 state={secretLock}
                 onClick={() => {
-                  setSecretLock((v) => {
-                    pushSystem(`Secret lock ${!v ? "enabled" : "disabled"}`);
-                    return !v;
-                  });
+                  void toggleSecretLock();
                   setMenuOpen(false);
                 }}
               />
@@ -675,10 +734,7 @@ function OrbitChatPage() {
                 label={reported ? "Reported" : "Report User"}
                 state={reported}
                 onClick={() => {
-                  if (!reported) {
-                    setReported(true);
-                    pushSystem(`${name} reported. Our team will review.`);
-                  }
+                  void reportUser();
                   setMenuOpen(false);
                 }}
               />
@@ -686,6 +742,41 @@ function OrbitChatPage() {
           </>
         )}
       </header>
+
+      {secretLock && !chatUnlocked && (
+        <div className="absolute inset-0 z-[120] grid place-items-center bg-background px-6">
+          <form
+            className="w-full max-w-xs space-y-4 text-center"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void (async () => {
+                if (!secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, unlockPin)) !== secretPinHash) {
+                  toast.error("Incorrect PIN");
+                  return;
+                }
+                setChatUnlocked(true);
+                setUnlockPin("");
+              })();
+            }}
+          >
+            <Lock className="mx-auto h-8 w-8 text-primary" strokeWidth={1.7} />
+            <div>
+              <h1 className="text-lg font-bold">Secret chat locked</h1>
+              <p className="mt-1 text-xs text-muted-foreground">Enter your PIN to open this conversation.</p>
+            </div>
+            <input
+              value={unlockPin}
+              onChange={(event) => setUnlockPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+              inputMode="numeric"
+              type="password"
+              autoFocus
+              aria-label="Secret chat PIN"
+              className="h-12 w-full rounded-xl bg-secondary px-4 text-center text-lg outline-none"
+            />
+            <button type="submit" className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground">Unlock</button>
+          </form>
+        </div>
+      )}
 
       {selectMode && (
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-secondary/60 px-4 py-2">
@@ -800,7 +891,12 @@ function OrbitChatPage() {
                     <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
                   ) : m.url ? (
                     m.viewOnce ? (
-                      <OrbitViewOnce src={m.url} seconds={5} />
+                      <OrbitViewOnce
+                        src={m.url}
+                        seconds={5}
+                        sentByMe={m.me}
+                        onConsumed={() => deleteIds([m.id])}
+                      />
                     ) : (
                       <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
                     )
@@ -935,6 +1031,7 @@ function OrbitChatPage() {
           if (!inviteKind) return;
           void chat.sendText(
             `${INVITE_PREFIX}${JSON.stringify(buildInvite(inviteKind, place))}`,
+            autoDelete,
           );
           setInviteKind(null);
           toast.success(`Invite sent to ${p.name}`, { description: place.name });
@@ -1048,7 +1145,17 @@ function InviteBubble({ invite }: { invite: InviteCard }) {
   );
 }
 
-function OrbitViewOnce({ src, seconds }: { src: string; seconds: number }) {
+function OrbitViewOnce({
+  src,
+  seconds,
+  sentByMe,
+  onConsumed,
+}: {
+  src: string;
+  seconds: number;
+  sentByMe: boolean;
+  onConsumed: () => void;
+}) {
   const [state, setState] = useState<"sealed" | "open" | "gone">("sealed");
   if (state === "gone")
     return <p className="px-3.5 py-2 text-xs italic opacity-80">Photo expired</p>;
@@ -1057,8 +1164,15 @@ function OrbitViewOnce({ src, seconds }: { src: string; seconds: number }) {
       <button
         type="button"
         onClick={() => {
+          if (sentByMe) {
+            toast.info("View-once photo sent");
+            return;
+          }
           setState("open");
-          window.setTimeout(() => setState("gone"), seconds * 1000);
+          window.setTimeout(() => {
+            setState("gone");
+            onConsumed();
+          }, seconds * 1000);
         }}
         className="flex h-40 w-full flex-col items-center justify-center gap-2 bg-foreground/10 text-xs font-semibold"
       >
