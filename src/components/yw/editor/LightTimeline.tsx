@@ -255,29 +255,32 @@ export function LightTimeline({
   return (
     <div className="w-full select-none">
       {/* unified time readout */}
-      <div className="flex items-center justify-between px-4 pb-1">
+      <div className="flex items-center justify-between px-4 pb-1.5">
         <button
           onClick={onToggleMute}
-          className="text-muted-foreground p-1 rounded-lg active:scale-95 transition"
+          className="grid h-7 w-7 place-items-center rounded-full bg-muted/70 text-muted-foreground transition-transform duration-150 active:scale-90"
           aria-label={isMuted ? "Unmute" : "Mute"}
         >
-          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
         </button>
-        <span className="text-[11px] font-black tabular-nums text-foreground">
+        <span className="rounded-full bg-muted/60 px-3 py-0.5 text-[11px] font-black tabular-nums text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
           {fmt(currentTime)} <span className="text-muted-foreground">/ {fmt(totalDuration)}</span>
         </span>
         <button
           onClick={onAdd}
-          className="text-muted-foreground p-1 rounded-lg active:scale-95 transition"
+          className="grid h-7 w-7 place-items-center rounded-full bg-muted/70 text-muted-foreground transition-transform duration-150 active:scale-90"
           aria-label="Add clip"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
 
       <div className="relative">
         {/* fixed center playhead */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-orange-500 z-20 pointer-events-none" />
+        <div className="pointer-events-none absolute left-1/2 top-0 bottom-0 z-20 -translate-x-1/2">
+          <div className="h-full w-[2px] rounded-full bg-gradient-to-b from-orange-400 via-orange-500 to-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.55)]" />
+          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-orange-500 shadow" />
+        </div>
 
         <div
           ref={scrollRef}
@@ -285,11 +288,16 @@ export function LightTimeline({
           onPointerDown={markUser}
           onTouchStart={markUser}
           onWheel={markUser}
-          className="overflow-x-auto overflow-y-hidden scrollbar-none"
-          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
+          className="overflow-x-auto overflow-y-hidden scrollbar-none overscroll-x-contain"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            touchAction: "pan-x",
+            contain: "paint",
+          }}
         >
           {/* video track — continuous, zero gaps, white dividers */}
-          <div className="flex items-center h-16">
+          <div className="flex items-center h-16" style={{ willChange: "transform" }}>
+
             {clips.map((clip, i) => {
               const selected = i === activeIndex;
               const dur = clip.duration || 0;
