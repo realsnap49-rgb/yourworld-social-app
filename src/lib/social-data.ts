@@ -258,6 +258,11 @@ export async function publishReel(opts: {
     hashtags: opts.hashtags ?? [],
     audio: opts.audio ?? null,
     allow_download: opts.allowDownload ?? true,
+    location: opts.location ?? null,
+    link: opts.link ?? null,
+    audience: opts.audience ?? "everyone",
+    tagged_user_ids: opts.taggedUserIds ?? [],
+    viewer_user_ids: opts.viewerUserIds ?? [],
   });
   if (!error) rememberLocalMedia(mediaUrl, opts.fileUrl);
   return { error: error?.message ?? null };
