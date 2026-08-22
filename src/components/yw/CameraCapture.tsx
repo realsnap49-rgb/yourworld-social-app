@@ -233,11 +233,17 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
   }, [applyZoom, zoom]);
 
   /* ---------- recording timer ---------- */
+  // Reels on YourWorld may be 5–80 seconds long. Auto-stop at the 80s ceiling.
   useEffect(() => {
     if (!recording) return;
     const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => window.clearInterval(id);
   }, [recording]);
+
+  useEffect(() => {
+    if (recording && elapsed >= 80) stopRecording();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elapsed, recording]);
 
   const grabPhoto = () => {
     const v = videoRef.current;
@@ -343,7 +349,14 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCa
       return;
     }
     if (mode === "POST") return void shootPhoto();
-    if (recording) return stopRecording();
+    if (recording) {
+      // Reels must be at least 5 seconds — keep recording until then.
+      if (elapsed < 5) {
+        toast.error("Keep recording — reels need at least 5 seconds");
+        return;
+      }
+      return stopRecording();
+    }
     startRecording();
   };
 
