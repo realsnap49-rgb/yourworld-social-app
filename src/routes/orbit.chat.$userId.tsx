@@ -45,6 +45,7 @@ import { buildInvite, inviteById, type InviteCard, type InviteKind } from "@/lib
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
