@@ -120,57 +120,47 @@ function OrbitCreate() {
 
         <Field label="Location">
           <div className="space-y-2">
-            <Select
-              value={draft.country || undefined}
-              onValueChange={(v) =>
-                setDraft((d) => ({ ...d, country: v, state: "", city: "" }))
-              }
-            >
-              <SelectTrigger className="h-11 rounded-xl">
-                <SelectValue placeholder="Country" />
-              </SelectTrigger>
-              <SelectContent>
-                {GEO_COUNTRIES.map((c) => (
-                  <SelectItem key={c.name} value={c.name}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              value={draft.country}
+              maxLength={56}
+              list="orbit-countries"
+              placeholder="Country"
+              onChange={(e) => set("country", e.target.value)}
+              className="h-11 rounded-xl"
+            />
+            <datalist id="orbit-countries">
+              {GEO_COUNTRIES.map((c) => (
+                <option key={c.name} value={c.name} />
+              ))}
+            </datalist>
 
-            <Select
-              value={draft.state || undefined}
-              disabled={!draft.country}
-              onValueChange={(v) => setDraft((d) => ({ ...d, state: v, city: "" }))}
-            >
-              <SelectTrigger className="h-11 rounded-xl">
-                <SelectValue placeholder="State / Region" />
-              </SelectTrigger>
-              <SelectContent>
-                {statesOf(draft.country).map((s) => (
-                  <SelectItem key={s.name} value={s.name}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              value={draft.state}
+              maxLength={56}
+              list="orbit-states"
+              placeholder="State / Region"
+              onChange={(e) => set("state", e.target.value)}
+              className="h-11 rounded-xl"
+            />
+            <datalist id="orbit-states">
+              {statesOf(draft.country).map((s) => (
+                <option key={s.name} value={s.name} />
+              ))}
+            </datalist>
 
-            <Select
-              value={draft.city || undefined}
-              disabled={!draft.state}
-              onValueChange={(v) => set("city", v)}
-            >
-              <SelectTrigger className="h-11 rounded-xl">
-                <SelectValue placeholder="City" />
-              </SelectTrigger>
-              <SelectContent>
-                {citiesOf(draft.country, draft.state).map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              value={draft.city}
+              maxLength={56}
+              list="orbit-cities"
+              placeholder="City"
+              onChange={(e) => set("city", e.target.value)}
+              className="h-11 rounded-xl"
+            />
+            <datalist id="orbit-cities">
+              {citiesOf(draft.country, draft.state).map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
           </div>
           <p className="flex items-center gap-1 pt-2 text-[11px] text-muted-foreground">
             <MapPin className="h-3 w-3" strokeWidth={1.8} />
