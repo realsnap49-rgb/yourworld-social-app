@@ -441,6 +441,7 @@ export type Database = {
           audio: string | null
           caption: string
           created_at: string
+          duration_seconds: number | null
           hashtags: string[]
           id: string
           kind: string
@@ -448,10 +449,15 @@ export type Database = {
           location: string | null
           media_type: string
           media_url: string
+          orientation: string
+          scheduled_at: string | null
           tagged_user_ids: string[]
+          thumbnail_url: string | null
+          title: string
           updated_at: string
           user_id: string
           viewer_user_ids: string[]
+          views: number
         }
         Insert: {
           allow_download?: boolean
@@ -459,6 +465,7 @@ export type Database = {
           audio?: string | null
           caption?: string
           created_at?: string
+          duration_seconds?: number | null
           hashtags?: string[]
           id?: string
           kind?: string
@@ -466,10 +473,15 @@ export type Database = {
           location?: string | null
           media_type?: string
           media_url?: string
+          orientation?: string
+          scheduled_at?: string | null
           tagged_user_ids?: string[]
+          thumbnail_url?: string | null
+          title?: string
           updated_at?: string
           user_id: string
           viewer_user_ids?: string[]
+          views?: number
         }
         Update: {
           allow_download?: boolean
@@ -477,6 +489,7 @@ export type Database = {
           audio?: string | null
           caption?: string
           created_at?: string
+          duration_seconds?: number | null
           hashtags?: string[]
           id?: string
           kind?: string
@@ -484,10 +497,15 @@ export type Database = {
           location?: string | null
           media_type?: string
           media_url?: string
+          orientation?: string
+          scheduled_at?: string | null
           tagged_user_ids?: string[]
+          thumbnail_url?: string | null
+          title?: string
           updated_at?: string
           user_id?: string
           viewer_user_ids?: string[]
+          views?: number
         }
         Relationships: []
       }
@@ -621,6 +639,7 @@ export type Database = {
           username: string
         }[]
       }
+      increment_post_views: { Args: { _post_id: string }; Returns: undefined }
       search_profiles: {
         Args: { search?: string }
         Returns: {

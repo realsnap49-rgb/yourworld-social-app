@@ -1,0 +1,239 @@
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { rememberLocalMedia, timeAgo, type DbProfile } from "@/lib/social-data";
+
+export const VIDEO_CATEGORIES = [
+  "Vlog",
+  "Podcast",
+  "Tutorial",
+  "Tech",
+  "Gaming",
+  "Music",
+  "Travel",
+  "Fitness",
+  "Comedy",
+  "Education",
+  "News",
+  "Food",
+] as const;
+
+export type VideoCategory = (typeof VIDEO_CATEGORIES)[number];
+
+export type LongVideo = {
+  id: string;
+  userId: string;
+  title: string;
+  caption: string;
+  mediaUrl: string;
+  thumbnailUrl: string | null;
+  orientation: "landscape" | "portrait";
+  durationSeconds: number | null;
+  views: number;
+  hashtags: string[];
+  createdAt: string;
+  scheduledAt: string | null;
+  author: { name: string; username: string; letter: string };
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+};
+
+export const formatDuration = (s: number | null | undefined) => {
+  if (!s || s < 0) return "0:00";
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  return h > 0
+    ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+    : `${m}:${String(sec).padStart(2, "0")}`;
+};
+
+export const formatViews = (n: number) =>
+  n >= 1_000_000
+    ? `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M views`
+    : n >= 1_000
+      ? `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K views`
+      : `${n} ${n === 1 ? "view" : "views"}`;
+
+export { timeAgo };
+
+async function uploadToStorage(
+  blobUrl: string,
+  uid: string,
+  ext: string,
+  fallbackType: string,
+): Promise<string | null> {
+  try {
+    const blob = await (await fetch(blobUrl)).blob();
+    const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage
+      .from("reels")
+      .upload(path, blob, { contentType: blob.type || fallbackType, upsert: false });
+    if (error) return null;
+    const { data } = await supabase.storage
+      .from("reels")
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    return data?.signedUrl ?? path;
+  } catch {
+    return null;
+  }
+}
+
+/** Uploads a long-form video (and optional custom thumbnail) and stores the post. */
+export async function publishLongVideo(opts: {
+  fileUrl: string;
+  thumbnailUrl?: string | null;
+  title: string;
+  description?: string;
+  tags?: string[];
+  orientation: "landscape" | "portrait";
+  durationSeconds?: number | null;
+  scheduledAt?: string | null;
+}): Promise<{ error: string | null }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const uid = sessionData.session?.user.id;
+  if (!uid) return { error: "You need to sign in to publish a video." };
+
+  let mediaUrl = opts.fileUrl;
+  if (/^(blob:|data:)/.test(mediaUrl)) {
+    const up = await uploadToStorage(mediaUrl, uid, "mp4", "video/mp4");
+    if (!up) return { error: "Video upload failed. Please try again." };
+    mediaUrl = up;
+  }
+
+  let thumb = opts.thumbnailUrl ?? null;
+  if (thumb && /^(blob:|data:)/.test(thumb)) {
+    thumb = await uploadToStorage(thumb, uid, "jpg", "image/jpeg");
+  }
+
+  const { error } = await supabase.from("posts").insert({
+    user_id: uid,
+    kind: "video",
+    media_url: mediaUrl,
+    media_type: "video",
+    title: opts.title.trim(),
+    caption: opts.description ?? "",
+    hashtags: opts.tags ?? [],
+    thumbnail_url: thumb,
+    orientation: opts.orientation,
+    duration_seconds: opts.durationSeconds ? Math.round(opts.durationSeconds) : null,
+    scheduled_at: opts.scheduledAt ?? null,
+    allow_download: true,
+    audience: "everyone",
+    tagged_user_ids: [],
+    viewer_user_ids: [],
+  });
+
+  if (!error) rememberLocalMedia(mediaUrl, opts.fileUrl);
+  return { error: error?.message ?? null };
+}
+
+/** Live list of published long videos (scheduled ones appear at their release time). */
+export function useLongVideos() {
+  const [videos, setVideos] = useState<LongVideo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [me, setMe] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const uid = sessionData.session?.user.id ?? null;
+    setMe(uid);
+
+    const { data: posts } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("kind", "video")
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    if (!posts?.length) {
+      setVideos([]);
+      setLoading(false);
+      return;
+    }
+
+    const now = Date.now();
+    const visible = posts.filter(
+      (p) =>
+        !p.scheduled_at ||
+        new Date(p.scheduled_at).getTime() <= now ||
+        (uid && p.user_id === uid),
+    );
+
+    const ids = visible.map((p) => p.id);
+    const authorIds = [...new Set(visible.map((p) => p.user_id))];
+
+    const [{ data: profiles }, { data: likes }, { data: comments }] = await Promise.all([
+      supabase.rpc("get_public_profiles", { ids: authorIds }),
+      supabase.from("post_likes").select("post_id,user_id").in("post_id", ids),
+      supabase.from("post_comments").select("post_id").in("post_id", ids),
+    ]);
+
+    const byId = new Map(((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]));
+
+    setVideos(
+      visible.map((p) => {
+        const prof = byId.get(p.user_id);
+        const username = prof?.username ?? `user${p.user_id.slice(0, 4)}`;
+        const name = prof?.display_name ?? username;
+        return {
+          id: p.id,
+          userId: p.user_id,
+          title: p.title || p.caption || "Untitled video",
+          caption: p.caption ?? "",
+          mediaUrl: p.media_url,
+          thumbnailUrl: p.thumbnail_url,
+          orientation: p.orientation === "portrait" ? "portrait" : "landscape",
+          durationSeconds: p.duration_seconds,
+          views: p.views ?? 0,
+          hashtags: p.hashtags ?? [],
+          createdAt: p.created_at,
+          scheduledAt: p.scheduled_at,
+          author: { name, username, letter: (name || "Y").charAt(0).toUpperCase() },
+          likeCount: (likes ?? []).filter((l) => l.post_id === p.id).length,
+          commentCount: (comments ?? []).filter((c) => c.post_id === p.id).length,
+          likedByMe: !!uid && (likes ?? []).some((l) => l.post_id === p.id && l.user_id === uid),
+        } satisfies LongVideo;
+      }),
+    );
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void load();
+    const channel = supabase
+      .channel("long-videos")
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => void load())
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [load]);
+
+  const countView = useCallback(async (id: string) => {
+    setVideos((prev) => prev.map((v) => (v.id === id ? { ...v, views: v.views + 1 } : v)));
+    await supabase.rpc("increment_post_views", { _post_id: id });
+  }, []);
+
+  const toggleLike = useCallback(
+    async (id: string) => {
+      if (!me) return;
+      let wasLiked = false;
+      setVideos((prev) =>
+        prev.map((v) => {
+          if (v.id !== id) return v;
+          wasLiked = v.likedByMe;
+          return { ...v, likedByMe: !v.likedByMe, likeCount: v.likeCount + (v.likedByMe ? -1 : 1) };
+        }),
+      );
+      if (wasLiked) {
+        await supabase.from("post_likes").delete().eq("post_id", id).eq("user_id", me);
+      } else {
+        await supabase.from("post_likes").insert({ post_id: id, user_id: me });
+      }
+    },
+    [me],
+  );
+
+  return { videos, loading, currentUserId: me, countView, toggleLike, reload: load };
+}
