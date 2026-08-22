@@ -1076,6 +1076,37 @@ function OrbitChatPage() {
           onClose={() => setActionSheetId(null)}
         />
       )}
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[80] flex flex-col bg-black/95"
+          onClick={() => setLightbox(null)}
+        >
+          <div className="flex justify-end p-3">
+            <button
+              type="button"
+              onClick={() => setLightbox(null)}
+              aria-label="Close"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur"
+            >
+              <X className="h-5 w-5" strokeWidth={1.8} />
+            </button>
+          </div>
+          <div className="flex flex-1 items-center justify-center p-2" onClick={(e) => e.stopPropagation()}>
+            {lightbox.video ? (
+              <video
+                src={lightbox.url}
+                controls
+                autoPlay
+                playsInline
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <img src={lightbox.url} alt="Shared media" className="max-h-full max-w-full object-contain" />
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
