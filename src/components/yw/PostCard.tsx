@@ -99,7 +99,7 @@ function PostCardBase({ post }: { post: Post }) {
               strokeWidth={1.7}
             />
           </button>
-          <CommentsSheet comments={post.comments}>
+          <CommentsSheet fallbackComments={post.comments}>
             <button
               aria-label="Comment"
               className="action-btn grid h-10 w-10 place-items-center rounded-full"
@@ -158,7 +158,7 @@ function PostCardBase({ post }: { post: Post }) {
           ))}
         </div>
         <div className="flex items-center gap-2 pt-0.5">
-          <CommentsSheet comments={post.comments}>
+          <CommentsSheet fallbackComments={post.comments}>
             <button className="font-ui text-[11.5px] leading-none text-muted-foreground transition-colors duration-200 hover:text-foreground">
               View all {post.comments.length} comments
             </button>
