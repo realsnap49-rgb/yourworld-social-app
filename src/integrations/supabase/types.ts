@@ -128,6 +128,42 @@ export type Database = {
         }
         Relationships: []
       }
+      orbit_messages: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          recipient_id: string
+          sender_id: string
+          text: string | null
+          updated_at: string
+          url: string | null
+          view_once: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          recipient_id: string
+          sender_id: string
+          text?: string | null
+          updated_at?: string
+          url?: string | null
+          view_once?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          recipient_id?: string
+          sender_id?: string
+          text?: string | null
+          updated_at?: string
+          url?: string | null
+          view_once?: boolean
+        }
+        Relationships: []
+      }
       orbit_profiles: {
         Row: {
           about: string

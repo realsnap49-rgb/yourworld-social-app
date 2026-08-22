@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { approxDistance } from "@/lib/orbit-data";
 import { useOrbitProfile } from "@/lib/orbit-live";
+import { useOrbitChat, type OrbitMessage } from "@/lib/orbit-chat";
 import {
   ORBIT_REQUEST_PHOTO_MAX,
   ORBIT_REQUEST_TEXT_MAX,
@@ -73,10 +74,37 @@ type Msg = {
   audio?: string;
   invite?: InviteCard;
   system?: boolean;
+  viewOnce?: boolean;
   at?: number;
 };
 
-const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
+/** Invites travel as a tagged text message so both sides see the same card. */
+const INVITE_PREFIX = "orbit-invite:";
+
+function toUiMsg(m: OrbitMessage): Msg {
+  if (m.kind === "text" && m.text?.startsWith(INVITE_PREFIX)) {
+    try {
+      return {
+        id: m.id,
+        me: m.me,
+        at: m.at,
+        invite: JSON.parse(m.text.slice(INVITE_PREFIX.length)) as InviteCard,
+      };
+    } catch {
+      /* fall through to plain text */
+    }
+  }
+  return {
+    id: m.id,
+    me: m.me,
+    at: m.at,
+    system: m.kind === "system",
+    text: m.kind === "audio" ? undefined : m.text,
+    url: m.kind === "photo" || m.kind === "video" ? m.url : undefined,
+    audio: m.kind === "audio" ? m.url : undefined,
+    viewOnce: m.viewOnce,
+  };
+}
 
 function MenuItem({
   icon,
@@ -118,16 +146,6 @@ function MenuItem({
   );
 }
 
-function loadHistory(userId: string): Msg[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(historyKey(userId));
-    const parsed = raw ? (JSON.parse(raw) as Msg[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function OrbitChatPage() {
   const { userId } = Route.useParams();
@@ -135,11 +153,9 @@ function OrbitChatPage() {
   const orbit = useOrbit();
   const { profile: p } = useOrbitProfile(userId);
   const [text, setText] = useState("");
-  const [msgs, setMsgs] = useState<Msg[]>([]);
   const seq = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
-  const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
   const [call, setCall] = useState<OrbitCallMode | null>(null);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [inviteKind, setInviteKind] = useState<InviteKind | null>(null);
@@ -172,54 +188,46 @@ function OrbitChatPage() {
   const textsLeft = ORBIT_REQUEST_TEXT_MAX - sentTexts;
   const photosLeft = ORBIT_REQUEST_PHOTO_MAX - sentPhotos;
 
+  // Real, database-backed Orbit conversation (live for both users).
+  const chat = useOrbitChat(userId, accepted);
+  // Local-only notes (settings changes, capture alerts) stay on this device.
+  const [notes, setNotes] = useState<Msg[]>([]);
+
+  const msgs: Msg[] = useMemo(
+    () =>
+      [...chat.messages.map(toUiMsg), ...notes].sort((a, b) => (a.at ?? 0) - (b.at ?? 0)),
+    [chat.messages, notes],
+  );
+
   useEffect(() => {
-    if (!accepted) {
-      setMsgs([]);
-      return;
-    }
-    const history = loadHistory(userId);
-    seq.current = history.length;
-    setMsgs(history);
+    if (!accepted) setNotes([]);
   }, [accepted, userId]);
 
-  // Persist chat history (blob previews are session-only and are skipped).
-  useEffect(() => {
-    if (!accepted || typeof window === "undefined") return;
-    const durable = msgs.filter(
-      (m) => !m.url?.startsWith("blob:") && !m.audio?.startsWith("blob:"),
-    );
-    window.localStorage.setItem(historyKey(userId), JSON.stringify(durable));
-  }, [msgs, accepted, userId]);
-
-  const push = (msg: Omit<Msg, "id">) => {
+  const pushSystem = (text: string) => {
     seq.current += 1;
-    const id = `m${seq.current}`;
-    setMsgs((m) => [...m, { id, at: Date.now(), ...msg }]);
-    return id;
+    setNotes((n) => [...n, { id: `note-${seq.current}`, me: false, system: true, text, at: Date.now() }]);
   };
-
-  const pushSystem = (text: string) => push({ me: false, system: true, text });
 
   // Auto delete messages after the configured window
   useEffect(() => {
     if (!autoDelete) return;
     const t = setInterval(() => {
       const cutoff = Date.now() - autoDelete * 1000;
-      setMsgs((prev) => prev.filter((m) => (m.at ? m.at >= cutoff : true)));
+      setNotes((prev) => prev.filter((m) => (m.at ? m.at >= cutoff : true)));
+      const stale = chat.messages.filter((m) => m.at < cutoff).map((m) => m.id);
+      if (stale.length) void chat.remove(stale);
     }, 1000);
     return () => clearInterval(t);
-  }, [autoDelete]);
+  }, [autoDelete, chat]);
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
   useCaptureDetect(
     accepted && orbit.privacy.screenshotAlerts && (screenshotAlert || recordingAlert),
     (kind) => {
       if (kind === "recording" ? !recordingAlert : !screenshotAlert) return;
-    push({
-      me: false,
-      system: true,
-      text: `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
-    });
+      pushSystem(
+        `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
+      );
     },
   );
 
@@ -236,7 +244,10 @@ function OrbitChatPage() {
       rec.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
-        push({ me: true, audio: URL.createObjectURL(blob) });
+        void chat.sendMedia(
+          new File([blob], `voice-${Date.now()}.webm`, { type: blob.type || "audio/webm" }),
+          "audio",
+        );
       };
       rec.start();
       recorderRef.current = rec;
@@ -296,24 +307,19 @@ function OrbitChatPage() {
       if (!outgoingPending) toast.success(`Request sent to ${p.name}`);
       return;
     }
-    seq.current += 1;
-    setMsgs((m) => [...m, { id: `m${seq.current}`, me: true, text: t }]);
+    void chat.sendText(t);
     setText("");
   };
 
-  const pushPhoto = (url: string, seconds = 0) => {
+  const sendPhoto = async (file: File) => {
     if (accepted) {
-      seq.current += 1;
-      const id = `m${seq.current}`;
-      if (seconds > 0) setViewOnce((v) => ({ ...v, [id]: seconds }));
-      setMsgs((m) => [...m, { id, me: true, url }]);
+      const id = await chat.sendMedia(file, "photo", viewOnceMode);
+      if (!id) toast.error("Photo could not be sent. Please try again.");
       return;
     }
-    const ok = orbit.sendRequestMessage(userId, { kind: "photo", url });
+    const ok = orbit.sendRequestMessage(userId, { kind: "photo", url: URL.createObjectURL(file) });
     if (!ok) toast.error(`You can send ${ORBIT_REQUEST_PHOTO_MAX} photos until ${p.name} accepts`);
   };
-
-  const sendPhoto = (file: File) => pushPhoto(URL.createObjectURL(file));
 
   // Only messages from the local accepted-chat history are deletable.
   // Request preview messages (preMessages) are managed by the orbit store.
@@ -331,7 +337,8 @@ function OrbitChatPage() {
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const deleteIds = (ids: string[]) => {
-    setMsgs((m) => m.filter((x) => !ids.includes(x.id)));
+    setNotes((m) => m.filter((x) => !ids.includes(x.id)));
+    void chat.remove(ids);
     setSelectedIds([]);
   };
   const exitSelectMode = () => {
@@ -339,7 +346,8 @@ function OrbitChatPage() {
     setSelectedIds([]);
   };
   const clearChat = () => {
-    setMsgs([]);
+    setNotes([]);
+    void chat.clear();
     exitSelectMode();
     setMenuOpen(false);
     toast.success("Chat cleared");
@@ -657,8 +665,8 @@ function OrbitChatPage() {
                   ) : m.audio ? (
                     <audio src={m.audio} controls className="h-9 w-56 max-w-full" />
                   ) : m.url ? (
-                    viewOnce[m.id] ? (
-                      <OrbitViewOnce src={m.url} seconds={viewOnce[m.id]} />
+                    m.viewOnce ? (
+                      <OrbitViewOnce src={m.url} seconds={5} />
                     ) : (
                       <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
                     )
@@ -797,7 +805,9 @@ function OrbitChatPage() {
         onOpenChange={(o) => !o && setInviteKind(null)}
         onSelect={(place) => {
           if (!inviteKind) return;
-          push({ me: true, invite: buildInvite(inviteKind, place) });
+          void chat.sendText(
+            `${INVITE_PREFIX}${JSON.stringify(buildInvite(inviteKind, place))}`,
+          );
           setInviteKind(null);
           toast.success(`Invite sent to ${p.name}`, { description: place.name });
         }}
