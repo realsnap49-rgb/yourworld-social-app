@@ -8,12 +8,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { BottomNav } from "@/components/yw/BottomNav";
+import { CreateSheet } from "@/components/yw/CreateSheet";
 import { YwStoreProvider } from "@/lib/yw-store";
 import { NotificationsProvider } from "@/lib/notifications-store";
 import { MomentProvider } from "@/lib/moment-store";
@@ -144,7 +145,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { pathname } = useLocation();
+  const [createOpen, setCreateOpen] = useState(false);
   const hideNav = pathname.startsWith("/orbit") || pathname.startsWith("/auth") || pathname.startsWith("/create") || pathname.startsWith("/moment/create") || pathname.startsWith("/channel/create");
+
+  useEffect(() => {
+    setCreateOpen(false);
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -160,7 +166,8 @@ function RootComponent() {
                   <div className={cn("mx-auto min-h-screen w-full max-w-lg", hideNav ? "" : "pb-20")}>
                     <Outlet />
                   </div>
-                  {!hideNav && <BottomNav onOpenCreate={() => { window.location.href = '/create'; }} />}
+                   {!hideNav && <BottomNav onOpenCreate={() => setCreateOpen(true)} />}
+                   <CreateSheet isOpen={createOpen} onClose={() => setCreateOpen(false)} />
                 </AuthGate>
                 <Toaster position="top-center" />
                 </CallProvider>
