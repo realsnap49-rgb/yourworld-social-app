@@ -770,6 +770,7 @@ function OrbitChatPage() {
             <Camera className="h-4 w-4" strokeWidth={1.8} />
           </button>
           <input
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={inputDisabled}
