@@ -11,6 +11,24 @@ import {
 
 type Toggles = Record<string, boolean>;
 
+function load(key: string): Toggles {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as Toggles) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persist(key: string, value: Toggles) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
 type Store = {
   liked: Toggles;
   saved: Toggles;
