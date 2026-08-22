@@ -73,6 +73,7 @@ type Msg = {
   me: boolean;
   text?: string;
   url?: string;
+  video?: boolean;
   audio?: string;
   invite?: InviteCard;
   system?: boolean;
@@ -114,6 +115,7 @@ function toUiMsg(m: OrbitMessage): Msg {
     system: m.kind === "system",
     text: m.kind === "audio" ? undefined : m.text,
     url: m.kind === "photo" || m.kind === "video" ? m.url : undefined,
+    video: m.kind === "video",
     audio: m.kind === "audio" ? m.url : undefined,
     viewOnce: m.viewOnce,
   };
@@ -177,6 +179,7 @@ function OrbitChatPage() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
+  const [lightbox, setLightbox] = useState<{ url: string; video: boolean } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionSheetId, setActionSheetId] = useState<string | null>(null);
   const [actionRect, setActionRect] = useState<{ rect: DOMRect; me: boolean } | null>(null);
@@ -898,7 +901,27 @@ function OrbitChatPage() {
                         onConsumed={() => deleteIds([m.id])}
                       />
                     ) : (
-                      <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!selectMode) setLightbox({ url: m.url!, video: !!m.video });
+                        }}
+                        className="relative block h-40 w-full"
+                        aria-label={m.video ? "Open video" : "Open photo"}
+                      >
+                        {m.video ? (
+                          <>
+                            <video src={m.url} className="h-40 w-full object-cover" muted playsInline preload="metadata" />
+                            <span className="absolute inset-0 grid place-items-center">
+                              <span className="grid h-10 w-10 place-items-center rounded-full bg-background/70 backdrop-blur">
+                                <Video className="h-4 w-4" strokeWidth={1.8} />
+                              </span>
+                            </span>
+                          </>
+                        ) : (
+                          <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                        )}
+                      </button>
                     )
                   ) : (
                     m.text
@@ -1053,6 +1076,37 @@ function OrbitChatPage() {
           }}
           onClose={() => setActionSheetId(null)}
         />
+      )}
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[80] flex flex-col bg-black/95"
+          onClick={() => setLightbox(null)}
+        >
+          <div className="flex justify-end p-3">
+            <button
+              type="button"
+              onClick={() => setLightbox(null)}
+              aria-label="Close"
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur"
+            >
+              <X className="h-5 w-5" strokeWidth={1.8} />
+            </button>
+          </div>
+          <div className="flex flex-1 items-center justify-center p-2" onClick={(e) => e.stopPropagation()}>
+            {lightbox.video ? (
+              <video
+                src={lightbox.url}
+                controls
+                autoPlay
+                playsInline
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <img src={lightbox.url} alt="Shared media" className="max-h-full max-w-full object-contain" />
+            )}
+          </div>
+        </div>
       )}
     </main>
   );
