@@ -27,6 +27,7 @@ import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as MomentIndexRouteImport } from './routes/moment.index'
 import { Route as ChannelIndexRouteImport } from './routes/channel.index'
 import { Route as VideoUploadRouteImport } from './routes/video.upload'
+import { Route as PostCreateRouteImport } from './routes/post.create'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
 import { Route as OrbitNotificationsRouteImport } from './routes/orbit.notifications'
 import { Route as OrbitMessagesRouteImport } from './routes/orbit.messages'
@@ -133,6 +134,11 @@ const ChannelIndexRoute = ChannelIndexRouteImport.update({
 const VideoUploadRoute = VideoUploadRouteImport.update({
   id: '/video/upload',
   path: '/video/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostCreateRoute = PostCreateRouteImport.update({
+  id: '/post/create',
+  path: '/post/create',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
+  '/post/create': typeof PostCreateRoute
   '/video/upload': typeof VideoUploadRoute
   '/channel/': typeof ChannelIndexRoute
   '/moment/': typeof MomentIndexRoute
@@ -291,6 +298,7 @@ export interface FileRoutesByTo {
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
+  '/post/create': typeof PostCreateRoute
   '/video/upload': typeof VideoUploadRoute
   '/channel': typeof ChannelIndexRoute
   '/moment': typeof MomentIndexRoute
@@ -330,6 +338,7 @@ export interface FileRoutesById {
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
+  '/post/create': typeof PostCreateRoute
   '/video/upload': typeof VideoUploadRoute
   '/channel/': typeof ChannelIndexRoute
   '/moment/': typeof MomentIndexRoute
@@ -369,6 +378,7 @@ export interface FileRouteTypes {
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
+    | '/post/create'
     | '/video/upload'
     | '/channel/'
     | '/moment/'
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
+    | '/post/create'
     | '/video/upload'
     | '/channel'
     | '/moment'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
+    | '/post/create'
     | '/video/upload'
     | '/channel/'
     | '/moment/'
@@ -468,6 +480,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
+  PostCreateRoute: typeof PostCreateRoute
   VideoUploadRoute: typeof VideoUploadRoute
   MomentIndexRoute: typeof MomentIndexRoute
 }
@@ -598,6 +611,13 @@ declare module '@tanstack/react-router' {
       path: '/video/upload'
       fullPath: '/video/upload'
       preLoaderRoute: typeof VideoUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/post/create': {
+      id: '/post/create'
+      path: '/post/create'
+      fullPath: '/post/create'
+      preLoaderRoute: typeof PostCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orbit/privacy': {
@@ -808,6 +828,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
+  PostCreateRoute: PostCreateRoute,
   VideoUploadRoute: VideoUploadRoute,
   MomentIndexRoute: MomentIndexRoute,
 }
