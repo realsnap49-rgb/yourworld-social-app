@@ -900,7 +900,27 @@ function OrbitChatPage() {
                         onConsumed={() => deleteIds([m.id])}
                       />
                     ) : (
-                      <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!selectMode) setLightbox({ url: m.url!, video: !!m.video });
+                        }}
+                        className="relative block h-40 w-full"
+                        aria-label={m.video ? "Open video" : "Open photo"}
+                      >
+                        {m.video ? (
+                          <>
+                            <video src={m.url} className="h-40 w-full object-cover" muted playsInline preload="metadata" />
+                            <span className="absolute inset-0 grid place-items-center">
+                              <span className="grid h-10 w-10 place-items-center rounded-full bg-background/70 backdrop-blur">
+                                <Video className="h-4 w-4" strokeWidth={1.8} />
+                              </span>
+                            </span>
+                          </>
+                        ) : (
+                          <img src={m.url} alt="Shared photo" className="h-40 w-full object-cover" />
+                        )}
+                      </button>
                     )
                   ) : (
                     m.text
