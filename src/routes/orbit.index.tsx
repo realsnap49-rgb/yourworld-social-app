@@ -339,9 +339,12 @@ function OrbitBrowse() {
                 />
                 <OrbitAction
                   icon={Sparkles}
-                  label="Match"
+                  label={
+                    mutual.includes(p.id) ? "Matched" : likedByMe.includes(p.id) ? "Sent" : "Match"
+                  }
+                  active={mutual.includes(p.id) || likedByMe.includes(p.id)}
                   locked={!orbit.hasProfile}
-                  onClick={gate(() => toast.success(`Match request sent to ${p.name}`))}
+                  onClick={gate(() => void onMatch(p.id, p.name))}
                 />
               </div>
 
