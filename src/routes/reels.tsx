@@ -513,9 +513,12 @@ function ReelItem({
           />
         </Action>
 
-        <CommentsSheet comments={commentSeed}>
+        <CommentsSheet
+          postId={usingLive ? reel.id : null}
+          fallbackComments={commentSeed}
+        >
           <Action label={formatCount(reel.commentCount)}>
-            <MessageCircle strokeWidth={1.8} className="h-[21px] w-[21px]" />
+            <MessageCircle strokeWidth={1.8} className="h-[18px] w-[18px]" />
           </Action>
         </CommentsSheet>
 
