@@ -289,24 +289,19 @@ function OrbitChatPage() {
       if (!outgoingPending) toast.success(`Request sent to ${p.name}`);
       return;
     }
-    seq.current += 1;
-    setMsgs((m) => [...m, { id: `m${seq.current}`, me: true, text: t }]);
+    void chat.sendText(t);
     setText("");
   };
 
-  const pushPhoto = (url: string, seconds = 0) => {
+  const sendPhoto = async (file: File) => {
     if (accepted) {
-      seq.current += 1;
-      const id = `m${seq.current}`;
-      if (seconds > 0) setViewOnce((v) => ({ ...v, [id]: seconds }));
-      setMsgs((m) => [...m, { id, me: true, url }]);
+      const id = await chat.sendMedia(file, "photo", viewOnceMode);
+      if (!id) toast.error("Photo could not be sent. Please try again.");
       return;
     }
-    const ok = orbit.sendRequestMessage(userId, { kind: "photo", url });
+    const ok = orbit.sendRequestMessage(userId, { kind: "photo", url: URL.createObjectURL(file) });
     if (!ok) toast.error(`You can send ${ORBIT_REQUEST_PHOTO_MAX} photos until ${p.name} accepts`);
   };
-
-  const sendPhoto = (file: File) => pushPhoto(URL.createObjectURL(file));
 
   // Only messages from the local accepted-chat history are deletable.
   // Request preview messages (preMessages) are managed by the orbit store.
