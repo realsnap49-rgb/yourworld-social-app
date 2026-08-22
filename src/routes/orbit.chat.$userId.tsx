@@ -204,6 +204,15 @@ function OrbitChatPage() {
     if (!accepted) setNotes([]);
   }, [accepted, userId]);
 
+  // Landing on the chat (e.g. tapping Message on a profile) focuses the
+  // composer so the user is straight in the message box, ready to type.
+  useEffect(() => {
+    if (inputDisabled) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
   const pushSystem = (text: string) => {
     seq.current += 1;
     setNotes((n) => [...n, { id: `note-${seq.current}`, me: false, system: true, text, at: Date.now() }]);
