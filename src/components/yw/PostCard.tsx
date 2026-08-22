@@ -73,8 +73,10 @@ function PostCardBase({ post }: { post: Post }) {
           className="action-btn -mr-1 grid h-9 w-9 place-items-center rounded-full text-muted-foreground"
         >
           <MoreHorizontal className="h-[18px] w-[18px]" strokeWidth={1.7} />
-        </button>
+          </button>
+        </div>
       </header>
+
 
       <div
         onDoubleClick={onDoubleTap}
