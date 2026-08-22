@@ -767,6 +767,16 @@ export function CreateStudioPage() {
             </div>
           )}
 
+          <ReelPublishSheet
+            open={showPublish}
+            previewUrl={clips[activeClipIndex]?.url ?? clips[0]?.url}
+            posting={posting}
+            onClose={() => setShowPublish(false)}
+            onShare={(meta) => void postReel(meta)}
+          />
+
+
+
           {/* FULL-WIDTH VIDEO CANVAS */}
           <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-white overflow-hidden">
             <div ref={stageRef} className="relative h-full w-full flex items-center justify-center touch-none">
