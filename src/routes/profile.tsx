@@ -44,6 +44,9 @@ import {
 } from "@/lib/profile-data";
 import type { DbPost } from "@/lib/social-data";
 import { UserWatermark } from "@/components/yw/UserWatermark";
+import { FollowListDialog } from "@/components/yw/FollowListDialog";
+import { useFollowCounts } from "@/lib/follow-data";
+
 
 
 export const Route = createFileRoute("/profile")({
@@ -70,10 +73,14 @@ function ProfilePage() {
   const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId, reload } =
     useMyProfile();
   const [editOpen, setEditOpen] = useState(false);
+  const counts = useFollowCounts(userId);
+  const [listOpen, setListOpen] = useState(false);
+  const [listTab, setListTab] = useState<"followers" | "following">("followers");
   const [manage, setManage] = useState<DbPost | null>(null);
   const [caption, setCaption] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+
 
   const openManage = (post: DbPost) => {
     setManage(post);
@@ -162,9 +169,24 @@ function ProfilePage() {
           </span>
           <dl className="grid flex-1 grid-cols-3 text-center">
             <Stat label="Posts" value={formatCount(posts.length)} />
-            <Stat label="Reels" value={formatCount(reels.length)} />
-            <Stat label="Saved" value={formatCount(savedPosts.length)} />
+            <Stat
+              label="Followers"
+              value={formatCount(counts.followers)}
+              onClick={() => {
+                setListTab("followers");
+                setListOpen(true);
+              }}
+            />
+            <Stat
+              label="Following"
+              value={formatCount(counts.following)}
+              onClick={() => {
+                setListTab("following");
+                setListOpen(true);
+              }}
+            />
           </dl>
+
         </div>
 
         <div className="pt-3">
@@ -368,6 +390,16 @@ function ProfilePage() {
         onSave={save}
       />
 
+      <FollowListDialog
+        open={listOpen}
+        onOpenChange={setListOpen}
+        userId={userId}
+        tab={listTab}
+        onTabChange={setListTab}
+      />
+
+
+
     </main>
   );
 }
@@ -376,14 +408,33 @@ function Empty({ text }: { text: string }) {
   return <p className="px-4 py-10 text-center text-sm text-muted-foreground">{text}</p>;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
+function Stat({
+  label,
+  value,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  onClick?: () => void;
+}) {
+  const body = (
+    <>
       <dd className="font-display text-lg font-bold">{value}</dd>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-    </div>
+    </>
+  );
+  if (!onClick) return <div>{body}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-xl py-0.5 transition-transform active:scale-95"
+    >
+      {body}
+    </button>
   );
 }
+
 
 function MediaGrid({
   items,
