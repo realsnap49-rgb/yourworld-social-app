@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Image, Video, Radio, X } from "lucide-react";
+import { Image, Video, Radio, Film, X } from "lucide-react";
 
 interface CreateSheetProps {
   isOpen: boolean;

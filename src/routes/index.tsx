@@ -189,8 +189,11 @@ export function HomePage() {
 
       </div>
 
-      {/* 3. POST CARD FEED */}
+      {/* 3. LONG VIDEOS + POST CARD FEED */}
       <div className="max-w-md mx-auto p-3 space-y-4">
+        {longVideos.map((v) => (
+          <LongVideoCard key={v.id} video={v} onView={countView} onLike={likeVideo} />
+        ))}
         {posts.map((post) => (
           <div key={post.id} className="bg-[#141418] border border-zinc-800/80 rounded-3xl overflow-hidden shadow-2xl p-1.5 space-y-3">
             
