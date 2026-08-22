@@ -398,14 +398,33 @@ function Empty({ text }: { text: string }) {
   return <p className="px-4 py-10 text-center text-sm text-muted-foreground">{text}</p>;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
+function Stat({
+  label,
+  value,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  onClick?: () => void;
+}) {
+  const body = (
+    <>
       <dd className="font-display text-lg font-bold">{value}</dd>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-    </div>
+    </>
+  );
+  if (!onClick) return <div>{body}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-xl py-0.5 transition-transform active:scale-95"
+    >
+      {body}
+    </button>
   );
 }
+
 
 function MediaGrid({
   items,
