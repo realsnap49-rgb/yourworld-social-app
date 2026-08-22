@@ -390,6 +390,16 @@ function ProfilePage() {
         onSave={save}
       />
 
+      <FollowListDialog
+        open={listOpen}
+        onOpenChange={setListOpen}
+        userId={userId}
+        tab={listTab}
+        onTabChange={setListTab}
+      />
+
+
+
     </main>
   );
 }
