@@ -179,28 +179,53 @@ function OrbitChatPage() {
   const [recordingAlert, setRecordingAlert] = useState(true);
   const [muted, setMuted] = useState(false);
   const [reported, setReported] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(false);
+  const [clearedBefore, setClearedBefore] = useState<string | null>(null);
+  const [secretPinSalt, setSecretPinSalt] = useState<string | null>(null);
+  const [secretPinHash, setSecretPinHash] = useState<string | null>(null);
+  const [chatUnlocked, setChatUnlocked] = useState(true);
+  const [unlockPin, setUnlockPin] = useState("");
 
   // Chat options are per-person and survive leaving the chat.
   const prefsKey = `yw.orbit.chatprefs.${userId}`;
   useEffect(() => {
     try {
+      const { data } = await supabase
+        .from("orbit_chat_settings")
+        .select("display_name,secret_lock_enabled,secret_pin_salt,secret_pin_hash,view_once_mode,auto_delete_seconds,screenshot_alert,recording_alert,muted,cleared_before")
+        .eq("peer_id", userId)
+        .maybeSingle();
       const raw = window.localStorage.getItem(prefsKey);
-      if (!raw) return;
-      const v = JSON.parse(raw) as Record<string, unknown>;
+      const local = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+      const row = data as null | Record<string, unknown>;
+      const v = row ?? local;
       setDisplayName((v['displayName'] as string | null) ?? null);
-      setSecretLock(!!v['secretLock']);
-      setViewOnceMode(!!v['viewOnceMode']);
-      setAutoDelete(Number(v['autoDelete']) || 0);
-      setScreenshotAlert(v['screenshotAlert'] !== false);
-      setRecordingAlert(v['recordingAlert'] !== false);
+      if (row) setDisplayName((row['display_name'] as string | null) ?? null);
+      const locked = row ? !!row['secret_lock_enabled'] : !!v['secretLock'];
+      setSecretLock(locked);
+      setSecretPinSalt((row?.['secret_pin_salt'] as string | null) ?? null);
+      setSecretPinHash((row?.['secret_pin_hash'] as string | null) ?? null);
+      setChatUnlocked(!locked);
+      setViewOnceMode(row ? !!row['view_once_mode'] : !!v['viewOnceMode']);
+      setAutoDelete(Number(row?.['auto_delete_seconds'] ?? v['autoDelete']) || 0);
+      setScreenshotAlert(row ? row['screenshot_alert'] !== false : v['screenshotAlert'] !== false);
+      setRecordingAlert(row ? row['recording_alert'] !== false : v['recordingAlert'] !== false);
       setMuted(!!v['muted']);
-      setReported(!!v['reported']);
+      if (row) setMuted(!!row['muted']);
+      setClearedBefore((row?.['cleared_before'] as string | null) ?? null);
+      const { data: report } = await supabase.from("orbit_reports").select("id").eq("reported_user_id", userId).maybeSingle();
+      setReported(!!report);
+      setSettingsReady(true);
     } catch {
       /* ignore corrupt storage */
+      setSettingsReady(true);
     }
-  }, [prefsKey]);
+    };
+    void loadSettings();
+  }, [prefsKey, userId]);
 
   useEffect(() => {
+    if (!settingsReady) return;
     try {
       window.localStorage.setItem(
         prefsKey,
@@ -215,6 +240,20 @@ function OrbitChatPage() {
           reported,
         }),
       );
+      void supabase.from("orbit_chat_settings").upsert({
+        user_id: chat.meId,
+        peer_id: userId,
+        display_name: displayName,
+        secret_lock_enabled: secretLock,
+        secret_pin_salt: secretPinSalt,
+        secret_pin_hash: secretPinHash,
+        view_once_mode: viewOnceMode,
+        auto_delete_seconds: autoDelete,
+        screenshot_alert: screenshotAlert,
+        recording_alert: recordingAlert,
+        muted,
+        cleared_before: clearedBefore,
+      } as never, { onConflict: "user_id,peer_id" });
     } catch {
       /* storage unavailable */
     }
@@ -228,6 +267,12 @@ function OrbitChatPage() {
     recordingAlert,
     muted,
     reported,
+    settingsReady,
+    secretPinSalt,
+    secretPinHash,
+    clearedBefore,
+    userId,
+    chat.meId,
   ]);
 
 
@@ -243,7 +288,7 @@ function OrbitChatPage() {
   const photosLeft = ORBIT_REQUEST_PHOTO_MAX - sentPhotos;
 
   // Real, database-backed Orbit conversation (live for both users).
-  const chat = useOrbitChat(userId, accepted);
+  const chat = useOrbitChat(userId, accepted, clearedBefore);
   // Local-only notes (settings changes, capture alerts) stay on this device.
   const [notes, setNotes] = useState<Msg[]>([]);
 
@@ -288,9 +333,7 @@ function OrbitChatPage() {
     accepted && orbit.privacy.screenshotAlerts && (screenshotAlert || recordingAlert),
     (kind) => {
       if (kind === "recording" ? !recordingAlert : !screenshotAlert) return;
-      pushSystem(
-        `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`,
-      );
+      void chat.insert({ kind: "system", text: `${currentUser.name} took a ${kind === "recording" ? "recording" : "screenshot"}`, expiresIn: autoDelete });
     },
   );
 
@@ -309,7 +352,9 @@ function OrbitChatPage() {
         const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
         void chat.sendMedia(
           new File([blob], `voice-${Date.now()}.webm`, { type: blob.type || "audio/webm" }),
-          "audio",
+           "audio",
+           false,
+           autoDelete,
         );
       };
       rec.start();
@@ -380,13 +425,13 @@ function OrbitChatPage() {
       if (!outgoingPending) toast.success(`Request sent to ${p.name}`);
       return;
     }
-    void chat.sendText(t);
+    void chat.sendText(t, autoDelete);
     setText("");
   };
 
   const sendPhoto = async (file: File) => {
     if (accepted) {
-      const id = await chat.sendMedia(file, "photo", viewOnceMode);
+      const id = await chat.sendMedia(file, "photo", viewOnceMode, autoDelete);
       if (!id) toast.error("Photo could not be sent. Please try again.");
       return;
     }
@@ -397,7 +442,7 @@ function OrbitChatPage() {
   // Only messages from the local accepted-chat history are deletable.
   // Request preview messages (preMessages) are managed by the orbit store.
   const localIds = useMemo(() => new Set(msgs.map((m) => m.id)), [msgs]);
-  const isDeletable = (id: string) => localIds.has(id);
+  const isDeletable = (id: string) => localIds.has(id) && msgs.find((m) => m.id === id)?.me === true;
 
   const startLongPress = (id: string, rect: DOMRect, me: boolean) => {
     if (longPressRef.current) clearTimeout(longPressRef.current);
@@ -423,7 +468,7 @@ function OrbitChatPage() {
   };
   const clearChat = () => {
     setNotes([]);
-    void chat.clear();
+    setClearedBefore(new Date().toISOString());
     exitSelectMode();
     setMenuOpen(false);
     toast.success("Chat cleared");
