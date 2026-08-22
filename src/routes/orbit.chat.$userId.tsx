@@ -145,16 +145,6 @@ function MenuItem({
   );
 }
 
-function loadHistory(userId: string): Msg[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(historyKey(userId));
-    const parsed = raw ? (JSON.parse(raw) as Msg[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function OrbitChatPage() {
   const { userId } = Route.useParams();
