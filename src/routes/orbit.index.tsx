@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
   Heart,
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { approxDistance, type OrbitProfile } from "@/lib/orbit-data";
 import { useOrbitProfiles } from "@/lib/orbit-live";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
+import { sendOrbitMatch, useOrbitMatches } from "@/lib/orbit-match";
 import { useNotifications } from "@/lib/notifications-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
 import { moodById, moodMatchScore } from "@/lib/orbit-mood";
@@ -75,6 +76,21 @@ function OrbitBrowse() {
   const live = useLiveLocation();
   const obscured = useScreenCaptureShield(orbit.privacy.screenshotProtection);
   const { profiles: orbitProfiles } = useOrbitProfiles();
+  const navigate = useNavigate();
+  const { mutual, likedByMe, refresh: refreshMatches } = useOrbitMatches();
+
+  const onMatch = async (id: string, name: string) => {
+    const next = !likedByMe.includes(id);
+    const res = await sendOrbitMatch(id, next);
+    refreshMatches();
+    if (!res.ok) {
+      toast.error("Couldn't send that match — try again.");
+      return;
+    }
+    if (!next) toast.success("Match withdrawn");
+    else if (res.mutual) toast.success(`It's a match with ${name}! Chat unlocked.`);
+    else toast.success(`Match sent to ${name}`);
+  };
 
   const visible = useMemo(
     () =>
@@ -305,7 +321,9 @@ function OrbitBrowse() {
                   icon={MessageCircle}
                   label="Message"
                   locked={!orbit.hasProfile}
-                  onClick={gate(() => toast.success(`Orbit chat opened with ${p.name}`))}
+                  onClick={gate(() =>
+                    navigate({ to: "/orbit/chat/$userId", params: { userId: p.id } }),
+                  )}
                 />
                 <OrbitAction
                   icon={Handshake}
@@ -321,9 +339,12 @@ function OrbitBrowse() {
                 />
                 <OrbitAction
                   icon={Sparkles}
-                  label="Match"
+                  label={
+                    mutual.includes(p.id) ? "Matched" : likedByMe.includes(p.id) ? "Sent" : "Match"
+                  }
+                  active={mutual.includes(p.id) || likedByMe.includes(p.id)}
                   locked={!orbit.hasProfile}
-                  onClick={gate(() => toast.success(`Match request sent to ${p.name}`))}
+                  onClick={gate(() => void onMatch(p.id, p.name))}
                 />
               </div>
 
