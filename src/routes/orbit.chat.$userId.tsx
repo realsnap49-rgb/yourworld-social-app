@@ -226,7 +226,10 @@ function OrbitChatPage() {
       rec.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
-        push({ me: true, audio: URL.createObjectURL(blob) });
+        void chat.sendMedia(
+          new File([blob], `voice-${Date.now()}.webm`, { type: blob.type || "audio/webm" }),
+          "audio",
+        );
       };
       rec.start();
       recorderRef.current = rec;
