@@ -319,7 +319,8 @@ function OrbitChatPage() {
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const deleteIds = (ids: string[]) => {
-    setMsgs((m) => m.filter((x) => !ids.includes(x.id)));
+    setNotes((m) => m.filter((x) => !ids.includes(x.id)));
+    void chat.remove(ids);
     setSelectedIds([]);
   };
   const exitSelectMode = () => {
@@ -327,7 +328,8 @@ function OrbitChatPage() {
     setSelectedIds([]);
   };
   const clearChat = () => {
-    setMsgs([]);
+    setNotes([]);
+    void chat.clear();
     exitSelectMode();
     setMenuOpen(false);
     toast.success("Chat cleared");
