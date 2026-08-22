@@ -80,6 +80,60 @@ export type Database = {
         }
         Relationships: []
       }
+      orbit_chat_settings: {
+        Row: {
+          auto_delete_seconds: number
+          cleared_before: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          muted: boolean
+          peer_id: string
+          recording_alert: boolean
+          screenshot_alert: boolean
+          secret_lock_enabled: boolean
+          secret_pin_hash: string | null
+          secret_pin_salt: string | null
+          updated_at: string
+          user_id: string
+          view_once_mode: boolean
+        }
+        Insert: {
+          auto_delete_seconds?: number
+          cleared_before?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          muted?: boolean
+          peer_id: string
+          recording_alert?: boolean
+          screenshot_alert?: boolean
+          secret_lock_enabled?: boolean
+          secret_pin_hash?: string | null
+          secret_pin_salt?: string | null
+          updated_at?: string
+          user_id: string
+          view_once_mode?: boolean
+        }
+        Update: {
+          auto_delete_seconds?: number
+          cleared_before?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          muted?: boolean
+          peer_id?: string
+          recording_alert?: boolean
+          screenshot_alert?: boolean
+          secret_lock_enabled?: boolean
+          secret_pin_hash?: string | null
+          secret_pin_salt?: string | null
+          updated_at?: string
+          user_id?: string
+          view_once_mode?: boolean
+        }
+        Relationships: []
+      }
       orbit_connections: {
         Row: {
           addressee_id: string
@@ -131,6 +185,7 @@ export type Database = {
       orbit_messages: {
         Row: {
           created_at: string
+          expires_at: string | null
           id: string
           kind: string
           recipient_id: string
@@ -142,6 +197,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          expires_at?: string | null
           id?: string
           kind?: string
           recipient_id: string
@@ -153,6 +209,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          expires_at?: string | null
           id?: string
           kind?: string
           recipient_id?: string
@@ -221,6 +278,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           visible?: boolean
+        }
+        Relationships: []
+      }
+      orbit_reports: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -503,6 +590,7 @@ export type Database = {
     }
     Functions: {
       burn_view_once: { Args: { _msg_id: string }; Returns: undefined }
+      delete_expired_orbit_messages: { Args: never; Returns: number }
       discover_orbit_profiles: {
         Args: { ids?: string[] }
         Returns: {
