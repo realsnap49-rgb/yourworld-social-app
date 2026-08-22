@@ -53,26 +53,38 @@ function OrbitMyProfile() {
   }
 
   const mood = moodById(p.mood ?? undefined);
-  const cover = p.photos.find((m) => m.kind !== "video");
-  const videos = p.photos.filter((m) => m.kind === "video");
+  const usable = p.photos.filter((m) => !isLocalObjectUrl(m.url));
+  const cover = usable.find((m) => m.kind !== "video");
+  const videos = usable.filter((m) => m.kind === "video");
 
-  const addMedia = (files: FileList | null, kind: "photo" | "video") => {
+  const addMedia = async (files: FileList | null, kind: "photo" | "video") => {
     if (!files?.length) return;
     const room = ORBIT_PHOTO_MAX - p.photos.length;
     if (room <= 0) {
       toast.warning(`You can keep up to ${ORBIT_PHOTO_MAX} items.`);
       return;
     }
-    const next: OrbitPhoto[] = Array.from(files)
-      .slice(0, room)
-      .map((f) => ({
+    const picked = Array.from(files).slice(0, room);
+    const toastId = toast.loading(kind === "video" ? "Uploading video…" : "Uploading photo…");
+    const next: OrbitPhoto[] = [];
+    for (const f of picked) {
+      const url = await uploadOrbitMedia(f);
+      if (!url) continue;
+      next.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        url: URL.createObjectURL(f),
+        url,
         style: "real",
         kind,
-      }));
+      });
+    }
+    if (!next.length) {
+      toast.error("Upload failed. Please try again.", { id: toastId });
+      return;
+    }
     orbit.saveProfile({ ...p, photos: [...p.photos, ...next] });
-    toast.success(kind === "video" ? "Video added to your Orbit profile" : "Photo added");
+    toast.success(kind === "video" ? "Video added to your Orbit profile" : "Photo added", {
+      id: toastId,
+    });
   };
 
   const removeMedia = (id: string) => {
