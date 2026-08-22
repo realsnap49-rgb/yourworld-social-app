@@ -651,19 +651,19 @@ function Action({
     <button
       onClick={onClick}
       className={cn(
-        "group flex w-12 flex-col items-center gap-1 text-foreground transition-transform duration-150 active:scale-90",
+        "group flex w-11 flex-col items-center gap-1 text-foreground transition-transform duration-150 active:scale-90",
         active && "animate-pop",
       )}
     >
       <span
         className={cn(
-          "grid h-11 w-11 place-items-center rounded-full border border-foreground/15 bg-background/25 shadow-[0_6px_20px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors group-hover:bg-background/40",
+          "grid h-9 w-9 place-items-center rounded-full border border-foreground/15 bg-background/25 shadow-[0_6px_20px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors group-hover:bg-background/40",
           active && "border-primary/40 bg-primary/15",
         )}
       >
         {children}
       </span>
-      <span className="w-full truncate text-[9px] font-semibold tracking-wide text-foreground/85 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+      <span className="w-full truncate text-[8px] font-semibold tracking-wide text-foreground/85 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
         {label}
       </span>
     </button>
