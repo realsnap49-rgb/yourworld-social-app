@@ -113,15 +113,10 @@ export function useOrbitProfiles() {
     const load = async () => {
       const { data: auth } = await supabase.auth.getUser();
       const me = auth.user?.id;
-      const { data, error } = await supabase
-        .from("orbit_profiles")
-        .select(
-          "user_id,name,age,country,state,city,about,hobbies,looking_for,gender,photos,original_photo_privacy,mood,orbit_enabled,visible",
-        )
-        .eq("orbit_enabled", true)
-        .eq("visible", true)
-        .order("updated_at", { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase.rpc("discover_orbit_profiles" as never, {
+        ids: null,
+      } as never);
+
       if (cancelled) return;
       if (error || !data) {
         setLoading(false);
