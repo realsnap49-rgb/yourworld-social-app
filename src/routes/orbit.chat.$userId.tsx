@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { approxDistance } from "@/lib/orbit-data";
 import { useOrbitProfile } from "@/lib/orbit-live";
+import { useOrbitChat, type OrbitMessage } from "@/lib/orbit-chat";
 import {
   ORBIT_REQUEST_PHOTO_MAX,
   ORBIT_REQUEST_TEXT_MAX,
