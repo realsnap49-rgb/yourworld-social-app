@@ -83,7 +83,17 @@ function OrbitProfilePage() {
       </header>
 
       <div className="relative aspect-[4/5] w-full overflow-hidden">
-        <img src={p.photo} alt={`${p.name}, ${p.headline}`} className="h-full w-full object-cover" />
+        {p.photo ? (
+          <img src={p.photo} alt={`${p.name}, ${p.headline}`} className="h-full w-full object-cover" />
+        ) : (
+          <div
+            className="grid h-full w-full place-items-center font-display text-7xl font-bold text-foreground"
+            style={{ backgroundImage: `linear-gradient(140deg, oklch(0.5 0.18 ${p.hue}), oklch(0.28 0.1 ${p.hue + 40}))` }}
+            aria-hidden
+          >
+            {p.name.charAt(0)}
+          </div>
+        )}
         <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(to_top,oklch(0.12_0.02_290/0.92),transparent)] p-5 pt-20">
           <div className="flex items-center gap-1.5">
             <h2 className="font-display text-2xl font-bold">
