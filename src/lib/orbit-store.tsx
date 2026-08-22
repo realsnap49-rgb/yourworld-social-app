@@ -414,10 +414,11 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
           privacy: { ...s.privacy, hiddenFrom: toggleIn(s.privacy.hiddenFrom, id) },
         })),
       toggleBlocked: (id) =>
-        setState((s) => ({
-          ...s,
-          privacy: { ...s.privacy, blocked: toggleIn(s.privacy.blocked, id) },
-        })),
+        setState((s) => {
+          const privacy = { ...s.privacy, blocked: toggleIn(s.privacy.blocked, id) };
+          void saveOrbitPrivacyRemote(privacy);
+          return { ...s, privacy };
+        }),
       sendChatRequest: (id, intro) => {
         void sendOrbitChatRequestRemote(id, intro);
         setState((s) =>
