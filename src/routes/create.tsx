@@ -1044,20 +1044,44 @@ export function CreateStudioPage() {
               )}
 
               {activeToolPanel === "CROP" && currentClip && (
-                <label className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
-                  <Crop size={14} className="text-orange-500" />
-                  <input
-                    type="range"
-                    min={1}
-                    max={3}
-                    step={0.05}
-                    value={currentClip.crop ?? 1}
-                    onChange={(e) => updateCurrentClip("crop", Number(e.target.value))}
-                    className="flex-1 accent-orange-500"
-                  />
-                  <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
-                </label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    {([
+                      { label: "Free", r: null },
+                      { label: "9:16", r: 9 / 16 },
+                      { label: "4:5", r: 4 / 5 },
+                      { label: "1:1", r: 1 },
+                      { label: "4:3", r: 4 / 3 },
+                      { label: "16:9", r: 16 / 9 },
+                    ] as const).map((a) => (
+                      <button
+                        key={a.label}
+                        onClick={() => applyAspect(a.r)}
+                        className="px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase border border-border bg-muted text-foreground flex-shrink-0 active:scale-95 transition"
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] font-semibold text-muted-foreground">
+                    Drag the box on the video to crop freely.
+                  </p>
+                  <label className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
+                    <Crop size={14} className="text-orange-500" />
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.05}
+                      value={currentClip.crop ?? 1}
+                      onChange={(e) => updateCurrentClip("crop", Number(e.target.value))}
+                      className="flex-1 accent-orange-500"
+                    />
+                    <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
+                  </label>
+                </div>
               )}
+
 
               {activeToolPanel === "FILTER" && (
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
