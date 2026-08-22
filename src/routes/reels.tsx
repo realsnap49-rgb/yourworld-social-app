@@ -267,8 +267,10 @@ function ReelItem({
   // ---- playback timeline -------------------------------------------------
   const [progress, setProgress] = useState(0); // 0..1
   const [scrubbing, setScrubbing] = useState(false);
-  // Press-and-hold anywhere on the reel pauses playback (Instagram style).
+  // Single tap toggles pause/play; press-and-hold keeps it paused.
   const [held, setHeld] = useState(false);
+  const [tappedPause, setTappedPause] = useState(false);
+  const paused = held || tappedPause;
   const barRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTs = useRef(0);
