@@ -2,6 +2,8 @@ import React, { memo, useCallback, useState } from "react";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSocialPosts, timeAgo } from "@/lib/social-data";
+import { useLongVideos } from "@/lib/video-data";
+import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { formatCount } from "@/lib/yw-data";
 import {
   Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus
@@ -67,6 +69,7 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
 export function HomePage() {
   const navigate = useNavigate();
   const { posts: dbPosts, toggleLike: toggleDbLike } = useSocialPosts("post");
+  const { videos: longVideos, countView, toggleLike: likeVideo } = useLongVideos();
 
   const [fallback, setFallback] = useState<Post[]>([
     {
