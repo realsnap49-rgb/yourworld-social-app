@@ -159,23 +159,40 @@ export function LightTimeline({
     return () => window.removeEventListener("resize", set);
   }, []);
 
-  // auto-scroll the track under the fixed center playhead while playing
+  // auto-scroll the track under the fixed center playhead while playing.
+  // The write is deferred to the next animation frame so the scroll never
+  // fights the browser's own compositing pass (that's what caused the jitter).
+  const autoRaf = useRef<number | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || userScrollRef.current) return;
     const frac = playFraction ?? 0;
-    const before = lens.slice(0, activeIndex).length * CELL;
-    const target = before + frac * CELL;
-    if (Math.abs(el.scrollLeft - target) > 1) el.scrollLeft = target;
+    const target = activeIndex * CELL + frac * CELL;
+    if (autoRaf.current) cancelAnimationFrame(autoRaf.current);
+    autoRaf.current = requestAnimationFrame(() => {
+      autoRaf.current = null;
+      if (userScrollRef.current) return;
+      if (Math.abs(el.scrollLeft - target) > 0.5) el.scrollLeft = target;
+    });
+    return () => {
+      if (autoRaf.current) cancelAnimationFrame(autoRaf.current);
+      autoRaf.current = null;
+    };
   }, [activeIndex, playFraction, lens]);
 
+  // scrub updates are throttled to one per frame — dragging stays at 60fps
+  const scrubRaf = useRef<number | null>(null);
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el || !userScrollRef.current || !onScrub) return;
-    const x = Math.max(0, el.scrollLeft);
-    const idx = Math.min(clips.length - 1, Math.floor(x / CELL));
-    const frac = Math.min(1, Math.max(0, (x - idx * CELL) / CELL));
-    onScrub(idx, frac);
+    if (scrubRaf.current) return;
+    scrubRaf.current = requestAnimationFrame(() => {
+      scrubRaf.current = null;
+      const x = Math.max(0, el.scrollLeft);
+      const idx = Math.min(clips.length - 1, Math.floor(x / CELL));
+      const frac = Math.min(1, Math.max(0, (x - idx * CELL) / CELL));
+      onScrub(idx, frac);
+    });
   }, [clips.length, onScrub]);
 
   const markUser = useCallback(() => {
@@ -185,6 +202,7 @@ export function LightTimeline({
       userScrollRef.current = false;
     }, 260);
   }, []);
+
 
   // ---- long-press drag to reorder ----
   const beginPress = (index: number) => (e: React.PointerEvent) => {
