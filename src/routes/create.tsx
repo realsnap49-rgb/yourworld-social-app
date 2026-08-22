@@ -124,7 +124,9 @@ export function CreateStudioPage() {
     setShowExport(false);
   };
 
-  const postReel = async () => {
+  const [showPublish, setShowPublish] = useState(false);
+
+  const postReel = async (meta: ReelPublishMeta) => {
     const clip = clips[activeClipIndex] ?? clips[0];
     const url = clip?.url;
     if (!url) {
@@ -132,7 +134,7 @@ export function CreateStudioPage() {
       return;
     }
     setPosting(true);
-    const caption = clip?.textOverlay ?? "";
+    const caption = meta.caption || clip?.textOverlay || "";
 
     // Bake the selected music into the video so the reel plays with sound.
     let uploadUrl = url;
@@ -166,6 +168,12 @@ export function CreateStudioPage() {
     const { error } = await publishReel({
       fileUrl: uploadUrl,
       caption,
+      hashtags: meta.hashtags,
+      location: meta.location,
+      link: meta.link,
+      audience: meta.audience,
+      taggedUserIds: meta.taggedUserIds,
+      viewerUserIds: meta.viewerUserIds,
       audio: audioTrack?.title ?? null,
     });
     setPosting(false);
@@ -173,6 +181,7 @@ export function CreateStudioPage() {
       toast.error(error);
       return;
     }
+    setShowPublish(false);
     setShowExport(false);
     toast.success("Reel posted");
     navigate({ to: "/reels" });
