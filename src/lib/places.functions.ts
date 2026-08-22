@@ -16,15 +16,46 @@ const schema = z.object({
 });
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
+const OSM_URL = "https://nominatim.openstreetmap.org/search";
+
+/** Free, keyless real place search (OpenStreetMap) used when Google Maps isn't connected. */
+async function searchOsm(textQuery: string): Promise<PlaceResult[]> {
+  const url = `${OSM_URL}?q=${encodeURIComponent(textQuery)}&format=jsonv2&addressdetails=1&limit=12`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "YourWorld-App/1.0 (orbit place search)", Accept: "application/json" },
+  });
+  if (!res.ok) {
+    console.error(`OSM place search failed [${res.status}]: ${await res.text()}`);
+    return [];
+  }
+  const json = (await res.json()) as Array<{
+    place_id: number;
+    name?: string;
+    display_name?: string;
+    lat: string;
+    lon: string;
+  }>;
+  return json
+    .filter((p) => (p.name ?? "").trim().length > 0)
+    .map((p) => ({
+      id: String(p.place_id),
+      name: p.name!.trim(),
+      address: (p.display_name ?? "").split(", ").slice(1, 4).join(", "),
+      mapsUrl: `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`,
+    }));
+}
 
 export const searchPlaces = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => schema.parse(data))
-  .handler(async ({ data }): Promise<{ places: PlaceResult[]; source: "google" | "none" }> => {
+  .handler(async ({ data }): Promise<{ places: PlaceResult[]; source: "google" | "osm" | "none" }> => {
     const lovableKey = process.env["LOVABLE_API_KEY"];
     const mapsKey = process.env["GOOGLE_MAPS_API_KEY"];
-    if (!lovableKey || !mapsKey) return { places: [], source: "none" };
-
     const textQuery = [data.query, data.region].filter(Boolean).join(" in ");
+
+    if (!lovableKey || !mapsKey) {
+      return { places: await searchOsm(textQuery), source: "osm" };
+    }
+
     const res = await fetch(`${GATEWAY_URL}/places/v1/places:searchText`, {
       method: "POST",
       headers: {
