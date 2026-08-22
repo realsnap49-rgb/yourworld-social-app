@@ -200,6 +200,7 @@ function ReelMedia({
   const className = cn(
     "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
     active && asImage && "animate-kenburns",
+    paused && "[animation-play-state:paused]",
   );
 
   if (asImage) {
