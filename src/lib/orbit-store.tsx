@@ -169,24 +169,6 @@ export function countRequestMessages(req?: OrbitChatRequest) {
   };
 }
 
-/** Demo inbound requests so the recipient flow is reachable. */
-const seededRequests: Record<string, OrbitChatRequest> = {
-  o2: {
-    direction: "incoming",
-    status: "pending",
-    intro: "Hey! Saw you shoot film too — coffee sometime?",
-    messages: [
-      { id: "o2-1", kind: "text", text: "Hey! Saw you shoot film too — coffee sometime?", me: false },
-    ],
-  },
-  o5: {
-    direction: "incoming",
-    status: "pending",
-    intro: "Your playlist taste is unreal. Hi 👋",
-    messages: [{ id: "o5-1", kind: "text", text: "Your playlist taste is unreal. Hi 👋", me: false }],
-  },
-};
-
 const defaultPrivacy: OrbitPrivacy = {
   orbitEnabled: true,
   paused: false,
@@ -220,7 +202,7 @@ const defaultState: OrbitState = {
   privacy: defaultPrivacy,
   liked: {},
   connected: {},
-  requests: seededRequests,
+  requests: {},
 };
 
 const KEY = ORBIT_KEY;
@@ -306,7 +288,7 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
           ...defaultState,
           ...parsed,
           privacy: { ...defaultPrivacy, ...(parsed.privacy ?? {}) },
-          requests: parsed.requests ?? seededRequests,
+          requests: parsed.requests ?? {},
         });
       }
     } catch {
@@ -330,7 +312,7 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
           privacy: { ...s.privacy, ...(remote.privacy ?? {}) },
           liked: remote.liked,
           connected: remote.connected,
-          requests: Object.keys(remote.requests).length ? remote.requests : s.requests,
+          requests: remote.requests,
         };
       });
     };
