@@ -569,3 +569,118 @@ export function useThreadPeer(threadId: string, me: string | null) {
 
   return peer;
 }
+
+export type PostComment = {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  body: string;
+  createdAt: string;
+};
+
+/** Real comments for a post or reel: live fetch, optimistic post, realtime sync. */
+export function usePostComments(postId: string | null) {
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [me, setMe] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!postId) {
+      setComments([]);
+      setLoading(false);
+      return;
+    }
+    const { data: sessionData } = await supabase.auth.getSession();
+    const uid = sessionData.session?.user.id ?? null;
+    setMe(uid);
+
+    const { data: rows } = await supabase
+      .from("post_comments")
+      .select("id,post_id,user_id,body,created_at")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
+
+    if (!rows?.length) {
+      setComments([]);
+      setLoading(false);
+      return;
+    }
+
+    const authorIds = [...new Set(rows.map((r) => r.user_id))];
+    const { data: profiles } = await supabase.rpc("get_public_profiles", {
+      ids: authorIds,
+    });
+    const profileById = new Map(
+      ((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]),
+    );
+
+    setComments(
+      rows.map((r) => {
+        const p = profileById.get(r.user_id);
+        return {
+          id: r.id,
+          userId: r.user_id,
+          username: p?.username ?? `user${r.user_id.slice(0, 4)}`,
+          displayName: p?.display_name ?? p?.username ?? "YourWorld user",
+          avatarUrl: p?.avatar_url ?? null,
+          body: r.body,
+          createdAt: r.created_at,
+        };
+      }),
+    );
+    setLoading(false);
+  }, [postId]);
+
+  useEffect(() => {
+    void load();
+    if (!postId) return;
+    const channel = supabase
+      .channel(`post-comments-${postId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_comments", filter: `post_id=eq.${postId}` },
+        () => void load(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [postId, load]);
+
+  const send = useCallback(
+    async (body: string) => {
+      if (!postId || !me || !body.trim()) return;
+      const text = body.trim();
+      const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      // Optimistic: show the comment instantly.
+      setComments((prev) => [
+        ...prev,
+        {
+          id: tempId,
+          userId: me,
+          username: "you",
+          displayName: "You",
+          avatarUrl: null,
+          body: text,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      const { error } = await supabase
+        .from("post_comments")
+        .insert({ post_id: postId, user_id: me, body: text })
+        .select("id,created_at")
+        .maybeSingle();
+      if (error) {
+        setComments((prev) => prev.filter((c) => c.id !== tempId));
+      } else {
+        // Replace the optimistic row with the real one (keeps order).
+        void load();
+      }
+    },
+    [postId, me, load],
+  );
+
+  return { comments, loading, send };
+}

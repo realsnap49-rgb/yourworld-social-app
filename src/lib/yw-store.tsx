@@ -11,6 +11,24 @@ import {
 
 type Toggles = Record<string, boolean>;
 
+function load(key: string): Toggles {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as Toggles) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persist(key: string, value: Toggles) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
 type Store = {
   liked: Toggles;
   saved: Toggles;
@@ -36,10 +54,14 @@ export type Draft = {
 const StoreContext = createContext<Store | null>(null);
 
 export function YwStoreProvider({ children }: { children: ReactNode }) {
-  const [liked, setLiked] = useState<Toggles>({});
-  const [saved, setSaved] = useState<Toggles>({});
-  const [following, setFollowing] = useState<Toggles>({});
+  const [liked, setLiked] = useState<Toggles>(() => load("yw:liked"));
+  const [saved, setSaved] = useState<Toggles>(() => load("yw:saved"));
+  const [following, setFollowing] = useState<Toggles>(() => load("yw:following"));
   const [drafts, setDrafts] = useState<Draft[]>([]);
+
+  useEffect(() => persist("yw:liked", liked), [liked]);
+  useEffect(() => persist("yw:saved", saved), [saved]);
+  useEffect(() => persist("yw:following", following), [following]);
 
   const toggleLike = useCallback(
     (id: string) => setLiked((p) => ({ ...p, [id]: !p[id] })),
