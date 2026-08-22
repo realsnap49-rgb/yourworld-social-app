@@ -787,7 +787,9 @@ function OrbitChatPage() {
         onOpenChange={(o) => !o && setInviteKind(null)}
         onSelect={(place) => {
           if (!inviteKind) return;
-          push({ me: true, invite: buildInvite(inviteKind, place) });
+          void chat.sendText(
+            `${INVITE_PREFIX}${JSON.stringify(buildInvite(inviteKind, place))}`,
+          );
           setInviteKind(null);
           toast.success(`Invite sent to ${p.name}`, { description: place.name });
         }}
