@@ -1,15 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import {
-  Copy,
-  Download,
-  Link2,
-  MessageCircle,
-  Plus,
-  Share2,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Link2, MessageCircle, Plus, Share2, Sparkles, X } from "lucide-react";
+
 import { useMoments } from "@/lib/moment-store";
 
 interface ShareSheetProps {
