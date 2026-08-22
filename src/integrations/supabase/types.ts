@@ -314,45 +314,57 @@ export type Database = {
       posts: {
         Row: {
           allow_download: boolean
+          audience: string
           audio: string | null
           caption: string
           created_at: string
           hashtags: string[]
           id: string
           kind: string
+          link: string | null
           location: string | null
           media_type: string
           media_url: string
+          tagged_user_ids: string[]
           updated_at: string
           user_id: string
+          viewer_user_ids: string[]
         }
         Insert: {
           allow_download?: boolean
+          audience?: string
           audio?: string | null
           caption?: string
           created_at?: string
           hashtags?: string[]
           id?: string
           kind?: string
+          link?: string | null
           location?: string | null
           media_type?: string
           media_url?: string
+          tagged_user_ids?: string[]
           updated_at?: string
           user_id: string
+          viewer_user_ids?: string[]
         }
         Update: {
           allow_download?: boolean
+          audience?: string
           audio?: string | null
           caption?: string
           created_at?: string
           hashtags?: string[]
           id?: string
           kind?: string
+          link?: string | null
           location?: string | null
           media_type?: string
           media_url?: string
+          tagged_user_ids?: string[]
           updated_at?: string
           user_id?: string
+          viewer_user_ids?: string[]
         }
         Relationships: []
       }

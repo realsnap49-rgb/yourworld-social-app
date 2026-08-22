@@ -12,6 +12,7 @@ import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import { publishReel } from "@/lib/social-data";
 import { canMuxReel, renderReelWithMusic } from "@/lib/reel-mux";
+import { ReelPublishSheet, type ReelPublishMeta } from "@/components/yw/ReelPublishSheet";
 
 import type { AudioTrackState } from "@/components/yw/editor/AudioTrackLane";
 
@@ -124,7 +125,9 @@ export function CreateStudioPage() {
     setShowExport(false);
   };
 
-  const postReel = async () => {
+  const [showPublish, setShowPublish] = useState(false);
+
+  const postReel = async (meta: ReelPublishMeta) => {
     const clip = clips[activeClipIndex] ?? clips[0];
     const url = clip?.url;
     if (!url) {
@@ -132,7 +135,7 @@ export function CreateStudioPage() {
       return;
     }
     setPosting(true);
-    const caption = clip?.textOverlay ?? "";
+    const caption = meta.caption || clip?.textOverlay || "";
 
     // Bake the selected music into the video so the reel plays with sound.
     let uploadUrl = url;
@@ -166,6 +169,12 @@ export function CreateStudioPage() {
     const { error } = await publishReel({
       fileUrl: uploadUrl,
       caption,
+      hashtags: meta.hashtags,
+      location: meta.location,
+      link: meta.link,
+      audience: meta.audience,
+      taggedUserIds: meta.taggedUserIds,
+      viewerUserIds: meta.viewerUserIds,
       audio: audioTrack?.title ?? null,
     });
     setPosting(false);
@@ -173,6 +182,7 @@ export function CreateStudioPage() {
       toast.error(error);
       return;
     }
+    setShowPublish(false);
     setShowExport(false);
     toast.success("Reel posted");
     navigate({ to: "/reels" });
@@ -738,11 +748,11 @@ export function CreateStudioPage() {
                     <p className="text-[11px] text-muted-foreground mb-4">{exportRes} video is ready.</p>
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => void postReel()}
+                        onClick={() => setShowPublish(true)}
                         disabled={posting}
                         className="w-full py-3 rounded-lg bg-orange-500 text-white text-xs font-black uppercase tracking-wide disabled:opacity-60"
                       >
-                        {posting ? "Posting…" : "Post Reel"}
+                        Next: caption & audience
                       </button>
                       <button
                         onClick={saveToGallery}
@@ -756,6 +766,16 @@ export function CreateStudioPage() {
               </div>
             </div>
           )}
+
+          <ReelPublishSheet
+            open={showPublish}
+            previewUrl={clips[activeClipIndex]?.url ?? clips[0]?.url}
+            posting={posting}
+            onClose={() => setShowPublish(false)}
+            onShare={(meta) => void postReel(meta)}
+          />
+
+
 
           {/* FULL-WIDTH VIDEO CANVAS */}
           <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-white overflow-hidden">

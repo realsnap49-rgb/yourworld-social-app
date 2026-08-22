@@ -218,6 +218,11 @@ export async function publishReel(opts: {
   hashtags?: string[];
   audio?: string | null;
   allowDownload?: boolean;
+  location?: string | null;
+  link?: string | null;
+  audience?: "everyone" | "close_friends";
+  taggedUserIds?: string[];
+  viewerUserIds?: string[];
 }): Promise<{ error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user.id;
@@ -253,6 +258,11 @@ export async function publishReel(opts: {
     hashtags: opts.hashtags ?? [],
     audio: opts.audio ?? null,
     allow_download: opts.allowDownload ?? true,
+    location: opts.location ?? null,
+    link: opts.link ?? null,
+    audience: opts.audience ?? "everyone",
+    tagged_user_ids: opts.taggedUserIds ?? [],
+    viewer_user_ids: opts.viewerUserIds ?? [],
   });
   if (!error) rememberLocalMedia(mediaUrl, opts.fileUrl);
   return { error: error?.message ?? null };
