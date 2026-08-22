@@ -305,7 +305,9 @@ function OrbitBrowse() {
                   icon={MessageCircle}
                   label="Message"
                   locked={!orbit.hasProfile}
-                  onClick={gate(() => toast.success(`Orbit chat opened with ${p.name}`))}
+                  onClick={gate(() =>
+                    navigate({ to: "/orbit/chat/$userId", params: { userId: p.id } }),
+                  )}
                 />
                 <OrbitAction
                   icon={Handshake}
