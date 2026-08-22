@@ -113,7 +113,7 @@ function useThumbnails(clips: TimelineClip[]) {
   return thumbs;
 }
 
-export function LightTimeline({
+function LightTimelineBase({
   clips,
   activeIndex,
   currentTime,
@@ -159,23 +159,40 @@ export function LightTimeline({
     return () => window.removeEventListener("resize", set);
   }, []);
 
-  // auto-scroll the track under the fixed center playhead while playing
+  // auto-scroll the track under the fixed center playhead while playing.
+  // The write is deferred to the next animation frame so the scroll never
+  // fights the browser's own compositing pass (that's what caused the jitter).
+  const autoRaf = useRef<number | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || userScrollRef.current) return;
     const frac = playFraction ?? 0;
-    const before = lens.slice(0, activeIndex).length * CELL;
-    const target = before + frac * CELL;
-    if (Math.abs(el.scrollLeft - target) > 1) el.scrollLeft = target;
+    const target = activeIndex * CELL + frac * CELL;
+    if (autoRaf.current) cancelAnimationFrame(autoRaf.current);
+    autoRaf.current = requestAnimationFrame(() => {
+      autoRaf.current = null;
+      if (userScrollRef.current) return;
+      if (Math.abs(el.scrollLeft - target) > 0.5) el.scrollLeft = target;
+    });
+    return () => {
+      if (autoRaf.current) cancelAnimationFrame(autoRaf.current);
+      autoRaf.current = null;
+    };
   }, [activeIndex, playFraction, lens]);
 
+  // scrub updates are throttled to one per frame — dragging stays at 60fps
+  const scrubRaf = useRef<number | null>(null);
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el || !userScrollRef.current || !onScrub) return;
-    const x = Math.max(0, el.scrollLeft);
-    const idx = Math.min(clips.length - 1, Math.floor(x / CELL));
-    const frac = Math.min(1, Math.max(0, (x - idx * CELL) / CELL));
-    onScrub(idx, frac);
+    if (scrubRaf.current) return;
+    scrubRaf.current = requestAnimationFrame(() => {
+      scrubRaf.current = null;
+      const x = Math.max(0, el.scrollLeft);
+      const idx = Math.min(clips.length - 1, Math.floor(x / CELL));
+      const frac = Math.min(1, Math.max(0, (x - idx * CELL) / CELL));
+      onScrub(idx, frac);
+    });
   }, [clips.length, onScrub]);
 
   const markUser = useCallback(() => {
@@ -185,6 +202,7 @@ export function LightTimeline({
       userScrollRef.current = false;
     }, 260);
   }, []);
+
 
   // ---- long-press drag to reorder ----
   const beginPress = (index: number) => (e: React.PointerEvent) => {
@@ -237,29 +255,32 @@ export function LightTimeline({
   return (
     <div className="w-full select-none">
       {/* unified time readout */}
-      <div className="flex items-center justify-between px-4 pb-1">
+      <div className="flex items-center justify-between px-4 pb-1.5">
         <button
           onClick={onToggleMute}
-          className="text-muted-foreground p-1 rounded-lg active:scale-95 transition"
+          className="grid h-7 w-7 place-items-center rounded-full bg-muted/70 text-muted-foreground transition-transform duration-150 active:scale-90"
           aria-label={isMuted ? "Unmute" : "Mute"}
         >
-          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
         </button>
-        <span className="text-[11px] font-black tabular-nums text-foreground">
+        <span className="rounded-full bg-muted/60 px-3 py-0.5 text-[11px] font-black tabular-nums text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
           {fmt(currentTime)} <span className="text-muted-foreground">/ {fmt(totalDuration)}</span>
         </span>
         <button
           onClick={onAdd}
-          className="text-muted-foreground p-1 rounded-lg active:scale-95 transition"
+          className="grid h-7 w-7 place-items-center rounded-full bg-muted/70 text-muted-foreground transition-transform duration-150 active:scale-90"
           aria-label="Add clip"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
 
       <div className="relative">
         {/* fixed center playhead */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-orange-500 z-20 pointer-events-none" />
+        <div className="pointer-events-none absolute left-1/2 top-0 bottom-0 z-20 -translate-x-1/2">
+          <div className="h-full w-[2px] rounded-full bg-gradient-to-b from-orange-400 via-orange-500 to-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.55)]" />
+          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-orange-500 shadow" />
+        </div>
 
         <div
           ref={scrollRef}
@@ -267,11 +288,16 @@ export function LightTimeline({
           onPointerDown={markUser}
           onTouchStart={markUser}
           onWheel={markUser}
-          className="overflow-x-auto overflow-y-hidden scrollbar-none"
-          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
+          className="overflow-x-auto overflow-y-hidden scrollbar-none overscroll-x-contain"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            touchAction: "pan-x",
+            contain: "paint",
+          }}
         >
           {/* video track — continuous, zero gaps, white dividers */}
-          <div className="flex items-center h-16">
+          <div className="flex items-center h-16" style={{ willChange: "transform" }}>
+
             {clips.map((clip, i) => {
               const selected = i === activeIndex;
               const dur = clip.duration || 0;
@@ -308,14 +334,21 @@ export function LightTimeline({
                   }}
                   style={{
                     width: CELL,
-                    transform: dragIndex === i ? `translateX(${dragOffset}px) scale(1.06)` : undefined,
+                    transform:
+                      dragIndex === i
+                        ? `translate3d(${dragOffset}px,0,0) scale(1.06)`
+                        : "translate3d(0,0,0)",
                     zIndex: dragIndex === i ? 30 : undefined,
                     touchAction: dragIndex === i ? "none" : undefined,
+                    willChange: dragIndex === i ? "transform" : undefined,
+                    transitionTimingFunction: "cubic-bezier(0.22,1,0.36,1)",
                   }}
-                  className={`relative h-16 flex-shrink-0 bg-muted overflow-hidden cursor-pointer transition-opacity ${
-                    dragIndex === i ? "shadow-xl ring-2 ring-inset ring-orange-500 opacity-100" : ""
+                  className={`relative h-16 flex-shrink-0 bg-muted overflow-hidden cursor-pointer duration-200 [transition-property:opacity,transform,box-shadow] ${
+                    dragIndex === i ? "shadow-2xl ring-2 ring-inset ring-orange-500 opacity-100" : ""
                   } ${
-                    selected ? "opacity-100 ring-2 ring-inset ring-orange-500 z-10" : "opacity-50"
+                    selected
+                      ? "opacity-100 ring-2 ring-inset ring-orange-500 z-10 shadow-[0_6px_18px_-8px_rgba(249,115,22,0.8)]"
+                      : "opacity-45"
                   }`}
                 >
                   {thumbs[clip.id] && (
@@ -323,11 +356,14 @@ export function LightTimeline({
                       src={thumbs[clip.id]}
                       alt=""
                       draggable={false}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                     />
                   )}
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
-                    <span className="text-[9px] font-black text-foreground/80">
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-background/55 backdrop-blur-[2px]">
+                    <span className="text-[9px] font-black tabular-nums text-foreground/80">
                       #{i + 1} · {clipLen(clip).toFixed(1)}s
                     </span>
                   </div>
@@ -341,14 +377,14 @@ export function LightTimeline({
                     <>
                       <div
                         onPointerDown={trimDrag("start")}
-                        className="absolute inset-y-0 w-3 bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20"
+                        className="absolute inset-y-0 w-3 rounded-l-md bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20 shadow-md"
                         style={{ left: `${startPct}%` }}
                       >
                         <span className="h-5 w-[2px] bg-white/90 rounded" />
                       </div>
                       <div
                         onPointerDown={trimDrag("end")}
-                        className="absolute inset-y-0 w-3 -translate-x-full bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20"
+                        className="absolute inset-y-0 w-3 -translate-x-full rounded-r-md bg-orange-500 cursor-ew-resize touch-none flex items-center justify-center z-20 shadow-md"
                         style={{ left: `${endPct}%` }}
                       >
                         <span className="h-5 w-[2px] bg-white/90 rounded" />
@@ -357,6 +393,7 @@ export function LightTimeline({
                   )}
                 </div>
               );
+
             })}
           </div>
 
@@ -376,5 +413,7 @@ export function LightTimeline({
     </div>
   );
 }
+
+export const LightTimeline = React.memo(LightTimelineBase);
 
 export default LightTimeline;
