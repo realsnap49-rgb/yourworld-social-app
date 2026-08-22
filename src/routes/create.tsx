@@ -454,6 +454,39 @@ export function CreateStudioPage() {
     window.addEventListener("pointerup", end);
   };
 
+  // Aspect-ratio presets: fit the largest box of `ratio` (w/h) inside the
+  // visible video area, expressed in stage percentages.
+  const applyAspect = (ratio: number | null) => {
+    if (ratio === null) {
+      setClips((prev) =>
+        prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: undefined } : c)),
+      );
+      return;
+    }
+    const stage = stageRef.current?.getBoundingClientRect();
+    const vid = videoRef.current?.getBoundingClientRect();
+    if (!stage || !vid || !stage.width || !stage.height) return;
+    // video box in stage %
+    const vx = ((vid.left - stage.left) / stage.width) * 100;
+    const vy = ((vid.top - stage.top) / stage.height) * 100;
+    const vw = (vid.width / stage.width) * 100;
+    const vh = (vid.height / stage.height) * 100;
+    // px-space fit, then convert back to %
+    let boxWpx = vid.width;
+    let boxHpx = boxWpx / ratio;
+    if (boxHpx > vid.height) {
+      boxHpx = vid.height;
+      boxWpx = boxHpx * ratio;
+    }
+    const w = (boxWpx / vid.width) * vw;
+    const h = (boxHpx / vid.height) * vh;
+    const next = { x: vx + (vw - w) / 2, y: vy + (vh - h) / 2, w, h };
+    setClips((prev) =>
+      prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: next } : c)),
+    );
+  };
+
+
   // ---- 60fps playhead: read the video on every frame, commit state only when
   // it visibly changes so the timeline glides instead of stepping. ----
   const lastSyncRef = useRef({ frac: -1, time: -1 });
