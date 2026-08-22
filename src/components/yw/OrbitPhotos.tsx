@@ -1,4 +1,6 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { uploadOrbitMedia, isLocalObjectUrl } from "@/lib/orbit-live";
 import { Plus, X, Lock, Camera, Sparkles, Wand2, Video } from "lucide-react";
 import {
   ORBIT_PHOTO_MAX,
@@ -50,20 +52,35 @@ export function OrbitPhotos({
   onPrivacyChange: (p: OrbitPhotoPrivacy) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
   const videoInput = useRef<HTMLInputElement>(null);
   const full = photos.length >= ORBIT_PHOTO_MAX;
+  const visible = photos.filter((p) => !isLocalObjectUrl(p.url));
 
-  const add = (files: FileList | null, kind: "photo" | "video" = "photo") => {
+  const add = async (files: FileList | null, kind: "photo" | "video" = "photo") => {
     if (!files?.length) return;
     const room = ORBIT_PHOTO_MAX - photos.length;
-    const next = Array.from(files)
-      .slice(0, room)
-      .map((f) => ({
+    const picked = Array.from(files).slice(0, room);
+    if (!picked.length) return;
+    setBusy(true);
+    const toastId = toast.loading(kind === "video" ? "Uploading video…" : "Uploading…");
+    const next: OrbitPhoto[] = [];
+    for (const f of picked) {
+      const url = await uploadOrbitMedia(f);
+      if (!url) continue;
+      next.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        url: URL.createObjectURL(f),
+        url,
         style: "real" as OrbitPhotoStyle,
         kind,
-      }));
+      });
+    }
+    setBusy(false);
+    if (!next.length) {
+      toast.error("Upload failed. Please try again.", { id: toastId });
+      return;
+    }
+    toast.success(kind === "video" ? "Video added" : "Uploaded", { id: toastId });
     onChange([...photos, ...next]);
   };
 
@@ -74,7 +91,7 @@ export function OrbitPhotos({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-2.5">
-        {photos.map((p, i) => {
+        {visible.map((p, i) => {
           const Icon = STYLE_ICON[p.style];
           const isVideo = p.kind === "video";
           return (
@@ -138,12 +155,12 @@ export function OrbitPhotos({
         {!full && (
           <button
             type="button"
-            onClick={() => input.current?.click()}
+            onClick={() => !busy && input.current?.click()}
             className="grid aspect-[3/4] place-items-center rounded-2xl border border-dashed border-border bg-secondary/40 text-muted-foreground transition-transform active:scale-95"
           >
             <span className="flex flex-col items-center gap-1">
               <Plus className="h-5 w-5" strokeWidth={1.8} />
-              <span className="text-[11px]">Add photo</span>
+              <span className="text-[11px]">{busy ? "Uploading…" : "Add photo"}</span>
             </span>
           </button>
         )}
@@ -151,7 +168,7 @@ export function OrbitPhotos({
         {!full && (
           <button
             type="button"
-            onClick={() => videoInput.current?.click()}
+            onClick={() => !busy && videoInput.current?.click()}
             className="grid aspect-[3/4] place-items-center rounded-2xl border border-dashed border-border bg-secondary/40 text-muted-foreground transition-transform active:scale-95"
           >
             <span className="flex flex-col items-center gap-1">
@@ -169,7 +186,7 @@ export function OrbitPhotos({
         multiple
         hidden
         onChange={(e) => {
-          add(e.target.files, "photo");
+          void add(e.target.files, "photo");
           e.target.value = "";
         }}
       />
@@ -179,13 +196,13 @@ export function OrbitPhotos({
         accept="video/*"
         hidden
         onChange={(e) => {
-          add(e.target.files, "video");
+          void add(e.target.files, "video");
           e.target.value = "";
         }}
       />
 
       <p className="text-[11px] text-muted-foreground">
-        At least 1 photo is required · {photos.length}/{ORBIT_PHOTO_MAX} added. You can also add a
+        At least 1 photo is required · {visible.length}/{ORBIT_PHOTO_MAX} added. You can also add a
         short intro video. Tap the icons on a photo to set its style.
       </p>
 
