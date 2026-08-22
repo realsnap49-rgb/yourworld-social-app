@@ -179,6 +179,57 @@ function OrbitChatPage() {
   const [muted, setMuted] = useState(false);
   const [reported, setReported] = useState(false);
 
+  // Chat options are per-person and survive leaving the chat.
+  const prefsKey = `yw.orbit.chatprefs.${userId}`;
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(prefsKey);
+      if (!raw) return;
+      const v = JSON.parse(raw) as Record<string, unknown>;
+      setDisplayName((v['displayName'] as string | null) ?? null);
+      setSecretLock(!!v['secretLock']);
+      setViewOnceMode(!!v['viewOnceMode']);
+      setAutoDelete(Number(v['autoDelete']) || 0);
+      setScreenshotAlert(v['screenshotAlert'] !== false);
+      setRecordingAlert(v['recordingAlert'] !== false);
+      setMuted(!!v['muted']);
+      setReported(!!v['reported']);
+    } catch {
+      /* ignore corrupt storage */
+    }
+  }, [prefsKey]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        prefsKey,
+        JSON.stringify({
+          displayName,
+          secretLock,
+          viewOnceMode,
+          autoDelete,
+          screenshotAlert,
+          recordingAlert,
+          muted,
+          reported,
+        }),
+      );
+    } catch {
+      /* storage unavailable */
+    }
+  }, [
+    prefsKey,
+    displayName,
+    secretLock,
+    viewOnceMode,
+    autoDelete,
+    screenshotAlert,
+    recordingAlert,
+    muted,
+    reported,
+  ]);
+
+
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
   const incomingPending = request?.direction === "incoming" && request.status === "pending";
