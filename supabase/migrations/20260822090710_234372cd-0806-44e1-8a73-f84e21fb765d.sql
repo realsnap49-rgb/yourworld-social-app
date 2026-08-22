@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.guard_wallet_balance() FROM PUBLIC, anon, authenticated;
