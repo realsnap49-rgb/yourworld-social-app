@@ -179,6 +179,7 @@ function OrbitChatPage() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
+  const [lightbox, setLightbox] = useState<{ url: string; video: boolean } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionSheetId, setActionSheetId] = useState<string | null>(null);
   const [actionRect, setActionRect] = useState<{ rect: DOMRect; me: boolean } | null>(null);
