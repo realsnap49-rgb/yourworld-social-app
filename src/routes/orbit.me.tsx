@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useOrbit, ORBIT_PHOTO_MAX, type OrbitPhoto } from "@/lib/orbit-store";
 import { moodById } from "@/lib/orbit-mood";
+import { uploadOrbitMedia, isLocalObjectUrl } from "@/lib/orbit-live";
 
 export const Route = createFileRoute("/orbit/me")({
   head: () => ({
@@ -170,12 +171,12 @@ function OrbitMyProfile() {
               Photos & Video
             </p>
             <p className="text-[11px] text-muted-foreground">
-              {p.photos.length}/{ORBIT_PHOTO_MAX}
+              {usable.length}/{ORBIT_PHOTO_MAX}
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5">
-            {p.photos.map((m) => (
+            {usable.map((m) => (
               <div
                 key={m.id}
                 className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-secondary"
@@ -222,7 +223,7 @@ function OrbitMyProfile() {
             multiple
             hidden
             onChange={(e) => {
-              addMedia(e.target.files, "photo");
+              void addMedia(e.target.files, "photo");
               e.target.value = "";
             }}
           />
@@ -232,7 +233,7 @@ function OrbitMyProfile() {
             accept="video/*"
             hidden
             onChange={(e) => {
-              addMedia(e.target.files, "video");
+              void addMedia(e.target.files, "video");
               e.target.value = "";
             }}
           />

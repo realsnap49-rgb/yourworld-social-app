@@ -61,7 +61,7 @@ export function rowToOrbitProfile(row: OrbitProfileRow): OrbitProfile {
     headline: (row.hobbies ?? []).slice(0, 3).join(" · ") || "On Orbit",
     about: row.about,
     interests: row.hobbies ?? [],
-    photo: photos[0]?.url ?? "",
+    photo: photos.find((m) => m.url && !/^(blob|data):/.test(m.url))?.url ?? "",
     hue: h % 360,
     mood: (row.mood as OrbitMoodId | null) ?? undefined,
   };
