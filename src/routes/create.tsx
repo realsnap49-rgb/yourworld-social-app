@@ -12,6 +12,7 @@ import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import { publishReel } from "@/lib/social-data";
 import { canMuxReel, renderReelWithMusic } from "@/lib/reel-mux";
+import { ReelPublishSheet, type ReelPublishMeta } from "@/components/yw/ReelPublishSheet";
 
 import type { AudioTrackState } from "@/components/yw/editor/AudioTrackLane";
 
@@ -747,11 +748,11 @@ export function CreateStudioPage() {
                     <p className="text-[11px] text-muted-foreground mb-4">{exportRes} video is ready.</p>
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => void postReel()}
+                        onClick={() => setShowPublish(true)}
                         disabled={posting}
                         className="w-full py-3 rounded-lg bg-orange-500 text-white text-xs font-black uppercase tracking-wide disabled:opacity-60"
                       >
-                        {posting ? "Posting…" : "Post Reel"}
+                        Next: caption & audience
                       </button>
                       <button
                         onClick={saveToGallery}
