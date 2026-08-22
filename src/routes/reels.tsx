@@ -431,13 +431,13 @@ function ReelItem({
           active={active}
           mediaRef={mediaRef}
           muted={muted}
-          paused={held}
+          paused={paused}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
         <div
           className={cn(
             "pointer-events-none absolute inset-0 transition-opacity duration-200",
-            held ? "bg-black/20 opacity-100" : "opacity-0",
+            paused ? "bg-black/20 opacity-100" : "opacity-0",
           )}
         />
       </div>
