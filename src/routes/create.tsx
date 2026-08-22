@@ -867,7 +867,7 @@ export function CreateStudioPage() {
 
 
           {/* FULL-WIDTH VIDEO CANVAS */}
-          <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-white overflow-hidden">
+          <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-black overflow-hidden">
             <div ref={stageRef} className="relative h-full w-full flex items-center justify-center touch-none">
               <video
                 ref={videoRef}
