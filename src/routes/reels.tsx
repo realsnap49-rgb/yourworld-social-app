@@ -267,14 +267,16 @@ function ReelItem({
   // ---- playback timeline -------------------------------------------------
   const [progress, setProgress] = useState(0); // 0..1
   const [scrubbing, setScrubbing] = useState(false);
-  // Press-and-hold anywhere on the reel pauses playback (Instagram style).
+  // Single tap toggles pause/play; press-and-hold keeps it paused.
   const [held, setHeld] = useState(false);
+  const [tappedPause, setTappedPause] = useState(false);
+  const paused = held || tappedPause;
   const barRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTs = useRef(0);
 
   useEffect(() => {
-    if (!active || scrubbing || held) return;
+    if (!active || scrubbing || paused) return;
     lastTs.current = performance.now();
     const tick = (ts: number) => {
       const dt = (ts - lastTs.current) / 1000;
@@ -284,7 +286,7 @@ function ReelItem({
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [active, scrubbing, held]);
+  }, [active, scrubbing, paused]);
 
   const seekFromEvent = useCallback((clientX: number) => {
     const el = barRef.current;
@@ -390,8 +392,14 @@ function ReelItem({
 
   const handleTap = () => {
     const now = Date.now();
-    if (now - lastTap.current < 300) onDoubleTap();
+    if (now - lastTap.current < 300) {
+      onDoubleTap();
+      lastTap.current = 0;
+      return;
+    }
     lastTap.current = now;
+    // single tap toggles pause/play
+    setTappedPause((v) => !v);
   };
 
   const handleDownload = async () => {
@@ -423,15 +431,22 @@ function ReelItem({
           active={active}
           mediaRef={mediaRef}
           muted={muted}
-          paused={held}
+          paused={paused}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
         <div
           className={cn(
             "pointer-events-none absolute inset-0 transition-opacity duration-200",
-            held ? "bg-black/20 opacity-100" : "opacity-0",
+            paused ? "bg-black/20 opacity-100" : "opacity-0",
           )}
         />
+        {tappedPause && !held && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <svg viewBox="0 0 24 24" className="h-16 w-16 text-white/90 drop-shadow-lg" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        )}
       </div>
 
 
