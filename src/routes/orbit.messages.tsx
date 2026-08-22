@@ -128,12 +128,10 @@ function OrbitMessagesPage() {
       .sort((a, b) => Number(b.mutual) - Number(a.mutual) || Number(b.theyLiked) - Number(a.theyLiked));
   }, [visible, mutual, likesMe, likedByMe]);
 
-  const filter = <T extends { p?: OrbitProfile } | OrbitProfile>(list: T[]) => list;
   const term = q.trim().toLowerCase();
   const chatList = term ? chats.filter((p) => p.name.toLowerCase().includes(term)) : chats;
   const matchList = term ? matches.filter((m) => m.p.name.toLowerCase().includes(term)) : matches;
   const reqList = term ? requests.filter((r) => r.p.name.toLowerCase().includes(term)) : requests;
-  void filter;
 
   const counts = { chats: chats.length, requests: requests.length, matches: mutual.length };
 
