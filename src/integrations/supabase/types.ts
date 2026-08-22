@@ -467,6 +467,27 @@ export type Database = {
     }
     Functions: {
       burn_view_once: { Args: { _msg_id: string }; Returns: undefined }
+      discover_orbit_profiles: {
+        Args: { ids?: string[] }
+        Returns: {
+          about: string
+          age: number
+          city: string
+          country: string
+          gender: string
+          hobbies: string[]
+          looking_for: string
+          mood: string
+          name: string
+          orbit_enabled: boolean
+          original_photo_privacy: string
+          photos: Json
+          state: string
+          updated_at: string
+          user_id: string
+          visible: boolean
+        }[]
+      }
       get_public_profiles: {
         Args: { ids: string[] }
         Returns: {
