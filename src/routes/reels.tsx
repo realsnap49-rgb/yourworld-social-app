@@ -392,8 +392,14 @@ function ReelItem({
 
   const handleTap = () => {
     const now = Date.now();
-    if (now - lastTap.current < 300) onDoubleTap();
+    if (now - lastTap.current < 300) {
+      onDoubleTap();
+      lastTap.current = 0;
+      return;
+    }
     lastTap.current = now;
+    // single tap toggles pause/play
+    setTappedPause((v) => !v);
   };
 
   const handleDownload = async () => {
