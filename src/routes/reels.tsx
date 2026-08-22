@@ -193,9 +193,9 @@ function ReelMedia({
   useEffect(() => {
     const v = videoRef.current;
     if (!v || asImage) return;
-    if (active) void v.play().catch(() => {});
+    if (active && !paused) void v.play().catch(() => {});
     else v.pause();
-  }, [active, asImage, src]);
+  }, [active, asImage, src, paused]);
 
   const className = cn(
     "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
