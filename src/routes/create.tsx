@@ -969,7 +969,12 @@ export function CreateStudioPage() {
 
           {/* TOOL PANEL */}
           {activeToolPanel !== "NONE" && (
-            <div className="flex-shrink-0 bg-card border-t border-border p-3 flex flex-col gap-2">
+            <div
+              key={activeToolPanel}
+              className="flex-shrink-0 bg-card/95 backdrop-blur-xl border-t border-border p-3 flex flex-col gap-2"
+              style={{ animation: "yw-rise 220ms cubic-bezier(0.22,1,0.36,1) both" }}
+            >
+
 
               {activeToolPanel === "TRIM" && currentClip && (
                 <div className="flex flex-col gap-2">
