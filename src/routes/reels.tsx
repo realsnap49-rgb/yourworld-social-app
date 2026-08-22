@@ -152,6 +152,7 @@ function ReelMedia({
   active,
   mediaRef,
   muted,
+  paused = false,
 }: {
   url: string;
   type: string;
@@ -159,6 +160,7 @@ function ReelMedia({
   active: boolean;
   mediaRef: React.MutableRefObject<HTMLElement | null>;
   muted: boolean;
+  paused?: boolean;
 }) {
   const [src, setSrc] = useState(url);
   const [asImage, setAsImage] = useState(!type.startsWith("video"));
@@ -191,13 +193,14 @@ function ReelMedia({
   useEffect(() => {
     const v = videoRef.current;
     if (!v || asImage) return;
-    if (active) void v.play().catch(() => {});
+    if (active && !paused) void v.play().catch(() => {});
     else v.pause();
-  }, [active, asImage, src]);
+  }, [active, asImage, src, paused]);
 
   const className = cn(
     "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
     active && asImage && "animate-kenburns",
+    paused && "[animation-play-state:paused]",
   );
 
   if (asImage) {
@@ -264,12 +267,14 @@ function ReelItem({
   // ---- playback timeline -------------------------------------------------
   const [progress, setProgress] = useState(0); // 0..1
   const [scrubbing, setScrubbing] = useState(false);
+  // Press-and-hold anywhere on the reel pauses playback (Instagram style).
+  const [held, setHeld] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTs = useRef(0);
 
   useEffect(() => {
-    if (!active || scrubbing) return;
+    if (!active || scrubbing || held) return;
     lastTs.current = performance.now();
     const tick = (ts: number) => {
       const dt = (ts - lastTs.current) / 1000;
@@ -279,7 +284,7 @@ function ReelItem({
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [active, scrubbing]);
+  }, [active, scrubbing, held]);
 
   const seekFromEvent = useCallback((clientX: number) => {
     const el = barRef.current;
@@ -314,9 +319,34 @@ function ReelItem({
     el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
   };
 
+  // ---- press & hold to pause --------------------------------------------
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdStart = useRef({ x: 0, y: 0 });
+  const heldRef = useRef(false);
+
+  const cancelHold = () => {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    if (heldRef.current) {
+      heldRef.current = false;
+      setHeld(false);
+    }
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 1) {
+      holdStart.current = { x: e.clientX, y: e.clientY };
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      holdTimer.current = setTimeout(() => {
+        heldRef.current = true;
+        setHeld(true);
+      }, 200);
+    }
     if (pointers.current.size === 2) {
+      cancelHold();
       const [a, b] = [...pointers.current.values()];
       pinchStart.current = {
         dist: Math.hypot(a.x - b.x, a.y - b.y) || 1,
@@ -330,6 +360,12 @@ function ReelItem({
   const onPointerMove = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 1 && !heldRef.current) {
+      // Finger drifted → it's a scroll, not a hold.
+      const dx = e.clientX - holdStart.current.x;
+      const dy = e.clientY - holdStart.current.y;
+      if (Math.hypot(dx, dy) > 12) cancelHold();
+    }
     if (pointers.current.size !== 2) return;
     e.preventDefault();
     const [a, b] = [...pointers.current.values()];
@@ -341,6 +377,7 @@ function ReelItem({
 
   const releasePointer = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId);
+    cancelHold();
     if (pointers.current.size < 2 && transform.current.scale !== 1) {
       transform.current = { scale: 1, x: 0, y: 0 };
       const el = mediaRef.current;
@@ -348,6 +385,8 @@ function ReelItem({
       applyTransform();
     }
   };
+
+  useEffect(() => () => cancelHold(), []);
 
   const handleTap = () => {
     const now = Date.now();
@@ -367,13 +406,15 @@ function ReelItem({
   return (
     <>
       <div
-        className="absolute inset-0 touch-pan-y overflow-hidden"
+        className="absolute inset-0 touch-pan-y select-none overflow-hidden"
         onClick={handleTap}
         onDoubleClick={onDoubleTap}
+        onContextMenu={(e) => e.preventDefault()}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={releasePointer}
         onPointerCancel={releasePointer}
+        onPointerLeave={releasePointer}
       >
         <ReelMedia
           url={mediaUrl ?? reel.poster}
@@ -382,9 +423,17 @@ function ReelItem({
           active={active}
           mediaRef={mediaRef}
           muted={muted}
+          paused={held}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 transition-opacity duration-200",
+            held ? "bg-black/20 opacity-100" : "opacity-0",
+          )}
+        />
       </div>
+
 
       {burst && (
         <Heart className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 animate-burst fill-primary text-primary" />
