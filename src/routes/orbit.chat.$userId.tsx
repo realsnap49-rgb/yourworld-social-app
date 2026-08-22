@@ -115,6 +115,7 @@ function toUiMsg(m: OrbitMessage): Msg {
     system: m.kind === "system",
     text: m.kind === "audio" ? undefined : m.text,
     url: m.kind === "photo" || m.kind === "video" ? m.url : undefined,
+    video: m.kind === "video",
     audio: m.kind === "audio" ? m.url : undefined,
     viewOnce: m.viewOnce,
   };
