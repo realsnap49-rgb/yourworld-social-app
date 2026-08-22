@@ -152,6 +152,7 @@ function ReelMedia({
   active,
   mediaRef,
   muted,
+  paused = false,
 }: {
   url: string;
   type: string;
@@ -159,6 +160,7 @@ function ReelMedia({
   active: boolean;
   mediaRef: React.MutableRefObject<HTMLElement | null>;
   muted: boolean;
+  paused?: boolean;
 }) {
   const [src, setSrc] = useState(url);
   const [asImage, setAsImage] = useState(!type.startsWith("video"));
