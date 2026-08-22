@@ -134,6 +134,15 @@ export function CreateStudioPage() {
       toast.error("Nothing to post yet");
       return;
     }
+    // Reels on YourWorld are 5–80 seconds long.
+    if (totalDuration < 5) {
+      toast.error("Reel is too short — it must be at least 5 seconds.");
+      return;
+    }
+    if (totalDuration > 80) {
+      toast.error("Reel is too long — trim it to 80 seconds or less.");
+      return;
+    }
     setPosting(true);
     const caption = meta.caption || clip?.textOverlay || "";
 
