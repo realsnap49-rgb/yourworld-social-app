@@ -757,7 +757,11 @@ export function CreateStudioPage() {
                     <p className="text-[11px] text-muted-foreground mb-4">{exportRes} video is ready.</p>
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => setShowPublish(true)}
+                        onClick={() => {
+                          if (totalDuration < 5) { toast.error("Reel is too short — it must be at least 5 seconds."); return; }
+                          if (totalDuration > 80) { toast.error("Reel is too long — trim it to 80 seconds or less."); return; }
+                          setShowPublish(true);
+                        }}
                         disabled={posting}
                         className="w-full py-3 rounded-lg bg-orange-500 text-white text-xs font-black uppercase tracking-wide disabled:opacity-60"
                       >
