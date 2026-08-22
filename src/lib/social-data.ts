@@ -218,6 +218,11 @@ export async function publishReel(opts: {
   hashtags?: string[];
   audio?: string | null;
   allowDownload?: boolean;
+  location?: string | null;
+  link?: string | null;
+  audience?: "everyone" | "close_friends";
+  taggedUserIds?: string[];
+  viewerUserIds?: string[];
 }): Promise<{ error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user.id;
