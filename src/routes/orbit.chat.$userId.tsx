@@ -284,8 +284,18 @@ function OrbitChatPage() {
       toast.warning("Calls are turned off in your Orbit privacy settings.");
       return;
     }
-    setCall(mode);
+    if (orbit.privacy.blocked.includes(userId)) {
+      toast.error("Unblock this person to call them.");
+      return;
+    }
+    // Real peer-to-peer call: rings the other user wherever they are.
+    void call.startCall({
+      peerId: userId,
+      peerName: displayName ?? p?.name ?? "Orbit",
+      mode: mode === "video" ? "video" : "audio",
+    });
   };
+
 
   if (!p) {
     return (
