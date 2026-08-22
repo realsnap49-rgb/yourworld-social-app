@@ -437,53 +437,61 @@ function ReelItem({
         </p>
       </div>
 
-      <div className="absolute bottom-14 right-2 flex flex-col items-center gap-4">
+      <div className="absolute bottom-14 right-2 flex flex-col items-center gap-3.5">
         <Action
           onClick={() => (onDbLike ? onDbLike() : toggleLike(reel.id))}
           label={formatCount(onDbLike ? reel.likes : reel.likes + (isLiked ? 1 : 0))}
           active={isLiked}
         >
           <Heart
-            strokeWidth={1.6}
-            className={cn("h-[18px] w-[18px]", isLiked && "fill-primary text-primary")}
+            strokeWidth={1.8}
+            className={cn("h-[21px] w-[21px]", isLiked && "fill-primary text-primary")}
           />
         </Action>
 
         <CommentsSheet comments={commentSeed}>
           <Action label={formatCount(reel.commentCount)}>
-            <MessageCircle strokeWidth={1.6} className="h-[18px] w-[18px]" />
+            <MessageCircle strokeWidth={1.8} className="h-[21px] w-[21px]" />
           </Action>
         </CommentsSheet>
 
-        <ShareSheet title={reel.caption}>
-          <Action label={formatCount(reel.shares)}>
-            <Send strokeWidth={1.6} className="h-[18px] w-[18px]" />
-          </Action>
-        </ShareSheet>
-
         <Action onClick={() => toggleSave(reel.id)} label="Save" active={isSaved}>
-          <Bookmark strokeWidth={1.6} className={cn("h-[18px] w-[18px]", isSaved && "fill-foreground")} />
+          <Bookmark
+            strokeWidth={1.8}
+            className={cn("h-[21px] w-[21px]", isSaved && "fill-foreground")}
+          />
         </Action>
 
         {reel.allowDownload ? (
-          <Action onClick={handleDownload} label="Save">
-            <Download strokeWidth={1.6} className="h-[18px] w-[18px]" />
+          <Action onClick={handleDownload} label="Download">
+            <Download strokeWidth={1.8} className="h-[21px] w-[21px]" />
           </Action>
         ) : (
           <Action
             onClick={() => toast("The creator turned downloads off for this reel")}
             label="Off"
           >
-            <Lock strokeWidth={1.6} className="h-[17px] w-[17px] text-muted-foreground" />
+            <Lock strokeWidth={1.8} className="h-[20px] w-[20px] text-muted-foreground" />
           </Action>
         )}
 
+        <ShareSheet
+          title={reel.caption}
+          media={mediaUrl ?? reel.poster}
+          mediaKind={mediaType === "video" ? "video" : "photo"}
+        >
+          <Action label={formatCount(reel.shares)}>
+            <Send strokeWidth={1.8} className="h-[21px] w-[21px]" />
+          </Action>
+        </ShareSheet>
+
         <div className="relative">
           <Action onClick={() => setMenuOpen((v) => !v)} label="More">
-            <MoreVertical strokeWidth={1.6} className="h-[18px] w-[18px]" />
+            <MoreVertical strokeWidth={1.8} className="h-[21px] w-[21px]" />
           </Action>
         </div>
       </div>
+
 
       {menuOpen && (
         <>
