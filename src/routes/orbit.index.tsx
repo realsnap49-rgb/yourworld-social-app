@@ -76,6 +76,21 @@ function OrbitBrowse() {
   const live = useLiveLocation();
   const obscured = useScreenCaptureShield(orbit.privacy.screenshotProtection);
   const { profiles: orbitProfiles } = useOrbitProfiles();
+  const navigate = useNavigate();
+  const { mutual, likedByMe, refresh: refreshMatches } = useOrbitMatches();
+
+  const onMatch = async (id: string, name: string) => {
+    const next = !likedByMe.includes(id);
+    const res = await sendOrbitMatch(id, next);
+    refreshMatches();
+    if (!res.ok) {
+      toast.error("Couldn't send that match — try again.");
+      return;
+    }
+    if (!next) toast.success("Match withdrawn");
+    else if (res.mutual) toast.success(`It's a match with ${name}! Chat unlocked.`);
+    else toast.success(`Match sent to ${name}`);
+  };
 
   const visible = useMemo(
     () =>
