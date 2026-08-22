@@ -798,24 +798,9 @@ export function CreateStudioPage() {
                 autoPlay
                 playsInline
                 muted={isMuted}
-                onTimeUpdate={(e) => {
-                  const t = e.currentTarget.currentTime;
-                  const c = clips[activeClipIndex];
-                  const dur = c?.duration || e.currentTarget.duration || 0;
-                  const start = c?.trimStart ?? 0;
-                  const end = c?.trimEnd ?? dur;
-                  const span = Math.max(0.01, end - start);
-                  const frac = Math.min(1, Math.max(0, (t - start) / span));
-                  let before = 0;
-                  for (let i = 0; i < activeClipIndex; i++) {
-                    const p = clips[i];
-                    const pd = p?.duration || 0;
-                    before += Math.max(0, (p?.trimEnd ?? pd) - (p?.trimStart ?? 0));
-                  }
-                  setPlayFraction(frac);
-                  globalTimeRef.current = before + frac * span;
-                  setCurrentTime(before + frac * span);
-                }}
+                onTimeUpdate={syncTime}
+                onSeeked={syncTime}
+
                 onLoadedMetadata={(e) => {
                   const d = e.currentTarget.duration;
                   if (isFinite(d) && d > 0 && !currentClip?.duration) updateCurrentClip("duration", d);
