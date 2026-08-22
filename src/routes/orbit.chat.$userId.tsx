@@ -189,7 +189,9 @@ function OrbitChatPage() {
   // Chat options are per-person and survive leaving the chat.
   const prefsKey = `yw.orbit.chatprefs.${userId}`;
   useEffect(() => {
-    try {
+    let cancelled = false;
+    const loadSettings = async () => {
+      try {
       const { data } = await supabase
         .from("orbit_chat_settings")
         .select("display_name,secret_lock_enabled,secret_pin_salt,secret_pin_hash,view_once_mode,auto_delete_seconds,screenshot_alert,recording_alert,muted,cleared_before")
@@ -214,14 +216,15 @@ function OrbitChatPage() {
       if (row) setMuted(!!row['muted']);
       setClearedBefore((row?.['cleared_before'] as string | null) ?? null);
       const { data: report } = await supabase.from("orbit_reports").select("id").eq("reported_user_id", userId).maybeSingle();
+      if (cancelled) return;
       setReported(!!report);
       setSettingsReady(true);
-    } catch {
-      /* ignore corrupt storage */
-      setSettingsReady(true);
-    }
+      } catch {
+        if (!cancelled) setSettingsReady(true);
+      }
     };
     void loadSettings();
+    return () => { cancelled = true; };
   }, [prefsKey, userId]);
 
   useEffect(() => {
@@ -240,20 +243,24 @@ function OrbitChatPage() {
           reported,
         }),
       );
-      void supabase.from("orbit_chat_settings").upsert({
-        user_id: chat.meId,
-        peer_id: userId,
-        display_name: displayName,
-        secret_lock_enabled: secretLock,
-        secret_pin_salt: secretPinSalt,
-        secret_pin_hash: secretPinHash,
-        view_once_mode: viewOnceMode,
-        auto_delete_seconds: autoDelete,
-        screenshot_alert: screenshotAlert,
-        recording_alert: recordingAlert,
-        muted,
-        cleared_before: clearedBefore,
-      } as never, { onConflict: "user_id,peer_id" });
+      void supabase.auth.getUser().then(({ data }) => {
+        const me = data.user?.id;
+        if (!me) return;
+        void supabase.from("orbit_chat_settings").upsert({
+          user_id: me,
+          peer_id: userId,
+          display_name: displayName,
+          secret_lock_enabled: secretLock,
+          secret_pin_salt: secretPinSalt,
+          secret_pin_hash: secretPinHash,
+          view_once_mode: viewOnceMode,
+          auto_delete_seconds: autoDelete,
+          screenshot_alert: screenshotAlert,
+          recording_alert: recordingAlert,
+          muted,
+          cleared_before: clearedBefore,
+        } as never, { onConflict: "user_id,peer_id" });
+      });
     } catch {
       /* storage unavailable */
     }
@@ -272,7 +279,6 @@ function OrbitChatPage() {
     secretPinHash,
     clearedBefore,
     userId,
-    chat.meId,
   ]);
 
 
