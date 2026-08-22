@@ -43,6 +43,23 @@ function OrbitProfilePage() {
   const navigate = useNavigate();
   const orbit = useOrbit();
   const { profile: p } = useOrbitProfile(profileId);
+  const { mutual, likedByMe, likesMe, refresh: refreshMatches } = useOrbitMatches();
+  const iMatched = likedByMe.includes(profileId);
+  const isMatch = mutual.includes(profileId);
+  const theyMatched = likesMe.includes(profileId);
+
+  const onMatch = async (name: string) => {
+    const next = !iMatched;
+    const res = await sendOrbitMatch(profileId, next);
+    refreshMatches();
+    if (!res.ok) {
+      toast.error("Couldn't send that match — try again.");
+      return;
+    }
+    if (!next) toast.success("Match withdrawn");
+    else if (res.mutual) toast.success(`It's a match with ${name}! Chat unlocked.`);
+    else toast.success(`Match sent to ${name}`);
+  };
 
   if (!p) {
     return (
