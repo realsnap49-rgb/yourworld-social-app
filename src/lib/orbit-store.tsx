@@ -338,11 +338,33 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") void pull();
     });
+    // Live: a chat request (or a pre-accept message) from anyone shows up for
+    // both sides without a reload.
+    const channel = supabase
+      .channel("orbit-requests-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orbit_chat_requests" },
+        () => void pull(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orbit_request_messages" },
+        () => void pull(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orbit_connections" },
+        () => void pull(),
+      )
+      .subscribe();
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, []);
+
 
   useEffect(() => {
     if (!hydrated) return;
