@@ -63,6 +63,32 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => persist("yw:saved", saved), [saved]);
   useEffect(() => persist("yw:following", following), [following]);
 
+  // Hydrate real follows from the database (and keep them in sync on auth change).
+  useEffect(() => {
+    let cancelled = false;
+    const sync = async () => {
+      try {
+        const ids = await fetchMyFollowing();
+        if (cancelled) return;
+        setFollowing((prev) => {
+          const next: Toggles = {};
+          // keep demo-only (non-uuid) toggles local, replace real ones with DB truth
+          for (const [k, v] of Object.entries(prev)) if (v && !isRealUserId(k)) next[k] = true;
+          for (const id of ids) next[id] = true;
+          return next;
+        });
+      } catch {
+        /* offline / signed out */
+      }
+    };
+    void sync();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => void sync());
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
   const toggleLike = useCallback(
     (id: string) => setLiked((p) => ({ ...p, [id]: !p[id] })),
     [],
@@ -71,15 +97,24 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
     (id: string) => setSaved((p) => ({ ...p, [id]: !p[id] })),
     [],
   );
-  const toggleFollow = useCallback(
-    (id: string) => setFollowing((p) => ({ ...p, [id]: !p[id] })),
-    [],
-  );
+  const toggleFollow = useCallback((id: string) => {
+    let next = false;
+    setFollowing((p) => {
+      next = !p[id];
+      return { ...p, [id]: next };
+    });
+    if (!isRealUserId(id)) return;
+    void setFollow(id, next).catch((e: unknown) => {
+      setFollowing((p) => ({ ...p, [id]: !next }));
+      toast.error(e instanceof Error ? e.message : "Couldn't update follow");
+    });
+  }, []);
   const addDraft = useCallback((d: Draft) => setDrafts((p) => [d, ...p]), []);
   const removeDraft = useCallback(
     (id: string) => setDrafts((p) => p.filter((x) => x.id !== id)),
     [],
   );
+
 
   const value = useMemo<Store>(
     () => ({
