@@ -37,7 +37,8 @@ import {
   useOrbit,
 } from "@/lib/orbit-store";
 import { OrbitChatGate } from "@/components/yw/OrbitChatGate";
-import { OrbitCallSheet, type OrbitCallMode } from "@/components/yw/OrbitCallSheet";
+import type { OrbitCallMode } from "@/components/yw/OrbitCallSheet";
+import { useCall } from "@/lib/call-store";
 import { InvitesDrawer } from "@/components/yw/InvitesDrawer";
 import { PlacePickerSheet } from "@/components/yw/PlacePickerSheet";
 import { buildInvite, inviteById, type InviteCard, type InviteKind } from "@/lib/orbit-invites";
@@ -157,7 +158,7 @@ function OrbitChatPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [call, setCall] = useState<OrbitCallMode | null>(null);
+  const call = useCall();
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [inviteKind, setInviteKind] = useState<InviteKind | null>(null);
   const [recording, setRecording] = useState(false);
@@ -177,6 +178,57 @@ function OrbitChatPage() {
   const [recordingAlert, setRecordingAlert] = useState(true);
   const [muted, setMuted] = useState(false);
   const [reported, setReported] = useState(false);
+
+  // Chat options are per-person and survive leaving the chat.
+  const prefsKey = `yw.orbit.chatprefs.${userId}`;
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(prefsKey);
+      if (!raw) return;
+      const v = JSON.parse(raw) as Record<string, unknown>;
+      setDisplayName((v['displayName'] as string | null) ?? null);
+      setSecretLock(!!v['secretLock']);
+      setViewOnceMode(!!v['viewOnceMode']);
+      setAutoDelete(Number(v['autoDelete']) || 0);
+      setScreenshotAlert(v['screenshotAlert'] !== false);
+      setRecordingAlert(v['recordingAlert'] !== false);
+      setMuted(!!v['muted']);
+      setReported(!!v['reported']);
+    } catch {
+      /* ignore corrupt storage */
+    }
+  }, [prefsKey]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        prefsKey,
+        JSON.stringify({
+          displayName,
+          secretLock,
+          viewOnceMode,
+          autoDelete,
+          screenshotAlert,
+          recordingAlert,
+          muted,
+          reported,
+        }),
+      );
+    } catch {
+      /* storage unavailable */
+    }
+  }, [
+    prefsKey,
+    displayName,
+    secretLock,
+    viewOnceMode,
+    autoDelete,
+    screenshotAlert,
+    recordingAlert,
+    muted,
+    reported,
+  ]);
+
 
   const request = orbit.requests[userId];
   const accepted = request?.status === "accepted" || (!request && !!orbit.connected[userId]);
@@ -284,8 +336,18 @@ function OrbitChatPage() {
       toast.warning("Calls are turned off in your Orbit privacy settings.");
       return;
     }
-    setCall(mode);
+    if (orbit.privacy.blocked.includes(userId)) {
+      toast.error("Unblock this person to call them.");
+      return;
+    }
+    // Real peer-to-peer call: rings the other user wherever they are.
+    void call.startCall({
+      peerId: userId,
+      peerName: displayName ?? p?.name ?? "Orbit",
+      mode: mode === "video" ? "video" : "audio",
+    });
   };
+
 
   if (!p) {
     return (
@@ -796,13 +858,6 @@ function OrbitChatPage() {
           </button>
         </div>
       </form>
-
-      <OrbitCallSheet
-        mode={call}
-        peerName={p.name}
-        peerPhoto={p.photo}
-        onClose={() => setCall(null)}
-      />
 
       <InvitesDrawer
         open={invitesOpen}

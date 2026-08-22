@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { LiveLocationSheet } from "@/components/yw/LiveLocationSheet";
-import { OrbitCallSheet, type OrbitCallMode } from "@/components/yw/OrbitCallSheet";
+import type { OrbitCallMode } from "@/components/yw/OrbitCallSheet";
+import { useCall } from "@/lib/call-store";
 import { useOrbit } from "@/lib/orbit-store";
 import { useLiveLocation, remainingLabel } from "@/lib/live-location";
 import type { OrbitProfile } from "@/lib/orbit-data";
@@ -29,7 +30,7 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
   const blocked = orbit.privacy.blocked.includes(profile.id);
   const callsOn = orbit.privacy.callsEnabled;
 
-  const [call, setCall] = useState<OrbitCallMode | null>(null);
+  const call = useCall();
   const [locationOpen, setLocationOpen] = useState(false);
 
   const gate = (action: () => void) => () => {
@@ -52,7 +53,11 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
         toast.warning("Calls are turned off in your Orbit privacy settings.");
         return;
       }
-      setCall(mode);
+      void call.startCall({
+        peerId: profile.id,
+        peerName: profile.name,
+        mode: mode === "video" ? "video" : "audio",
+      });
     })();
 
   const shareLocation = gate(() => {
@@ -150,12 +155,6 @@ export function OrbitCallActions({ profile }: { profile: OrbitProfile }) {
         </button>
       </div>
 
-      <OrbitCallSheet
-        mode={call}
-        peerName={profile.name}
-        peerPhoto={profile.photo}
-        onClose={() => setCall(null)}
-      />
       <LiveLocationSheet
         open={locationOpen}
         onOpenChange={setLocationOpen}
