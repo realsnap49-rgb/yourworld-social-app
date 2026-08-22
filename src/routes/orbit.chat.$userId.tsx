@@ -167,6 +167,7 @@ function OrbitChatPage() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionSheetId, setActionSheetId] = useState<string | null>(null);
+  const [actionRect, setActionRect] = useState<{ rect: DOMRect; me: boolean } | null>(null);
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Chat options (mirrors the Social chat 3-dot menu)
@@ -398,9 +399,12 @@ function OrbitChatPage() {
   const localIds = useMemo(() => new Set(msgs.map((m) => m.id)), [msgs]);
   const isDeletable = (id: string) => localIds.has(id);
 
-  const startLongPress = (id: string) => {
+  const startLongPress = (id: string, rect: DOMRect, me: boolean) => {
     if (longPressRef.current) clearTimeout(longPressRef.current);
-    longPressRef.current = setTimeout(() => setActionSheetId(id), 450);
+    longPressRef.current = setTimeout(() => {
+      setActionSheetId(id);
+      setActionRect({ rect, me });
+    }, 450);
   };
   const cancelLongPress = () => {
     if (longPressRef.current) clearTimeout(longPressRef.current);
@@ -696,12 +700,18 @@ function OrbitChatPage() {
             const selected = selectedIds.includes(m.id);
             const handlers = deletable
               ? {
-                  onPointerDown: () => !selectMode && startLongPress(m.id),
+                  onPointerDown: (e: React.PointerEvent) => {
+                    if (!selectMode)
+                      startLongPress(m.id, e.currentTarget.getBoundingClientRect(), m.me);
+                  },
                   onPointerUp: cancelLongPress,
                   onPointerLeave: cancelLongPress,
                   onContextMenu: (e: React.MouseEvent) => {
                     e.preventDefault();
-                    if (!selectMode) setActionSheetId(m.id);
+                    if (!selectMode) {
+                      setActionSheetId(m.id);
+                      setActionRect({ rect: e.currentTarget.getBoundingClientRect(), me: m.me });
+                    }
                   },
                   onClick: () => selectMode && toggleSelect(m.id),
                 }
@@ -879,48 +889,76 @@ function OrbitChatPage() {
         }}
       />
 
-      {actionSheetId !== null && (
-        <div
-          className="fixed inset-0 z-[90] flex items-end bg-black/60 backdrop-blur-sm"
-          onClick={() => setActionSheetId(null)}
-        >
-          <div
-            className="w-full rounded-t-3xl border-t border-border bg-popover p-3 pb-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/40" />
-            <button
-              type="button"
-              onClick={() => {
-                deleteIds([actionSheetId]);
-                setActionSheetId(null);
-              }}
-              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Delete Message
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectMode(true);
-                setSelectedIds([actionSheetId]);
-                setActionSheetId(null);
-              }}
-              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
-            >
-              <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
-            </button>
-            <button
-              type="button"
-              onClick={() => setActionSheetId(null)}
-              className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary"
-            >
-              <X className="h-4 w-4" strokeWidth={1.8} /> Cancel
-            </button>
-          </div>
-        </div>
+      {actionSheetId !== null && actionRect && (
+        <ActionPopover
+          rect={actionRect.rect}
+          me={actionRect.me}
+          onDelete={() => {
+            deleteIds([actionSheetId]);
+            setActionSheetId(null);
+          }}
+          onSelect={() => {
+            setSelectMode(true);
+            setSelectedIds([actionSheetId]);
+            setActionSheetId(null);
+          }}
+          onClose={() => setActionSheetId(null)}
+        />
       )}
     </main>
+  );
+}
+
+function ActionPopover({
+  rect,
+  me,
+  onDelete,
+  onSelect,
+  onClose,
+}: {
+  rect: DOMRect;
+  me: boolean;
+  onDelete: () => void;
+  onSelect: () => void;
+  onClose: () => void;
+}) {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 360;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 640;
+  const menuW = 188;
+  const showAbove = rect.top > 200;
+  const left = Math.min(Math.max(me ? rect.right - menuW : rect.left, 8), vw - menuW - 8);
+  const vert = showAbove ? { bottom: vh - rect.top + 8 } : { top: rect.bottom + 8 };
+  return (
+    <>
+      <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        className="fixed z-[100] overflow-hidden rounded-2xl border border-border bg-popover p-1.5 shadow-2xl"
+        style={{ left, width: menuW, ...vert }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" strokeWidth={1.8} /> Delete Message
+        </button>
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+        >
+          <CheckCheck className="h-4 w-4" strokeWidth={1.8} /> Select Multiple
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary"
+        >
+          <X className="h-4 w-4" strokeWidth={1.8} /> Cancel
+        </button>
+      </div>
+    </>
   );
 }
 
