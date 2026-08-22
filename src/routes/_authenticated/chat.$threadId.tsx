@@ -528,7 +528,11 @@ export function ChatThreadPage() {
             {m.image && m.viewOnce && m.sender === "them" && !m.opened && !openedOnce.includes(m.id) ? (
               <button
                 type="button"
-                onClick={() => setViewOnceOpen({ id: m.id, url: m.image! })}
+                onClick={() => {
+                  setOpenedOnce((prev) => (prev.includes(m.id) ? prev : [...prev, m.id]));
+                  setViewOnceOpen({ id: m.id, url: m.image! });
+                  void burnMedia(m.id);
+                }}
                 className="max-w-[75%] flex items-center gap-2 rounded-2xl border border-emerald-600/60 bg-emerald-950/30 px-4 py-3 text-xs font-bold text-emerald-400"
               >
                 <span className="w-5 h-5 rounded-full border border-emerald-500 flex items-center justify-center">1</span>
@@ -697,8 +701,6 @@ export function ChatThreadPage() {
       <button
         type="button"
         onClick={() => {
-          setOpenedOnce((prev) => [...prev, viewOnceOpen.id]);
-          void burnMedia(viewOnceOpen.id);
           setViewOnceOpen(null);
         }}
         className="p-2 bg-zinc-800/80 rounded-full"

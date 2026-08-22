@@ -431,17 +431,17 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
   /** Burns a view-once photo after the recipient opened it (permanent, both sides). */
   const burnMedia = useCallback(async (id: string) => {
     const row = messagesRef.current.find((m) => m.id === id);
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, media_url: null, media_type: "image_once_opened", content: "" } : m,
-      ),
-    );
-    // Runs as a security-definer RPC so the *recipient* can erase it too.
+    const remaining = messagesRef.current.filter((m) => m.id !== id);
+    messagesRef.current = remaining;
+    setMessages(remaining);
+    // Update the persistent cache immediately so reopening the chat cannot
+    // briefly restore media that has already been viewed.
+    cacheSet(`thread:${threadId}`, remaining.filter((m) => !m.id.startsWith("tmp-")).slice(-40));
     await supabase.rpc("burn_view_once", { _msg_id: id });
     // Remove the underlying storage object when the media lived in a bucket.
     const url = row?.media_url;
     if (url && /^https?:/.test(url)) {
-      for (const bucket of ["chat", "reels"]) {
+      for (const bucket of ["chat-files", "reels"]) {
         const path = storagePathFrom(url, bucket);
         if (path && path !== url) {
           await supabase.storage.from(bucket).remove([path]);
@@ -449,7 +449,7 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
         }
       }
     }
-  }, []);
+  }, [threadId]);
 
   return useMemo(
     () => ({ messages, loading, currentUserId: me, send, remove, markRead, burnMedia, reload: load }),
