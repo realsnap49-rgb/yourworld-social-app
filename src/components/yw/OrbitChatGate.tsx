@@ -26,7 +26,10 @@ export const OrbitChatGate: React.FC<Props> = ({
   const { texts, photos } = countRequestMessages(request);
   const messages = request?.messages ?? [];
 
-  if (!request || request.status !== "pending") return null;
+  // Only the recipient sees the Accept/Decline gate. The sender of an
+  // outgoing pending request goes straight into the message box so they can
+  // keep sending pre-accept intros or wait for a reply.
+  if (!request || request.status !== "pending" || request.direction !== "incoming") return null;
 
   return (
     <div className="flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden rounded-2xl border border-zinc-800 bg-black/40 p-4 text-white">

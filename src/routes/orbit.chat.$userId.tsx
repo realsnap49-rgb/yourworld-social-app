@@ -156,6 +156,7 @@ function OrbitChatPage() {
   const seq = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [call, setCall] = useState<OrbitCallMode | null>(null);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [inviteKind, setInviteKind] = useState<InviteKind | null>(null);
@@ -202,6 +203,15 @@ function OrbitChatPage() {
   useEffect(() => {
     if (!accepted) setNotes([]);
   }, [accepted, userId]);
+
+  // Landing on the chat (e.g. tapping Message on a profile) focuses the
+  // composer so the user is straight in the message box, ready to type.
+  useEffect(() => {
+    if (inputDisabled) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const pushSystem = (text: string) => {
     seq.current += 1;
@@ -760,6 +770,7 @@ function OrbitChatPage() {
             <Camera className="h-4 w-4" strokeWidth={1.8} />
           </button>
           <input
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={inputDisabled}
