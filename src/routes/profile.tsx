@@ -162,9 +162,24 @@ function ProfilePage() {
           </span>
           <dl className="grid flex-1 grid-cols-3 text-center">
             <Stat label="Posts" value={formatCount(posts.length)} />
-            <Stat label="Reels" value={formatCount(reels.length)} />
-            <Stat label="Saved" value={formatCount(savedPosts.length)} />
+            <Stat
+              label="Followers"
+              value={formatCount(counts.followers)}
+              onClick={() => {
+                setListTab("followers");
+                setListOpen(true);
+              }}
+            />
+            <Stat
+              label="Following"
+              value={formatCount(counts.following)}
+              onClick={() => {
+                setListTab("following");
+                setListOpen(true);
+              }}
+            />
           </dl>
+
         </div>
 
         <div className="pt-3">
