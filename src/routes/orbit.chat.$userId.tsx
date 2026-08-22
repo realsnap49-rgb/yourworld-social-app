@@ -135,11 +135,9 @@ function OrbitChatPage() {
   const orbit = useOrbit();
   const { profile: p } = useOrbitProfile(userId);
   const [text, setText] = useState("");
-  const [msgs, setMsgs] = useState<Msg[]>([]);
   const seq = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
-  const [viewOnce, setViewOnce] = useState<Record<string, number>>({});
   const [call, setCall] = useState<OrbitCallMode | null>(null);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [inviteKind, setInviteKind] = useState<InviteKind | null>(null);
@@ -172,43 +170,37 @@ function OrbitChatPage() {
   const textsLeft = ORBIT_REQUEST_TEXT_MAX - sentTexts;
   const photosLeft = ORBIT_REQUEST_PHOTO_MAX - sentPhotos;
 
+  // Real, database-backed Orbit conversation (live for both users).
+  const chat = useOrbitChat(userId, accepted);
+  // Local-only notes (settings changes, capture alerts) stay on this device.
+  const [notes, setNotes] = useState<Msg[]>([]);
+
+  const msgs: Msg[] = useMemo(
+    () =>
+      [...chat.messages.map(toUiMsg), ...notes].sort((a, b) => (a.at ?? 0) - (b.at ?? 0)),
+    [chat.messages, notes],
+  );
+
   useEffect(() => {
-    if (!accepted) {
-      setMsgs([]);
-      return;
-    }
-    const history = loadHistory(userId);
-    seq.current = history.length;
-    setMsgs(history);
+    if (!accepted) setNotes([]);
   }, [accepted, userId]);
 
-  // Persist chat history (blob previews are session-only and are skipped).
-  useEffect(() => {
-    if (!accepted || typeof window === "undefined") return;
-    const durable = msgs.filter(
-      (m) => !m.url?.startsWith("blob:") && !m.audio?.startsWith("blob:"),
-    );
-    window.localStorage.setItem(historyKey(userId), JSON.stringify(durable));
-  }, [msgs, accepted, userId]);
-
-  const push = (msg: Omit<Msg, "id">) => {
+  const pushSystem = (text: string) => {
     seq.current += 1;
-    const id = `m${seq.current}`;
-    setMsgs((m) => [...m, { id, at: Date.now(), ...msg }]);
-    return id;
+    setNotes((n) => [...n, { id: `note-${seq.current}`, me: false, system: true, text, at: Date.now() }]);
   };
-
-  const pushSystem = (text: string) => push({ me: false, system: true, text });
 
   // Auto delete messages after the configured window
   useEffect(() => {
     if (!autoDelete) return;
     const t = setInterval(() => {
       const cutoff = Date.now() - autoDelete * 1000;
-      setMsgs((prev) => prev.filter((m) => (m.at ? m.at >= cutoff : true)));
+      setNotes((prev) => prev.filter((m) => (m.at ? m.at >= cutoff : true)));
+      const stale = chat.messages.filter((m) => m.at < cutoff).map((m) => m.id);
+      if (stale.length) void chat.remove(stale);
     }, 1000);
     return () => clearInterval(t);
-  }, [autoDelete]);
+  }, [autoDelete, chat]);
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
   useCaptureDetect(
