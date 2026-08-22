@@ -514,7 +514,7 @@ function ReelItem({
         </Action>
 
         <CommentsSheet
-          postId={usingLive ? reel.id : null}
+          postId={onDbLike ? reel.id : null}
           fallbackComments={commentSeed}
         >
           <Action label={formatCount(reel.commentCount)}>
