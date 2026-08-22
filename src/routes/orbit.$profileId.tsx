@@ -179,11 +179,40 @@ function OrbitProfilePage() {
           />
           <Action
             icon={Sparkles}
-            label="Match"
+            label={isMatch ? "Matched" : iMatched ? "Sent" : "Match"}
+            active={iMatched || isMatch}
             locked={!orbit.hasProfile}
-            onClick={gate(() => toast.success(`Match request sent to ${p.name}`))}
+            onClick={gate(() => void onMatch(p.name))}
           />
         </div>
+
+        {(isMatch || theyMatched) && (
+          <div className="mt-3 flex items-center gap-3 rounded-2xl bg-secondary/60 px-3.5 py-3">
+            <Sparkles className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.8} />
+            <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+              {isMatch
+                ? `You and ${p.name} matched — chat is unlocked.`
+                : `${p.name} matched you. Match back to unlock chat.`}
+            </p>
+            {isMatch ? (
+              <Link
+                to="/orbit/chat/$userId"
+                params={{ userId: p.id }}
+                className="shrink-0 rounded-full bg-primary px-3.5 py-1.5 text-[11px] font-semibold text-primary-foreground transition-transform active:scale-95"
+              >
+                Chat
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={gate(() => void onMatch(p.name))}
+                className="shrink-0 rounded-full bg-foreground px-3.5 py-1.5 text-[11px] font-semibold text-background transition-transform active:scale-95"
+              >
+                Match back
+              </button>
+            )}
+          </div>
+        )}
 
         <OrbitCallActions profile={p} />
 
