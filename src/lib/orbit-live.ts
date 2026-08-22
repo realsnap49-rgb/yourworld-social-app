@@ -61,7 +61,7 @@ export function rowToOrbitProfile(row: OrbitProfileRow): OrbitProfile {
     headline: (row.hobbies ?? []).slice(0, 3).join(" · ") || "On Orbit",
     about: row.about,
     interests: row.hobbies ?? [],
-    photo: photos[0]?.url ?? "",
+    photo: photos.find((m) => m.url && !/^(blob|data):/.test(m.url))?.url ?? "",
     hue: h % 360,
     mood: (row.mood as OrbitMoodId | null) ?? undefined,
   };
@@ -403,4 +403,38 @@ export function useOrbitProfile(id: string) {
   }, [id]);
 
   return { profile, loading };
+}
+
+/* ------------------------------------------------------------------ */
+/* Orbit media uploads                                                 */
+/* ------------------------------------------------------------------ */
+
+const ORBIT_BUCKET = "orbit-media";
+/** Long-lived signed link so profile media renders without extra round trips. */
+const ORBIT_SIGN_SECONDS = 60 * 60 * 24 * 365 * 5;
+
+/** A url that only exists in this browser tab and can never load for anyone else. */
+export const isLocalObjectUrl = (url: string) =>
+  url.startsWith("blob:") || url.startsWith("data:");
+
+/**
+ * Uploads one Orbit photo/video to storage and returns a durable signed url.
+ * Returns null when the user is signed out or the upload fails.
+ */
+export async function uploadOrbitMedia(file: File): Promise<string | null> {
+  const id = await uid();
+  if (!id) return null;
+  const ext = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+  const path = `${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage
+    .from(ORBIT_BUCKET)
+    .upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (error) {
+    console.error("[orbit] media upload failed", error.message);
+    return null;
+  }
+  const { data } = await supabase.storage
+    .from(ORBIT_BUCKET)
+    .createSignedUrl(path, ORBIT_SIGN_SECONDS);
+  return data?.signedUrl ?? null;
 }
