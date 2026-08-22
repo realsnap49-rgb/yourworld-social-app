@@ -73,10 +73,37 @@ type Msg = {
   audio?: string;
   invite?: InviteCard;
   system?: boolean;
+  viewOnce?: boolean;
   at?: number;
 };
 
-const historyKey = (userId: string) => `yw.orbit.chat.${userId}`;
+/** Invites travel as a tagged text message so both sides see the same card. */
+const INVITE_PREFIX = "orbit-invite:";
+
+function toUiMsg(m: OrbitMessage): Msg {
+  if (m.kind === "text" && m.text?.startsWith(INVITE_PREFIX)) {
+    try {
+      return {
+        id: m.id,
+        me: m.me,
+        at: m.at,
+        invite: JSON.parse(m.text.slice(INVITE_PREFIX.length)) as InviteCard,
+      };
+    } catch {
+      /* fall through to plain text */
+    }
+  }
+  return {
+    id: m.id,
+    me: m.me,
+    at: m.at,
+    system: m.kind === "system",
+    text: m.kind === "audio" ? undefined : m.text,
+    url: m.kind === "photo" || m.kind === "video" ? m.url : undefined,
+    audio: m.kind === "audio" ? m.url : undefined,
+    viewOnce: m.viewOnce,
+  };
+}
 
 function MenuItem({
   icon,
