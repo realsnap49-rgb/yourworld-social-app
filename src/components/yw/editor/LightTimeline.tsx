@@ -113,7 +113,7 @@ function useThumbnails(clips: TimelineClip[]) {
   return thumbs;
 }
 
-export function LightTimeline({
+function LightTimelineBase({
   clips,
   activeIndex,
   currentTime,
@@ -413,5 +413,7 @@ export function LightTimeline({
     </div>
   );
 }
+
+export const LightTimeline = React.memo(LightTimelineBase);
 
 export default LightTimeline;
