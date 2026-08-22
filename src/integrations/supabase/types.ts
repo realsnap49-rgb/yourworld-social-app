@@ -83,6 +83,7 @@ export type Database = {
       orbit_chat_settings: {
         Row: {
           auto_delete_seconds: number
+          cleared_before: string | null
           created_at: string
           display_name: string | null
           id: string
@@ -99,6 +100,7 @@ export type Database = {
         }
         Insert: {
           auto_delete_seconds?: number
+          cleared_before?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -115,6 +117,7 @@ export type Database = {
         }
         Update: {
           auto_delete_seconds?: number
+          cleared_before?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
