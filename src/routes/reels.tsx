@@ -276,7 +276,7 @@ function ReelItem({
   const lastTs = useRef(0);
 
   useEffect(() => {
-    if (!active || scrubbing || held) return;
+    if (!active || scrubbing || paused) return;
     lastTs.current = performance.now();
     const tick = (ts: number) => {
       const dt = (ts - lastTs.current) / 1000;
@@ -286,7 +286,7 @@ function ReelItem({
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [active, scrubbing, held]);
+  }, [active, scrubbing, paused]);
 
   const seekFromEvent = useCallback((clientX: number) => {
     const el = barRef.current;
