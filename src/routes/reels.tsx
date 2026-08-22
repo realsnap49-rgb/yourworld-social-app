@@ -440,6 +440,13 @@ function ReelItem({
             paused ? "bg-black/20 opacity-100" : "opacity-0",
           )}
         />
+        {tappedPause && !held && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <svg viewBox="0 0 24 24" className="h-16 w-16 text-white/90 drop-shadow-lg" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        )}
       </div>
 
 
