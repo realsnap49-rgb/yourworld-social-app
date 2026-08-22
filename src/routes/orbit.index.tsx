@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
   Heart,
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { approxDistance, type OrbitProfile } from "@/lib/orbit-data";
 import { useOrbitProfiles } from "@/lib/orbit-live";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
+import { sendOrbitMatch, useOrbitMatches } from "@/lib/orbit-match";
 import { useNotifications } from "@/lib/notifications-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
 import { moodById, moodMatchScore } from "@/lib/orbit-mood";
