@@ -385,14 +385,13 @@ export function useOrbitProfile(id: string) {
     }
     setLoading(true);
     void (async () => {
-      const { data } = await supabase
-        .from("orbit_profiles")
-        .select("*")
-        .eq("user_id", id)
-        .maybeSingle();
+      const { data } = await supabase.rpc("discover_orbit_profiles" as never, {
+        ids: [id],
+      } as never);
       if (cancelled) return;
-      if (data) {
-        const mapped = rowToOrbitProfile(data as unknown as OrbitProfileRow);
+      const row = (data as unknown as OrbitProfileRow[] | null)?.[0];
+      if (row) {
+        const mapped = rowToOrbitProfile(row);
         registerOrbitProfiles([mapped]);
         setProfile(mapped);
       }
