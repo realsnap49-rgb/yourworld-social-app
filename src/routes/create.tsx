@@ -454,6 +454,49 @@ export function CreateStudioPage() {
     window.addEventListener("pointerup", end);
   };
 
+  // ---- 60fps playhead: read the video on every frame, commit state only when
+  // it visibly changes so the timeline glides instead of stepping. ----
+  const lastSyncRef = useRef({ frac: -1, time: -1 });
+  const syncTime = React.useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const c = clips[activeClipIndex];
+    const dur = c?.duration || v.duration || 0;
+    const start = c?.trimStart ?? 0;
+    const end = c?.trimEnd ?? dur;
+    const span = Math.max(0.01, end - start);
+    const frac = Math.min(1, Math.max(0, (v.currentTime - start) / span));
+    let before = 0;
+    for (let i = 0; i < activeClipIndex; i++) {
+      const p = clips[i];
+      const pd = p?.duration || 0;
+      before += Math.max(0, (p?.trimEnd ?? pd) - (p?.trimStart ?? 0));
+    }
+    const global = before + frac * span;
+    globalTimeRef.current = global;
+    const last = lastSyncRef.current;
+    if (Math.abs(last.frac - frac) > 0.0015) {
+      last.frac = frac;
+      setPlayFraction(frac);
+    }
+    if (Math.abs(last.time - global) > 0.08) {
+      last.time = global;
+      setCurrentTime(global);
+    }
+  }, [clips, activeClipIndex]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    let raf = 0;
+    const loop = () => {
+      syncTime();
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [isPlaying, syncTime]);
+
+
   // Real-time Video Speed Sync
   useEffect(() => {
     if (videoRef.current && currentClip) {
