@@ -268,6 +268,58 @@ export async function publishReel(opts: {
   return { error: error?.message ?? null };
 }
 
+/** Uploads a photo/video and inserts it into the posts table (kind = "post"). */
+export async function publishPost(opts: {
+  fileUrl: string;
+  mediaType: "image" | "video";
+  caption?: string;
+  hashtags?: string[];
+  location?: string | null;
+  allowDownload?: boolean;
+  audience?: "everyone" | "close_friends";
+}): Promise<{ error: string | null }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const uid = sessionData.session?.user.id;
+  if (!uid) return { error: "You need to sign in to create a post." };
+
+  let mediaUrl = opts.fileUrl;
+
+  if (/^(blob:|data:)/.test(opts.fileUrl)) {
+    try {
+      const blob = await (await fetch(opts.fileUrl)).blob();
+      const type = blob.type || (opts.mediaType === "video" ? "video/mp4" : "image/jpeg");
+      const ext = type.split("/")[1]?.split(";")[0] || (opts.mediaType === "video" ? "mp4" : "jpg");
+      const path = `${uid}/post-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("reels")
+        .upload(path, blob, { contentType: type, upsert: false });
+      if (upErr) return { error: upErr.message };
+      const { data: signed } = await supabase.storage
+        .from("reels")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      mediaUrl = signed?.signedUrl ?? path;
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Upload failed" };
+    }
+  }
+
+  const { error } = await supabase.from("posts").insert({
+    user_id: uid,
+    kind: "post",
+    media_url: mediaUrl,
+    media_type: opts.mediaType,
+    caption: opts.caption ?? "",
+    hashtags: opts.hashtags ?? [],
+    location: opts.location ?? null,
+    allow_download: opts.allowDownload ?? true,
+    audience: opts.audience ?? "everyone",
+    tagged_user_ids: [],
+    viewer_user_ids: [],
+  });
+  if (!error) rememberLocalMedia(mediaUrl, opts.fileUrl);
+  return { error: error?.message ?? null };
+}
+
 /** Live messages for one chat thread. */
 export function useThreadMessages(threadId: string, opts: { staleTime?: number } = {}) {
   const staleTime = opts.staleTime ?? 0;
