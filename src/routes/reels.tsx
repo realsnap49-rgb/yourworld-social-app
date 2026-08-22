@@ -267,12 +267,14 @@ function ReelItem({
   // ---- playback timeline -------------------------------------------------
   const [progress, setProgress] = useState(0); // 0..1
   const [scrubbing, setScrubbing] = useState(false);
+  // Press-and-hold anywhere on the reel pauses playback (Instagram style).
+  const [held, setHeld] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTs = useRef(0);
 
   useEffect(() => {
-    if (!active || scrubbing) return;
+    if (!active || scrubbing || held) return;
     lastTs.current = performance.now();
     const tick = (ts: number) => {
       const dt = (ts - lastTs.current) / 1000;
@@ -282,7 +284,7 @@ function ReelItem({
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [active, scrubbing]);
+  }, [active, scrubbing, held]);
 
   const seekFromEvent = useCallback((clientX: number) => {
     const el = barRef.current;
