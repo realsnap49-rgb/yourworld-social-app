@@ -501,7 +501,7 @@ function ReelItem({
         </p>
       </div>
 
-      <div className="absolute bottom-14 right-2 flex flex-col items-center gap-3.5">
+      <div className="absolute bottom-14 right-2 flex flex-col items-center gap-2.5">
         <Action
           onClick={() => (onDbLike ? onDbLike() : toggleLike(reel.id))}
           label={formatCount(onDbLike ? reel.likes : reel.likes + (isLiked ? 1 : 0))}
@@ -509,7 +509,7 @@ function ReelItem({
         >
           <Heart
             strokeWidth={1.8}
-            className={cn("h-[21px] w-[21px]", isLiked && "fill-primary text-primary")}
+            className={cn("h-[18px] w-[18px]", isLiked && "fill-primary text-primary")}
           />
         </Action>
 
@@ -525,20 +525,20 @@ function ReelItem({
         <Action onClick={() => toggleSave(reel.id)} label="Save" active={isSaved}>
           <Bookmark
             strokeWidth={1.8}
-            className={cn("h-[21px] w-[21px]", isSaved && "fill-foreground")}
+            className={cn("h-[18px] w-[18px]", isSaved && "fill-foreground")}
           />
         </Action>
 
         {reel.allowDownload ? (
           <Action onClick={handleDownload} label="Download">
-            <Download strokeWidth={1.8} className="h-[21px] w-[21px]" />
+            <Download strokeWidth={1.8} className="h-[18px] w-[18px]" />
           </Action>
         ) : (
           <Action
             onClick={() => toast("The creator turned downloads off for this reel")}
             label="Off"
           >
-            <Lock strokeWidth={1.8} className="h-[20px] w-[20px] text-muted-foreground" />
+            <Lock strokeWidth={1.8} className="h-[17px] w-[17px] text-muted-foreground" />
           </Action>
         )}
 
@@ -548,13 +548,13 @@ function ReelItem({
           mediaKind={mediaType === "video" ? "video" : "photo"}
         >
           <Action label={formatCount(reel.shares)}>
-            <Send strokeWidth={1.8} className="h-[21px] w-[21px]" />
+            <Send strokeWidth={1.8} className="h-[18px] w-[18px]" />
           </Action>
         </ShareSheet>
 
         <div className="relative">
           <Action onClick={() => setMenuOpen((v) => !v)} label="More">
-            <MoreVertical strokeWidth={1.8} className="h-[21px] w-[21px]" />
+            <MoreVertical strokeWidth={1.8} className="h-[18px] w-[18px]" />
           </Action>
         </div>
       </div>
