@@ -44,6 +44,9 @@ import {
 } from "@/lib/profile-data";
 import type { DbPost } from "@/lib/social-data";
 import { UserWatermark } from "@/components/yw/UserWatermark";
+import { FollowListDialog } from "@/components/yw/FollowListDialog";
+import { useFollowCounts } from "@/lib/follow-data";
+
 
 
 export const Route = createFileRoute("/profile")({
@@ -70,10 +73,14 @@ function ProfilePage() {
   const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId, reload } =
     useMyProfile();
   const [editOpen, setEditOpen] = useState(false);
+  const counts = useFollowCounts(userId);
+  const [listOpen, setListOpen] = useState(false);
+  const [listTab, setListTab] = useState<"followers" | "following">("followers");
   const [manage, setManage] = useState<DbPost | null>(null);
   const [caption, setCaption] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+
 
   const openManage = (post: DbPost) => {
     setManage(post);
