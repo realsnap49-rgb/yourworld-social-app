@@ -15,6 +15,13 @@ import {
 } from "@/lib/orbit-store";
 import { OrbitPhotos } from "@/components/yw/OrbitPhotos";
 import { GEO_COUNTRIES, citiesOf, statesOf } from "@/lib/geo-data";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/orbit/create")({
   head: () => ({
