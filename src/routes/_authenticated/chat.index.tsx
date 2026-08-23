@@ -253,33 +253,75 @@ function ChatListPage() {
             <p className="text-sm">No chats found. Click top icon to start!</p>
           </div>
         ) : (
-          filteredThreads.map((chat) => (
-            <Link
-              key={chat.id}
-              to="/chat/$threadId"
-              params={{ threadId: chat.id }}
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-900 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg">
-                  {chat.name.charAt(0)}
+          filteredThreads.map((chat) => {
+            const isSel = selected.includes(chat.id);
+            const body = (
+              <>
+                <div className="flex items-center gap-3">
+                  {selecting ? (
+                    <span
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
+                        isSel ? "border-pink-500 bg-pink-600" : "border-zinc-600"
+                      }`}
+                    >
+                      {isSel ? <Check className="h-3 w-3" /> : null}
+                    </span>
+                  ) : null}
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg">
+                    {chat.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm">{chat.name}</h4>
+                    <p className="text-xs text-gray-400 line-clamp-1">{chat.lastMessage}</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-sm">{chat.name}</h4>
-                  <p className="text-xs text-gray-400 line-clamp-1">{chat.lastMessage}</p>
-                </div>
-              </div>
 
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] text-gray-500">{chat.time}</span>
-                {chat.unreadCount && chat.unreadCount > 0 ? (
-                  <span className="bg-pink-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {chat.unreadCount}
-                  </span>
-                ) : null}
-              </div>
-            </Link>
-          ))
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] text-gray-500">{chat.time}</span>
+                  {chat.unreadCount && chat.unreadCount > 0 ? (
+                    <span className="bg-pink-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {chat.unreadCount}
+                    </span>
+                  ) : null}
+                </div>
+              </>
+            );
+
+            if (selecting) {
+              return (
+                <button
+                  key={chat.id}
+                  type="button"
+                  onClick={() => toggleSelect(chat.id)}
+                  aria-pressed={isSel}
+                  className={`flex w-full items-center justify-between rounded-xl p-3 text-left transition-colors ${
+                    isSel ? "bg-zinc-800" : "hover:bg-zinc-900"
+                  }`}
+                >
+                  {body}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={chat.id}
+                to="/chat/$threadId"
+                params={{ threadId: chat.id }}
+                onPointerDown={() => startPress(chat.id)}
+                onPointerUp={cancelPress}
+                onPointerLeave={cancelPress}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setSelecting(true);
+                  setSelected([chat.id]);
+                }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-900 transition-colors"
+              >
+                {body}
+              </Link>
+            );
+          })
         )}
       </div>
 
