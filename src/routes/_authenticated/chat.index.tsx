@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { Search, SquarePen, MessageSquare, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, SquarePen, MessageSquare, X, Check, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveThreadPeer } from "@/lib/social-data";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
+import { deleteDirectThreads, hiddenThreadIds } from "@/lib/chat-delete";
 
 export const Route = createFileRoute("/_authenticated/chat/")({
   component: ChatListPage,
@@ -37,6 +38,21 @@ function ChatListPage() {
   const [people, setPeople] = useState<DiscoverProfile[]>([]);
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [, setMe] = useState<string | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [hidden, setHidden] = useState<string[]>(() => hiddenThreadIds());
+  const [deleting, setDeleting] = useState(false);
+  const pressTimer = useRef<number | null>(null);
+  const longPressed = useRef(false);
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const exitSelect = () => {
+    setSelecting(false);
+    setSelected([]);
+  };
+
 
   useEffect(() => {
     async function loadThreads() {
@@ -127,24 +143,98 @@ function ChatListPage() {
     };
   }, [newChatOpen, peopleQuery]);
 
-  const filteredThreads = threads.filter((t) =>
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredThreads = threads.filter(
+    (t) =>
+      !hidden.includes(t.id) &&
+      (t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())),
   );
+
+  const allSelected = filteredThreads.length > 0 && selected.length === filteredThreads.length;
+
+  const removeSelected = async () => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    setDeleting(true);
+    setHidden((prev) => [...prev, ...ids]);
+    setThreads((prev) => prev.filter((t) => !ids.includes(t.id)));
+    await deleteDirectThreads(ids);
+    setDeleting(false);
+    exitSelect();
+  };
+
+  const startPress = (id: string) => {
+    longPressed.current = false;
+    pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true;
+      setSelecting(true);
+      setSelected([id]);
+    }, 400);
+  };
+  const cancelPress = () => {
+    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
 
   return (
     <div className="flex h-screen flex-col bg-black text-white p-4">
       {/* Top Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Chats</h1>
-        <button
-          onClick={() => setNewChatOpen(true)}
-          aria-label="Start a new chat"
-          className="p-2 hover:bg-zinc-800 rounded-full"
-        >
-          <SquarePen className="h-6 w-6" />
-        </button>
+        {selecting ? (
+          <>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exitSelect}
+                aria-label="Cancel selection"
+                className="rounded-full p-2 hover:bg-zinc-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <h1 className="text-lg font-bold">{selected.length} selected</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setSelected(allSelected ? [] : filteredThreads.map((t) => t.id))
+                }
+                className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-semibold hover:bg-zinc-800"
+              >
+                {allSelected ? "Clear all" : "Select all"}
+              </button>
+              <button
+                onClick={() => void removeSelected()}
+                disabled={!selected.length || deleting}
+                aria-label="Delete selected chats"
+                className="rounded-full bg-red-600 p-2 disabled:opacity-40"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold">Chats</h1>
+            <div className="flex items-center gap-1">
+              {filteredThreads.length > 0 ? (
+                <button
+                  onClick={() => setSelecting(true)}
+                  className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-semibold hover:bg-zinc-800"
+                >
+                  Select
+                </button>
+              ) : null}
+              <button
+                onClick={() => setNewChatOpen(true)}
+                aria-label="Start a new chat"
+                className="p-2 hover:bg-zinc-800 rounded-full"
+              >
+                <SquarePen className="h-6 w-6" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
+
 
       {/* Search Bar */}
       <div className="relative mb-4">
@@ -166,33 +256,81 @@ function ChatListPage() {
             <p className="text-sm">No chats found. Click top icon to start!</p>
           </div>
         ) : (
-          filteredThreads.map((chat) => (
-            <Link
-              key={chat.id}
-              to="/chat/$threadId"
-              params={{ threadId: chat.id }}
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-900 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg">
-                  {chat.name.charAt(0)}
+          filteredThreads.map((chat) => {
+            const isSel = selected.includes(chat.id);
+            const body = (
+              <>
+                <div className="flex items-center gap-3">
+                  {selecting ? (
+                    <span
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
+                        isSel ? "border-pink-500 bg-pink-600" : "border-zinc-600"
+                      }`}
+                    >
+                      {isSel ? <Check className="h-3 w-3" /> : null}
+                    </span>
+                  ) : null}
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg">
+                    {chat.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm">{chat.name}</h4>
+                    <p className="text-xs text-gray-400 line-clamp-1">{chat.lastMessage}</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-sm">{chat.name}</h4>
-                  <p className="text-xs text-gray-400 line-clamp-1">{chat.lastMessage}</p>
-                </div>
-              </div>
 
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] text-gray-500">{chat.time}</span>
-                {chat.unreadCount && chat.unreadCount > 0 ? (
-                  <span className="bg-pink-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {chat.unreadCount}
-                  </span>
-                ) : null}
-              </div>
-            </Link>
-          ))
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] text-gray-500">{chat.time}</span>
+                  {chat.unreadCount && chat.unreadCount > 0 ? (
+                    <span className="bg-pink-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {chat.unreadCount}
+                    </span>
+                  ) : null}
+                </div>
+              </>
+            );
+
+            if (selecting) {
+              return (
+                <button
+                  key={chat.id}
+                  type="button"
+                  onClick={() => toggleSelect(chat.id)}
+                  aria-pressed={isSel}
+                  className={`flex w-full items-center justify-between rounded-xl p-3 text-left transition-colors ${
+                    isSel ? "bg-zinc-800" : "hover:bg-zinc-900"
+                  }`}
+                >
+                  {body}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={chat.id}
+                to="/chat/$threadId"
+                params={{ threadId: chat.id }}
+                onPointerDown={() => startPress(chat.id)}
+                onPointerUp={cancelPress}
+                onPointerLeave={cancelPress}
+                onClick={(e) => {
+                  if (longPressed.current) {
+                    e.preventDefault();
+                    longPressed.current = false;
+                  }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setSelecting(true);
+                  setSelected([chat.id]);
+                }}
+                className="flex items-center justify-between p-3 rounded-xl hover:bg-zinc-900 transition-colors"
+              >
+                {body}
+              </Link>
+            );
+          })
         )}
       </div>
 
