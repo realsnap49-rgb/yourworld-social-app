@@ -167,6 +167,17 @@ function OrbitMessagesPage() {
 
   const counts = { chats: chats.length, requests: requests.length, matches: mutual.length };
 
+  const allSelected = chatList.length > 0 && selected.length === chatList.length;
+
+  const removeSelected = async () => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    setHidden((prev) => [...prev, ...ids]);
+    exitSelect();
+    await deleteOrbitConversations(ids);
+  };
+
+
   return (
     <main className="min-h-screen pb-16">
       <header className="sticky top-0 z-40 border-b border-border glass px-3 pb-2.5 pt-3">
