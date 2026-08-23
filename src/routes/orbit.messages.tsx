@@ -235,6 +235,47 @@ function OrbitMessagesPage() {
 
       {tab === "chats" && (
         <section aria-label="Orbit chats" className="px-3 pt-3">
+          {chatList.length > 0 && (
+            <div className="mb-2 flex items-center gap-2">
+              {selecting ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={exitSelect}
+                    aria-label="Cancel selection"
+                    className="grid h-8 w-8 place-items-center rounded-full chip"
+                  >
+                    <X className="h-4 w-4" strokeWidth={1.8} />
+                  </button>
+                  <span className="text-xs font-semibold">{selected.length} selected</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(allSelected ? [] : chatList.map((p) => p.id))}
+                    className="ml-auto rounded-full chip px-3 py-1.5 text-[11px] font-semibold"
+                  >
+                    {allSelected ? "Clear all" : "Select all"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void removeSelected()}
+                    disabled={!selected.length}
+                    aria-label="Delete selected chats"
+                    className="grid h-8 w-8 place-items-center rounded-full bg-destructive text-destructive-foreground disabled:opacity-40"
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={1.8} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSelecting(true)}
+                  className="ml-auto rounded-full chip px-3 py-1.5 text-[11px] font-semibold"
+                >
+                  Select
+                </button>
+              )}
+            </div>
+          )}
           {chatList.length === 0 ? (
             <EmptyState
               icon={MessageCircle}
@@ -245,35 +286,80 @@ function OrbitMessagesPage() {
             <ul>
               {chatList.map((p) => {
                 const prev = previews[p.id];
+                const isSel = selected.includes(p.id);
+                const inner = (
+                  <>
+                    {selecting && (
+                      <span
+                        className={cn(
+                          "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
+                          isSel ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                        )}
+                      >
+                        {isSel && <Check className="h-3 w-3" strokeWidth={2.4} />}
+                      </span>
+                    )}
+                    <Avatar p={p} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline gap-2">
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                          {p.name}
+                        </span>
+                        {prev && (
+                          <span className="shrink-0 text-[11px] text-muted-foreground">
+                            {timeShort(prev.at)}
+                          </span>
+                        )}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {prev
+                          ? `${prev.mine ? "You: " : ""}${prev.text}`
+                          : "Connected on Orbit · say hello"}
+                      </span>
+                    </span>
+                    {mutual.includes(p.id) && (
+                      <Sparkles className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.8} />
+                    )}
+                  </>
+                );
+
                 return (
                   <li key={p.id}>
-                    <Link
-                      to="/orbit/chat/$userId"
-                      params={{ userId: p.id }}
-                      className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors hover:bg-[color-mix(in_oklab,var(--foreground)_6%,transparent)]"
-                    >
-                      <Avatar p={p} />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline gap-2">
-                          <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                            {p.name}
-                          </span>
-                          {prev && (
-                            <span className="shrink-0 text-[11px] text-muted-foreground">
-                              {timeShort(prev.at)}
-                            </span>
-                          )}
-                        </span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {prev
-                            ? `${prev.mine ? "You: " : ""}${prev.text}`
-                            : "Connected on Orbit · say hello"}
-                        </span>
-                      </span>
-                      {mutual.includes(p.id) && (
-                        <Sparkles className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.8} />
-                      )}
-                    </Link>
+                    {selecting ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(p.id)}
+                        aria-pressed={isSel}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors",
+                          isSel && "bg-[color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+                        )}
+                      >
+                        {inner}
+                      </button>
+                    ) : (
+                      <Link
+                        to="/orbit/chat/$userId"
+                        params={{ userId: p.id }}
+                        onPointerDown={() => startPress(p.id)}
+                        onPointerUp={cancelPress}
+                        onPointerLeave={cancelPress}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setSelecting(true);
+                          setSelected([p.id]);
+                        }}
+                        onClick={(e) => {
+                          if (longPressed.current) {
+                            e.preventDefault();
+                            longPressed.current = false;
+                          }
+                        }}
+                        className="flex items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors hover:bg-[color-mix(in_oklab,var(--foreground)_6%,transparent)]"
+                      >
+                        {inner}
+                      </Link>
+                    )}
                   </li>
                 );
               })}
