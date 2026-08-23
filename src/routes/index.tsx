@@ -53,68 +53,14 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { posts: dbPosts, toggleLike: toggleDbLike } = useSocialPosts("post");
+  const {
+    posts,
+    loading,
+    currentUserId,
+    toggleLike,
+    bumpComment,
+  } = useSocialPosts("post");
   const { videos: longVideos, countView, toggleLike: likeVideo } = useLongVideos();
-
-  const [fallback, setFallback] = useState<Post[]>([
-    {
-      id: "demo-101",
-      user: {
-        name: "Riko Tan",
-        handle: "@riko.night",
-        location: "Tokyo, Japan",
-        avatarColor: "bg-[#8b2fc9]",
-        letter: "R"
-      },
-      image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800",
-      caption: "Shinjuku after the rain. The signs do all the talking. 🌃✨",
-      likes: 12800,
-      commentsCount: 89,
-      timeAgo: "2h ago",
-      isLiked: false,
-      isSaved: false
-    }
-  ]);
-
-  const live: Post[] = dbPosts.map((p) => ({
-    id: p.id,
-    user: {
-      name: p.author.name,
-      handle: `@${p.author.username}`,
-      location: p.location ?? "",
-      avatarColor: "bg-[#8b2fc9]",
-      letter: (p.author.name || p.author.username).charAt(0).toUpperCase(),
-    },
-    image: p.media_url,
-    caption: p.caption,
-    likes: p.likeCount,
-    commentsCount: p.commentCount,
-    timeAgo: timeAgo(p.created_at),
-    isLiked: p.likedByMe,
-    isSaved: false,
-  }));
-
-  const usingLive = live.length > 0;
-  const posts = usingLive ? live : fallback;
-
-  const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
-
-  const toggleLike = useCallback((postId: string) => {
-    if (usingLive) {
-      void toggleDbLike(postId);
-      return;
-    }
-    setFallback(prev => prev.map(p => {
-      if (p.id === postId) {
-        return { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 };
-      }
-      return p;
-    }));
-  }, [usingLive, toggleDbLike]);
-
-  const toggleSave = useCallback((postId: string) => {
-    setSavedIds((prev) => ({ ...prev, [postId]: !prev[postId] }));
-  }, []);
 
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
