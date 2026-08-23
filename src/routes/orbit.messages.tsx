@@ -131,10 +131,11 @@ function OrbitMessagesPage() {
         .map(([id]) => id),
     ]);
     return [...ids]
+      .filter((id) => !hidden.includes(id))
       .map((id) => byId.get(id))
       .filter((p): p is OrbitProfile => !!p)
       .sort((a, b) => (previews[b.id]?.at ?? 0) - (previews[a.id]?.at ?? 0));
-  }, [orbit.connected, orbit.requests, previews, byId]);
+  }, [orbit.connected, orbit.requests, previews, byId, hidden]);
 
   const requests = useMemo(
     () =>
