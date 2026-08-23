@@ -142,24 +142,96 @@ function ChatListPage() {
     };
   }, [newChatOpen, peopleQuery]);
 
-  const filteredThreads = threads.filter((t) =>
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredThreads = threads.filter(
+    (t) =>
+      !hidden.includes(t.id) &&
+      (t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())),
   );
+
+  const allSelected = filteredThreads.length > 0 && selected.length === filteredThreads.length;
+
+  const removeSelected = async () => {
+    const ids = [...selected];
+    if (!ids.length) return;
+    setDeleting(true);
+    setHidden((prev) => [...prev, ...ids]);
+    setThreads((prev) => prev.filter((t) => !ids.includes(t.id)));
+    await deleteDirectThreads(ids);
+    setDeleting(false);
+    exitSelect();
+  };
+
+  const startPress = (id: string) => {
+    pressTimer.current = window.setTimeout(() => {
+      setSelecting(true);
+      setSelected([id]);
+    }, 400);
+  };
+  const cancelPress = () => {
+    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
 
   return (
     <div className="flex h-screen flex-col bg-black text-white p-4">
       {/* Top Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Chats</h1>
-        <button
-          onClick={() => setNewChatOpen(true)}
-          aria-label="Start a new chat"
-          className="p-2 hover:bg-zinc-800 rounded-full"
-        >
-          <SquarePen className="h-6 w-6" />
-        </button>
+        {selecting ? (
+          <>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exitSelect}
+                aria-label="Cancel selection"
+                className="rounded-full p-2 hover:bg-zinc-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <h1 className="text-lg font-bold">{selected.length} selected</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setSelected(allSelected ? [] : filteredThreads.map((t) => t.id))
+                }
+                className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-semibold hover:bg-zinc-800"
+              >
+                {allSelected ? "Clear all" : "Select all"}
+              </button>
+              <button
+                onClick={() => void removeSelected()}
+                disabled={!selected.length || deleting}
+                aria-label="Delete selected chats"
+                className="rounded-full bg-red-600 p-2 disabled:opacity-40"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold">Chats</h1>
+            <div className="flex items-center gap-1">
+              {filteredThreads.length > 0 ? (
+                <button
+                  onClick={() => setSelecting(true)}
+                  className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-semibold hover:bg-zinc-800"
+                >
+                  Select
+                </button>
+              ) : null}
+              <button
+                onClick={() => setNewChatOpen(true)}
+                aria-label="Start a new chat"
+                className="p-2 hover:bg-zinc-800 rounded-full"
+              >
+                <SquarePen className="h-6 w-6" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
+
 
       {/* Search Bar */}
       <div className="relative mb-4">
