@@ -129,58 +129,27 @@ export function HomePage() {
           <LongVideoCard key={v.id} video={v} onView={countView} onLike={likeVideo} />
         ))}
         {posts.map((post) => (
-          <div key={post.id} className="bg-[#141418] border border-zinc-800/80 rounded-3xl overflow-hidden shadow-2xl p-1.5 space-y-3">
-            
-            <div className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-full ${post.user.avatarColor} border border-pink-500/80 flex items-center justify-center font-bold text-base text-white`}>
-                  {post.user.letter}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm text-white leading-tight">{post.user.handle}</span>
-                  <span className="text-[10px] text-zinc-400">{post.user.location}</span>
-                </div>
-              </div>
-              <button className="text-zinc-400 hover:text-white p-1">
-                <MoreHorizontal size={18} />
-              </button>
-            </div>
-
-            <LazyImage
-              src={post.image}
-              alt="Post"
-              wrapperClassName="relative w-full aspect-square bg-zinc-900 rounded-2xl overflow-hidden"
-              className="w-full h-full object-cover"
-            />
-
-            <div className="px-3 pb-3 space-y-2">
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-4">
-                  <button onClick={() => toggleLike(post.id)} className="active:scale-75 transition-transform">
-                    <Heart size={22} className={post.isLiked ? "fill-pink-500 text-pink-500" : "text-zinc-300"} />
-                  </button>
-                  <button className="text-zinc-300 active:scale-75 transition-transform">
-                    <MessageCircle size={22} />
-                  </button>
-                  <button className="text-zinc-300 active:scale-75 transition-transform">
-                    <Send size={20} />
-                  </button>
-                </div>
-
-                <button onClick={() => toggleSave(post.id)} className="text-zinc-300 active:scale-75 transition-transform">
-                  <Bookmark size={22} className={savedIds[post.id] || post.isSaved ? "fill-white text-white" : "text-zinc-300"} />
-                </button>
-              </div>
-
-              <div className="text-xs font-bold text-white">{formatCount(post.likes)} likes</div>
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                <span className="font-bold mr-1.5 text-white">{post.user.handle}</span>
-                {post.caption}
-              </p>
-            </div>
-
-          </div>
+          <FeedPostCard
+            key={post.id}
+            post={post}
+            currentUserId={currentUserId}
+            onToggleLike={toggleLike}
+            onCommentPosted={bumpComment}
+          />
         ))}
+
+        {!loading && posts.length === 0 && longVideos.length === 0 && (
+          <button
+            onClick={() => navigate({ to: "/post/create" })}
+            className="flex w-full flex-col items-center gap-3 rounded-3xl border border-dashed border-zinc-800 bg-[#141418] px-6 py-14 text-center active:scale-[0.99]"
+          >
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600">
+              <ImagePlus size={24} />
+            </div>
+            <p className="font-semibold">No posts yet</p>
+            <p className="text-xs text-zinc-400">Share your first moment with YourWorld</p>
+          </button>
+        )}
       </div>
 
     </div>
