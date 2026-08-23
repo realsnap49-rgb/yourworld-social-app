@@ -43,6 +43,7 @@ function ChatListPage() {
   const [hidden, setHidden] = useState<string[]>(() => hiddenThreadIds());
   const [deleting, setDeleting] = useState(false);
   const pressTimer = useRef<number | null>(null);
+  const longPressed = useRef(false);
 
   const toggleSelect = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
