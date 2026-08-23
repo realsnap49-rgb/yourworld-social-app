@@ -1,13 +1,10 @@
-import React, { memo, useCallback, useState } from "react";
-import { LazyImage } from "@/components/yw/LazyImage";
+import React, { memo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSocialPosts, timeAgo } from "@/lib/social-data";
+import { useSocialPosts } from "@/lib/social-data";
+import { FeedPostCard } from "@/components/yw/FeedPostCard";
 import { useLongVideos } from "@/lib/video-data";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
-import { formatCount } from "@/lib/yw-data";
-import {
-  Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus
-} from "lucide-react";
+import { Search, Heart, Plus, ImagePlus } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -22,18 +19,6 @@ export const Route = createFileRoute("/")({
     ],
   }),
 });
-
-type Post = {
-  id: string;
-  user: { name: string; handle: string; location: string; avatarColor: string; letter: string };
-  image: string;
-  caption: string;
-  likes: number;
-  commentsCount: number;
-  timeAgo: string;
-  isLiked: boolean;
-  isSaved: boolean;
-};
 
 type Story = { id: number; name: string; letter: string; bg: string; ring: string };
 
@@ -68,68 +53,14 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { posts: dbPosts, toggleLike: toggleDbLike } = useSocialPosts("post");
+  const {
+    posts,
+    loading,
+    currentUserId,
+    toggleLike,
+    bumpComment,
+  } = useSocialPosts("post");
   const { videos: longVideos, countView, toggleLike: likeVideo } = useLongVideos();
-
-  const [fallback, setFallback] = useState<Post[]>([
-    {
-      id: "demo-101",
-      user: {
-        name: "Riko Tan",
-        handle: "@riko.night",
-        location: "Tokyo, Japan",
-        avatarColor: "bg-[#8b2fc9]",
-        letter: "R"
-      },
-      image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800",
-      caption: "Shinjuku after the rain. The signs do all the talking. 🌃✨",
-      likes: 12800,
-      commentsCount: 89,
-      timeAgo: "2h ago",
-      isLiked: false,
-      isSaved: false
-    }
-  ]);
-
-  const live: Post[] = dbPosts.map((p) => ({
-    id: p.id,
-    user: {
-      name: p.author.name,
-      handle: `@${p.author.username}`,
-      location: p.location ?? "",
-      avatarColor: "bg-[#8b2fc9]",
-      letter: (p.author.name || p.author.username).charAt(0).toUpperCase(),
-    },
-    image: p.media_url,
-    caption: p.caption,
-    likes: p.likeCount,
-    commentsCount: p.commentCount,
-    timeAgo: timeAgo(p.created_at),
-    isLiked: p.likedByMe,
-    isSaved: false,
-  }));
-
-  const usingLive = live.length > 0;
-  const posts = usingLive ? live : fallback;
-
-  const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
-
-  const toggleLike = useCallback((postId: string) => {
-    if (usingLive) {
-      void toggleDbLike(postId);
-      return;
-    }
-    setFallback(prev => prev.map(p => {
-      if (p.id === postId) {
-        return { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 };
-      }
-      return p;
-    }));
-  }, [usingLive, toggleDbLike]);
-
-  const toggleSave = useCallback((postId: string) => {
-    setSavedIds((prev) => ({ ...prev, [postId]: !prev[postId] }));
-  }, []);
 
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
@@ -198,58 +129,27 @@ export function HomePage() {
           <LongVideoCard key={v.id} video={v} onView={countView} onLike={likeVideo} />
         ))}
         {posts.map((post) => (
-          <div key={post.id} className="bg-[#141418] border border-zinc-800/80 rounded-3xl overflow-hidden shadow-2xl p-1.5 space-y-3">
-            
-            <div className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-full ${post.user.avatarColor} border border-pink-500/80 flex items-center justify-center font-bold text-base text-white`}>
-                  {post.user.letter}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-sm text-white leading-tight">{post.user.handle}</span>
-                  <span className="text-[10px] text-zinc-400">{post.user.location}</span>
-                </div>
-              </div>
-              <button className="text-zinc-400 hover:text-white p-1">
-                <MoreHorizontal size={18} />
-              </button>
-            </div>
-
-            <LazyImage
-              src={post.image}
-              alt="Post"
-              wrapperClassName="relative w-full aspect-square bg-zinc-900 rounded-2xl overflow-hidden"
-              className="w-full h-full object-cover"
-            />
-
-            <div className="px-3 pb-3 space-y-2">
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-4">
-                  <button onClick={() => toggleLike(post.id)} className="active:scale-75 transition-transform">
-                    <Heart size={22} className={post.isLiked ? "fill-pink-500 text-pink-500" : "text-zinc-300"} />
-                  </button>
-                  <button className="text-zinc-300 active:scale-75 transition-transform">
-                    <MessageCircle size={22} />
-                  </button>
-                  <button className="text-zinc-300 active:scale-75 transition-transform">
-                    <Send size={20} />
-                  </button>
-                </div>
-
-                <button onClick={() => toggleSave(post.id)} className="text-zinc-300 active:scale-75 transition-transform">
-                  <Bookmark size={22} className={savedIds[post.id] || post.isSaved ? "fill-white text-white" : "text-zinc-300"} />
-                </button>
-              </div>
-
-              <div className="text-xs font-bold text-white">{formatCount(post.likes)} likes</div>
-              <p className="text-xs text-zinc-300 leading-relaxed">
-                <span className="font-bold mr-1.5 text-white">{post.user.handle}</span>
-                {post.caption}
-              </p>
-            </div>
-
-          </div>
+          <FeedPostCard
+            key={post.id}
+            post={post}
+            currentUserId={currentUserId}
+            onToggleLike={toggleLike}
+            onCommentPosted={bumpComment}
+          />
         ))}
+
+        {!loading && posts.length === 0 && longVideos.length === 0 && (
+          <button
+            onClick={() => navigate({ to: "/post/create" })}
+            className="flex w-full flex-col items-center gap-3 rounded-3xl border border-dashed border-zinc-800 bg-[#141418] px-6 py-14 text-center active:scale-[0.99]"
+          >
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600">
+              <ImagePlus size={24} />
+            </div>
+            <p className="font-semibold">No posts yet</p>
+            <p className="text-xs text-zinc-400">Share your first moment with YourWorld</p>
+          </button>
+        )}
       </div>
 
     </div>
