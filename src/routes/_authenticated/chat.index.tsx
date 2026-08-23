@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { Search, SquarePen, MessageSquare, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, SquarePen, MessageSquare, X, Check, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveThreadPeer } from "@/lib/social-data";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
+import { deleteDirectThreads, hiddenThreadIds } from "@/lib/chat-delete";
 
 export const Route = createFileRoute("/_authenticated/chat/")({
   component: ChatListPage,
