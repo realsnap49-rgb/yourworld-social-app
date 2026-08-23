@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  Check,
   ChevronLeft,
   Heart,
   MessageCircle,
@@ -8,7 +9,10 @@ import {
   Sparkle,
   Sparkles,
   Inbox,
+  Trash2,
+  X,
 } from "lucide-react";
+import { deleteOrbitConversations, hiddenOrbitPeerIds } from "@/lib/chat-delete";
 import { useOrbitProfiles } from "@/lib/orbit-live";
 import { useOrbit } from "@/lib/orbit-store";
 import { useOrbitMatches, useOrbitThreadPreviews } from "@/lib/orbit-match";
