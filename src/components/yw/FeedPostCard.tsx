@@ -11,6 +11,7 @@ import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
+import { PremiumVideoPlayer } from "@/components/yw/PremiumVideoPlayer";
 
 function FeedPostCardBase({
   post,
@@ -100,12 +101,11 @@ function FeedPostCardBase({
       </header>
 
       {isVideo ? (
-        <video
+        <PremiumVideoPlayer
           src={src}
-          controls
-          playsInline
-          preload="metadata"
-          className="aspect-square w-full rounded-2xl bg-black object-cover"
+          title={post.caption || `@${post.author.username}`}
+          portrait
+          className="aspect-square"
         />
       ) : (
         <LazyImage
