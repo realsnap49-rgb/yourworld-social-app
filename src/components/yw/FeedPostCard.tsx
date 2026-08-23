@@ -100,12 +100,11 @@ function FeedPostCardBase({
       </header>
 
       {isVideo ? (
-        <video
+        <PremiumVideoPlayer
           src={src}
-          controls
-          playsInline
-          preload="metadata"
-          className="aspect-square w-full rounded-2xl bg-black object-cover"
+          title={post.caption || `@${post.author.username}`}
+          portrait
+          className="aspect-square"
         />
       ) : (
         <LazyImage

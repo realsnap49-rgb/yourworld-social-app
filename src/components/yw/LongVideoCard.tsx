@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Play, Eye, Heart, Clock } from "lucide-react";
 import { formatDuration, formatViews, timeAgo, type LongVideo } from "@/lib/video-data";
 import { resolveMediaUrl } from "@/lib/social-data";
+import { PremiumVideoPlayer } from "@/components/yw/PremiumVideoPlayer";
 
 type Props = {
   video: LongVideo;
