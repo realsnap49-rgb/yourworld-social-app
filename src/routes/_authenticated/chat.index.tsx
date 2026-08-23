@@ -38,6 +38,20 @@ function ChatListPage() {
   const [people, setPeople] = useState<DiscoverProfile[]>([]);
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [, setMe] = useState<string | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [hidden, setHidden] = useState<string[]>(() => hiddenThreadIds());
+  const [deleting, setDeleting] = useState(false);
+  const pressTimer = useRef<number | null>(null);
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const exitSelect = () => {
+    setSelecting(false);
+    setSelected([]);
+  };
+
 
   useEffect(() => {
     async function loadThreads() {
