@@ -1,13 +1,10 @@
-import React, { memo, useCallback, useState } from "react";
-import { LazyImage } from "@/components/yw/LazyImage";
+import React, { memo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSocialPosts, timeAgo } from "@/lib/social-data";
+import { useSocialPosts } from "@/lib/social-data";
+import { FeedPostCard } from "@/components/yw/FeedPostCard";
 import { useLongVideos } from "@/lib/video-data";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
-import { formatCount } from "@/lib/yw-data";
-import {
-  Search, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Plus
-} from "lucide-react";
+import { Search, Heart, Plus, ImagePlus } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -22,18 +19,6 @@ export const Route = createFileRoute("/")({
     ],
   }),
 });
-
-type Post = {
-  id: string;
-  user: { name: string; handle: string; location: string; avatarColor: string; letter: string };
-  image: string;
-  caption: string;
-  likes: number;
-  commentsCount: number;
-  timeAgo: string;
-  isLiked: boolean;
-  isSaved: boolean;
-};
 
 type Story = { id: number; name: string; letter: string; bg: string; ring: string };
 
