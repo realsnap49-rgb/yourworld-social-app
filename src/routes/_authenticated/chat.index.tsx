@@ -164,7 +164,9 @@ function ChatListPage() {
   };
 
   const startPress = (id: string) => {
+    longPressed.current = false;
     pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true;
       setSelecting(true);
       setSelected([id]);
     }, 400);
