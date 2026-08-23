@@ -36,12 +36,13 @@ export function LongVideoCard({ video, onView, onLike }: Props) {
         }`}
       >
         {playing && src ? (
-          <video
+          <PremiumVideoPlayer
             src={src}
-            controls
+            title={video.title}
+            poster={video.thumbnailUrl}
+            portrait={video.orientation === "portrait"}
             autoPlay
-            playsInline
-            className="h-full w-full object-contain"
+            className="rounded-none"
           />
         ) : (
           <button
