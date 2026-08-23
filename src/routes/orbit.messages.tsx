@@ -83,6 +83,33 @@ function OrbitMessagesPage() {
   const previews = useOrbitThreadPreviews();
   const [tab, setTab] = useState<Tab>("chats");
   const [q, setQ] = useState("");
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [hidden, setHidden] = useState<string[]>(() => hiddenOrbitPeerIds());
+  const pressTimer = useRef<number | null>(null);
+  const longPressed = useRef(false);
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const exitSelect = () => {
+    setSelecting(false);
+    setSelected([]);
+  };
+
+  const startPress = (id: string) => {
+    longPressed.current = false;
+    pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true;
+      setSelecting(true);
+      setSelected([id]);
+    }, 400);
+  };
+  const cancelPress = () => {
+    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+
 
   const visible = useMemo(
     () =>
