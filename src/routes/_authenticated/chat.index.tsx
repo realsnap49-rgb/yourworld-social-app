@@ -314,6 +314,12 @@ function ChatListPage() {
                 onPointerDown={() => startPress(chat.id)}
                 onPointerUp={cancelPress}
                 onPointerLeave={cancelPress}
+                onClick={(e) => {
+                  if (longPressed.current) {
+                    e.preventDefault();
+                    longPressed.current = false;
+                  }
+                }}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setSelecting(true);
