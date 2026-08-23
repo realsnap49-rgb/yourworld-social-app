@@ -11,6 +11,7 @@ import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
+import { PremiumVideoPlayer } from "@/components/yw/PremiumVideoPlayer";
 
 function FeedPostCardBase({
   post,
