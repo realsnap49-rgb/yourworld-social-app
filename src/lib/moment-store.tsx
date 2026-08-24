@@ -374,8 +374,25 @@ export function MomentProvider({ children }: { children: ReactNode }) {
             setMoments((p) => p.filter((x) => x.id !== tempId));
             return;
           }
-          const media = m.media ? await uploadMomentMedia(uid, m.media, m.mediaType) : "";
+          let media = "";
+          if (m.media) {
+            try {
+              media = await uploadMomentMedia(uid, m.media, m.mediaType);
+            } catch (e) {
+              toast.error(
+                e instanceof Error ? e.message : "Couldn't upload this moment's media",
+              );
+              setMoments((p) => p.filter((x) => x.id !== tempId));
+              return;
+            }
+          }
+          if (m.kind !== "text" && !media) {
+            toast.error("Couldn't upload this moment's media");
+            setMoments((p) => p.filter((x) => x.id !== tempId));
+            return;
+          }
           const hours = m.duration === 12 ? 12 : 24;
+
           const { error } = await supabase.from("moments").insert({
             user_id: uid,
             kind: m.kind,
