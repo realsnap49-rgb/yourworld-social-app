@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
-  Lock, Unlock, RotateCw, Repeat, Sun, Gauge, MonitorPlay, RotateCcw, Rewind, FastForward,
+  Lock, Unlock, RotateCw, Repeat, Sun, Gauge, MonitorPlay, RotateCcw,
   Subtitles, Languages, ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -207,8 +207,13 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   };
   const onPointerUp = () => { gesture.current = null; };
 
-  const onTapZone = (side: "l" | "r") => {
+  const onTapZone = (side: "l" | "c" | "r") => {
     if (locked) { poke(); return; }
+    if (side === "c") {
+      lastTap.current = 0;
+      toggle();
+      return;
+    }
     const now = Date.now();
     if (now - lastTap.current < 300) { seekBy(side === "l" ? -10 : 10); lastTap.current = 0; }
     else { lastTap.current = now; window.setTimeout(() => { if (lastTap.current) { lastTap.current = 0; poke(); } }, 260); }
@@ -271,6 +276,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         onPointerCancel={onPointerUp}
       >
         <div className="h-full flex-1" onClick={() => onTapZone("l")} />
+        <div className="h-full flex-1" onClick={() => onTapZone("c")} />
         <div className="h-full flex-1" onClick={() => onTapZone("r")} />
       </div>
 
@@ -306,30 +312,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
               <IconBtn label="Rotate" onClick={rotate}><RotateCw size={16} /></IconBtn>
               <IconBtn label="Picture in picture" onClick={togglePip}><PictureInPicture2 size={16} /></IconBtn>
               <IconBtn label="Settings" onClick={() => setMenu(menu ? null : "root")}><Settings size={16} /></IconBtn>
-            </div>
-          </div>
-
-          {/* center transport */}
-          <div className="pointer-events-none absolute inset-0 grid place-items-center">
-            <div
-              className="pointer-events-auto flex touch-manipulation items-center gap-7"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <TransportButton label="Rewind 10 seconds" seconds="10" onClick={() => seekBy(-10)}>
-                <Rewind size={24} />
-              </TransportButton>
-              <button
-                type="button"
-                onClick={toggle}
-                aria-label={playing ? "Pause" : "Play"}
-                className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white/95 text-black shadow-2xl transition-transform active:scale-90"
-              >
-                {playing ? <Pause size={26} className="fill-black" /> : <Play size={26} className="ml-1 fill-black" />}
-              </button>
-              <TransportButton label="Forward 10 seconds" seconds="10" onClick={() => seekBy(10)}>
-                <FastForward size={24} />
-              </TransportButton>
             </div>
           </div>
 
@@ -476,20 +458,6 @@ function Row({ icon, label, value, onClick }: { icon: React.ReactNode; label: st
       <span className="text-zinc-400">{icon}</span>
       <span className="flex-1 font-medium">{label}</span>
       <span className="text-xs text-zinc-400">{value}</span>
-    </button>
-  );
-}
-
-function TransportButton({ children, label, seconds, onClick }: { children: React.ReactNode; label: string; seconds: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-black/55 text-white backdrop-blur transition-transform active:scale-90"
-    >
-      {children}
-      <span className="pointer-events-none absolute text-[9px] font-extrabold leading-none">{seconds}</span>
     </button>
   );
 }
