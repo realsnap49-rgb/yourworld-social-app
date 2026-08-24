@@ -481,7 +481,7 @@ function ActiveSessionsSheet({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const [sessions, setSessions] = useState<Session[]>(INITIAL_SESSIONS);
+  const [sessions, setSessions] = useState<Session[]>(() => [currentSession()]);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [pwdOpen, setPwdOpen] = useState(false);
   const [removedId, setRemovedId] = useState<string | null>(null);
