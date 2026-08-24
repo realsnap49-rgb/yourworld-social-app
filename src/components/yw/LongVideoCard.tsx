@@ -46,6 +46,7 @@ export function LongVideoCard({
   const [hidden, setHidden] = useState(false);
   const [commentCount, setCommentCount] = useState(video.commentCount);
   const [liking, setLiking] = useState(false);
+  const [playerPortrait, setPlayerPortrait] = useState(video.orientation === "portrait");
   const counted = useRef(false);
 
   const isMine = currentUserId === video.userId;
@@ -142,7 +143,7 @@ export function LongVideoCard({
     <article className="space-y-3 overflow-hidden border-y border-zinc-800/80 bg-[#141418] shadow-2xl">
       <div
         className={`relative w-full overflow-hidden bg-black ${
-          video.orientation === "portrait" ? "aspect-[9/16]" : "aspect-video"
+          playerPortrait ? "aspect-[9/16]" : "aspect-video"
         }`}
       >
         {playing && src ? (
@@ -151,6 +152,7 @@ export function LongVideoCard({
             title={video.title}
             poster={video.thumbnailUrl}
             portrait={video.orientation === "portrait"}
+            onOrientationChange={setPlayerPortrait}
             autoPlay
             className="rounded-none"
           />

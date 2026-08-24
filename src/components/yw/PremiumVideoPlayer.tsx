@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
   Lock, Unlock, RotateCw, Repeat, Sun, Gauge, MonitorPlay, RotateCcw, Rewind, FastForward,
+  Subtitles, Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,7 @@ type Props = {
   portrait?: boolean;
   autoPlay?: boolean;
   className?: string;
+  onOrientationChange?: (portrait: boolean) => void;
 };
 
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -27,7 +29,7 @@ function fmt(t: number) {
 }
 
 /** Premium player: YouTube-style controls + MX Player gestures (seek, volume, brightness, lock, fit). */
-export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className }: Props) {
+export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className, onOrientationChange }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const vidRef = useRef<HTMLVideoElement | null>(null);
 
@@ -45,8 +47,13 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [locked, setLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [showUI, setShowUI] = useState(true);
-  const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "fit">(null);
+  const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "fit" | "captions" | "audio">(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [viewPortrait, setViewPortrait] = useState(!!portrait);
+  const [captionTracks, setCaptionTracks] = useState<Array<{ index: number; label: string }>>([]);
+  const [caption, setCaption] = useState("Off");
+  const [audioTracks, setAudioTracks] = useState<Array<{ index: number; label: string }>>([]);
+  const [audio, setAudio] = useState("Original");
 
   const hideTimer = useRef<number | null>(null);
   const gesture = useRef<{ x: number; y: number; mode: null | "seek" | "vol" | "bright"; t0: number } | null>(null);
@@ -107,11 +114,62 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     } catch { flash("PiP not supported"); }
   };
 
-  const rotate = async () => {
-    const so = screen.orientation as (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
-    if (!document.fullscreenElement) await toggleFullscreen();
-    try { await so?.lock?.(portrait ? "portrait" : "landscape"); flash("Rotated"); }
-    catch { flash("Rotate not supported"); }
+  const rotate = () => {
+    const next = !viewPortrait;
+    setViewPortrait(next);
+    onOrientationChange?.(next);
+    setMenu(null);
+    flash(next ? "Portrait" : "Landscape");
+  };
+
+  const readMediaTracks = useCallback(() => {
+    const video = vidRef.current;
+    if (!video) return;
+    const captions = Array.from(video.textTracks).map((track, index) => ({
+      index,
+      label: track.label || track.language || `Captions ${index + 1}`,
+    }));
+    setCaptionTracks(captions);
+    const tracks = (video as HTMLVideoElement & {
+      audioTracks?: ArrayLike<{ label?: string; language?: string; enabled: boolean }>;
+    }).audioTracks;
+    const availableAudio = tracks
+      ? Array.from(tracks).map((track, index) => ({
+          index,
+          label: track.label || track.language || `Audio ${index + 1}`,
+        }))
+      : [];
+    setAudioTracks(availableAudio);
+    const activeAudio = tracks ? Array.from(tracks).find((track) => track.enabled) : undefined;
+    setAudio(activeAudio?.label || activeAudio?.language || "Original");
+  }, []);
+
+  const pickCaption = (value: string) => {
+    const video = vidRef.current;
+    if (!video) return;
+    Array.from(video.textTracks).forEach((track, index) => {
+      track.mode = value !== "Off" && captionTracks[index]?.label === value ? "showing" : "disabled";
+    });
+    setCaption(value);
+    setMenu(null);
+    flash(value === "Off" ? "Captions off" : `Captions · ${value}`);
+  };
+
+  const pickAudio = (value: string) => {
+    const video = vidRef.current as (HTMLVideoElement & {
+      audioTracks?: ArrayLike<{ label?: string; language?: string; enabled: boolean }>;
+    }) | null;
+    if (!video?.audioTracks) {
+      setMenu(null);
+      flash("Original audio");
+      return;
+    }
+    Array.from(video.audioTracks).forEach((track, index) => {
+      track.enabled = audioTracks[index]?.label === value;
+    });
+    setAudio(value);
+    setMenu(null);
+    flash(`Audio · ${value}`);
   };
 
   // ---- gestures (MX Player style) ----
@@ -163,7 +221,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       onMouseMove={poke}
       className={cn(
         "relative w-full overflow-hidden rounded-2xl bg-black select-none",
-        portrait ? "aspect-[9/16]" : "aspect-video",
+        viewPortrait ? "aspect-[9/16]" : "aspect-video",
         className,
       )}
     >
@@ -186,6 +244,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
           setDur(video.duration || 0);
           const height = video.videoHeight;
           setQuality(height ? `Original · ${height}p` : "Original");
+          readMediaTracks();
         }}
         onTimeUpdate={(e) => {
           const v = e.currentTarget;
@@ -242,8 +301,8 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
           </div>
 
           {/* center transport */}
-          <div className="pointer-events-auto absolute inset-0 grid place-items-center">
-            <div className="flex items-center gap-7">
+          <div className="pointer-events-none absolute inset-0 grid place-items-center">
+            <div className="pointer-events-auto flex items-center gap-7">
               <IconBtn big label="Rewind 10 seconds" onClick={() => seekBy(-10)}><Rewind size={20} /></IconBtn>
               <button
                 onClick={toggle}
@@ -311,13 +370,15 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       {menu && !locked && (
         <div className="absolute inset-0 z-30 flex items-end bg-black/50 backdrop-blur-sm" onClick={() => setMenu(null)}>
           <div
-            className="w-full rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
+            className="max-h-full w-full overflow-y-auto rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {menu === "root" && (
               <div className="space-y-1">
                 <Row icon={<Gauge size={16} />} label="Playback speed" value={`${speed}x`} onClick={() => setMenu("speed")} />
-                 <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
+                <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
+                <Row icon={<Subtitles size={16} />} label="Captions" value={caption} onClick={() => setMenu("captions")} />
+                <Row icon={<Languages size={16} />} label="Audio track" value={audio} onClick={() => setMenu("audio")} />
                 <Row icon={<Maximize size={16} />} label="Screen fit" value={fit} onClick={() => setMenu("fit")} />
                 <Row icon={<Sun size={16} />} label="Brightness" value={`${Math.round(brightness * 100)}%`} onClick={() => setBrightness((b) => (b >= 1.6 ? 0.5 : b + 0.25))} />
                 <Row icon={<Repeat size={16} />} label="Loop" value={loop ? "On" : "Off"} onClick={() => setLoop((l) => !l)} />
@@ -346,6 +407,24 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 options={[...FITS]}
                 active={fit}
                 onPick={(o) => { setFit(o as (typeof FITS)[number]); setMenu(null); }}
+              />
+            )}
+            {menu === "captions" && (
+              <OptionList
+                title="Captions"
+                options={["Off", ...captionTracks.map((track) => track.label)]}
+                active={caption}
+                onPick={pickCaption}
+                emptyHint={captionTracks.length === 0 ? "This video has no caption tracks" : undefined}
+              />
+            )}
+            {menu === "audio" && (
+              <OptionList
+                title="Audio track"
+                options={audioTracks.length ? audioTracks.map((track) => track.label) : ["Original"]}
+                active={audio}
+                onPick={pickAudio}
+                emptyHint={audioTracks.length === 0 ? "No alternate language track was uploaded" : undefined}
               />
             )}
           </div>
@@ -380,10 +459,11 @@ function Row({ icon, label, value, onClick }: { icon: React.ReactNode; label: st
   );
 }
 
-function OptionList({ title, options, active, onPick }: { title: string; options: string[]; active: string; onPick: (o: string) => void }) {
+function OptionList({ title, options, active, onPick, emptyHint }: { title: string; options: string[]; active: string; onPick: (o: string) => void; emptyHint?: string }) {
   return (
     <div className="space-y-1">
       <p className="px-3 pb-1 pt-1 text-xs font-bold uppercase tracking-wide text-zinc-400">{title}</p>
+      {emptyHint && <p className="px-3 pb-2 text-xs text-zinc-500">{emptyHint}</p>}
       {options.map((o) => (
         <button
           key={o}
