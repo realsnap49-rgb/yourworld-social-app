@@ -41,12 +41,18 @@ export async function uploadWithProgress(
           onProgress?.(Math.min(99, Math.round((e.loaded / e.total) * 100)));
         }
       };
-      xhr.onload = () =>
-        resolve(
-          xhr.status >= 200 && xhr.status < 300
-            ? null
-            : `Upload failed (${xhr.status})`,
-        );
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) return resolve(null);
+        let detail = "";
+        try {
+          const body = JSON.parse(xhr.responseText) as { message?: string; error?: string };
+          detail = body.message || body.error || "";
+        } catch {
+          detail = (xhr.responseText || "").slice(0, 120);
+        }
+        resolve(`Upload failed (${xhr.status})${detail ? `: ${detail}` : ""}`);
+      };
+
       xhr.onerror = () => resolve("Network error while uploading");
       xhr.onabort = () => resolve("Upload cancelled");
       xhr.send(blob);
