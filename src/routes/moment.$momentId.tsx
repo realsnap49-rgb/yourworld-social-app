@@ -17,7 +17,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
-import { byId, currentUser, formatCount } from "@/lib/yw-data";
+import { currentUser, formatCount } from "@/lib/yw-data";
+import { useProfiles } from "@/lib/profiles-map";
 import { aiFilterCss, useMoments } from "@/lib/moment-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,7 @@ export const Route = createFileRoute("/moment/$momentId")({
 function MomentViewer() {
   const { momentId } = useParams({ from: "/moment/$momentId" });
   const navigate = useNavigate();
-  const { moments, archive, addReply, votePoll, archiveMoment, deleteMoment, registerScreenshot } =
+  const { moments, archive, addReply, votePoll, archiveMoment, deleteMoment, registerScreenshot, registerView } =
     useMoments();
   const moment = useMemo(
     () => [...moments, ...archive].find((m) => m.id === momentId),
@@ -292,7 +293,7 @@ function MomentViewer() {
         {tab === "viewers" ? (
           <ul className="space-y-1.5 pt-3">
             {moment.viewers.map((v) => {
-              const u = byId(v.userId);
+              const u = people.get(v.userId);
               return (
                 <li
                   key={v.userId}
@@ -323,7 +324,7 @@ function MomentViewer() {
               )}
               {moment.replies.map((r) => (
                 <li key={r.id} className="flex items-center gap-3 rounded-2xl bg-secondary/60 px-3 py-2.5">
-                  <YwAvatar user={byId(r.userId)} size={32} />
+                  <YwAvatar user={people.get(r.userId)} size={32} />
                   <p className="min-w-0 flex-1 truncate text-sm">{r.text}</p>
                 </li>
               ))}
