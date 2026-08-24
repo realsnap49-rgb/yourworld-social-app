@@ -20,9 +20,12 @@ interface CameraCaptureProps {
   onCapture: (files: File[]) => void;
   onPick: () => void;
   onDrafts: () => void;
+  /** Restrict the mode switcher to a subset (e.g. only REEL, or only LIVE). */
+  allowedModes?: Mode[];
 }
 
-export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCaptureProps) {
+export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedModes }: CameraCaptureProps) {
+  const modes: Mode[] = allowedModes && allowedModes.length ? allowedModes : ["POST", "REEL", "LIVE"];
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
