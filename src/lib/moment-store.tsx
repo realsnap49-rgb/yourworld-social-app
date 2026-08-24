@@ -211,7 +211,7 @@ function payloadOf(m: NewMoment) {
 }
 
 /** Uploads a blob/data url to the private moments bucket; returns the storage path. */
-async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
+async function uploadMomentMedia(uid: string, src: string, mediaType?: string, prefix = "media") {
   if (!src || (!src.startsWith("blob:") && !src.startsWith("data:"))) return src;
   const res = await fetch(src);
   if (!res.ok) throw new Error("Media is no longer available on this device");
@@ -222,15 +222,21 @@ async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
   const type =
     blob.type ||
     hinted ||
-    (mediaType === "video" ? "video/mp4" : "image/jpeg");
-  const ext = type.includes("video")
+    (mediaType === "video" ? "video/mp4" : mediaType === "audio" ? "audio/mpeg" : "image/jpeg");
+  const ext = type.includes("audio")
+    ? type.includes("wav")
+      ? "wav"
+      : type.includes("mp4") || type.includes("m4a")
+        ? "m4a"
+        : "mp3"
+    : type.includes("video")
     ? type.includes("webm")
       ? "webm"
       : "mp4"
     : type.includes("png")
       ? "png"
       : "jpg";
-  const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const path = `${uid}/${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { url, error } = await uploadWithProgress("moments", path, blob, type);
   if (error && !url) throw new Error(error);
   // Store the storage path; every viewer signs their own short-lived URL.
@@ -238,10 +244,14 @@ async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
 }
 
 
-/** Signs storage paths so any allowed viewer can play the media. */
+/** Signs media and music paths so any allowed viewer can play the moment. */
 async function signMomentMedia(list: MyMoment[]) {
   const paths = [
-    ...new Set(list.map((m) => m.media).filter((m) => m && !/^(https?:|data:|blob:)/.test(m))),
+    ...new Set(
+      list
+        .flatMap((m) => [m.media, m.musicUrl])
+        .filter((path): path is string => !!path && !/^(https?:|data:|blob:)/.test(path)),
+    ),
   ];
   if (!paths.length) return list;
   const { data } = await supabase.storage.from("moments").createSignedUrls(paths, 60 * 60 * 6);
@@ -250,7 +260,11 @@ async function signMomentMedia(list: MyMoment[]) {
       .filter((d) => d.signedUrl && d.path)
       .map((d) => [d.path as string, d.signedUrl as string]),
   );
-  return list.map((m) => (byPath.has(m.media) ? { ...m, media: byPath.get(m.media)! } : m));
+  return list.map((m) => ({
+    ...m,
+    media: byPath.get(m.media) ?? m.media,
+    musicUrl: m.musicUrl ? byPath.get(m.musicUrl) ?? m.musicUrl : undefined,
+  }));
 }
 
 
@@ -382,6 +396,7 @@ export function MomentProvider({ children }: { children: ReactNode }) {
             return;
           }
           let media = "";
+          let musicUrl = m.musicUrl;
           if (m.media) {
             try {
               media = await uploadMomentMedia(uid, m.media, m.mediaType);
@@ -389,6 +404,15 @@ export function MomentProvider({ children }: { children: ReactNode }) {
               toast.error(
                 e instanceof Error ? e.message : "Couldn't upload this moment's media",
               );
+              setMoments((p) => p.filter((x) => x.id !== tempId));
+              return;
+            }
+          }
+          if (musicUrl?.startsWith("blob:") || musicUrl?.startsWith("data:")) {
+            try {
+              musicUrl = await uploadMomentMedia(uid, musicUrl, "audio", "music");
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Couldn't upload the moment song");
               setMoments((p) => p.filter((x) => x.id !== tempId));
               return;
             }
@@ -407,7 +431,7 @@ export function MomentProvider({ children }: { children: ReactNode }) {
             media_type: m.mediaType ?? null,
             text: m.text ?? "",
             text_bg: m.textBg ?? "",
-            payload: payloadOf(m),
+            payload: payloadOf({ ...m, musicUrl }),
             privacy: m.privacy,
             duration: hours,
             allow_download: m.allowDownload,

@@ -374,27 +374,31 @@ function MomentViewer() {
           <Download className="mr-2 h-4 w-4" />
           {moment.allowDownload ? "Save with watermark" : "Downloads off"}
         </Button>
-        <Button
-          variant="secondary"
-          className="h-11 w-full justify-start rounded-2xl"
-          onClick={() => {
-            archiveMoment(moment.id);
-            toast.success("Saved to your archive");
-          }}
-        >
-          <Archive className="mr-2 h-4 w-4" /> Save to archive
-        </Button>
-        <Button
-          variant="secondary"
-          className="h-11 w-full justify-start rounded-2xl text-destructive"
-          onClick={() => {
-            deleteMoment(moment.id);
-            toast.success("Moment deleted");
-            navigate({ to: "/" });
-          }}
-        >
-          <Trash2 className="mr-2 h-4 w-4" /> Delete moment
-        </Button>
+        {moment.mine && (
+          <>
+            <Button
+              variant="secondary"
+              className="h-11 w-full justify-start rounded-2xl"
+              onClick={() => {
+                archiveMoment(moment.id);
+                toast.success("Saved to your archive");
+              }}
+            >
+              <Archive className="mr-2 h-4 w-4" /> Save to archive
+            </Button>
+            <Button
+              variant="secondary"
+              className="h-11 w-full justify-start rounded-2xl text-destructive"
+              onClick={() => {
+                deleteMoment(moment.id);
+                toast.success("Moment deleted");
+                navigate({ to: "/" });
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete moment
+            </Button>
+          </>
+        )}
       </section>
     </main>
   );
