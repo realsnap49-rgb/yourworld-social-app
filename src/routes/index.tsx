@@ -128,7 +128,16 @@ export function HomePage() {
       {/* 3. LONG VIDEOS + POST CARD FEED */}
       <div className="max-w-md mx-auto p-3 space-y-4">
         {longVideos.map((v) => (
-          <LongVideoCard key={v.id} video={v} onView={countView} onLike={likeVideo} />
+          <LongVideoCard
+            key={v.id}
+            video={v}
+            onView={countView}
+            onLike={likeVideo}
+            currentUserId={currentUserId}
+            isSaved={!!saved[v.id]}
+            onToggleSave={toggleSave}
+            onDeleted={() => void reloadVideos()}
+          />
         ))}
         {posts.map((post) => (
           <FeedPostCard
