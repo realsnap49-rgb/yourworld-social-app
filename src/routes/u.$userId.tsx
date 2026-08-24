@@ -214,11 +214,7 @@ function PublicProfilePage() {
           >
             {isFollowing ? "Following" : "Follow"}
           </button>
-          <Link
-            to="/chat/$threadId"
-            params={{ threadId: userId }}
-            className="flex-1 rounded-xl bg-zinc-800 py-2 text-center text-xs font-bold"
-          >
+          <Link to="/chat" className="flex-1 rounded-xl bg-zinc-800 py-2 text-center text-xs font-bold">
             Message
           </Link>
         </div>
