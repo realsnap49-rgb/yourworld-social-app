@@ -155,9 +155,12 @@ export function HomePage() {
             className="relative p-1 text-zinc-300 hover:text-white"
           >
             <Heart size={24} />
-            <span className="absolute -top-1 -right-2 bg-pink-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full border border-[#0d0d0f]">
-              68
-            </span>
+            {alertCount > 0 && (
+              <span className="absolute -top-1 -right-2 bg-pink-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full border border-[#0d0d0f]">
+                {alertCount > 99 ? "99+" : alertCount}
+              </span>
+            )}
+
           </Link>
         </div>
       </div>
