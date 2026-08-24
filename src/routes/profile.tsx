@@ -107,7 +107,7 @@ function ProfilePage() {
     location: profile.location,
     website: profile.website,
     avatarUrl: avatarSrc ?? undefined,
-    coverUrl: coverSrc ?? undefined,
+
   };
 
   if (!loading && !userId) {
@@ -146,11 +146,8 @@ function ProfilePage() {
         </Link>
       </header>
 
-      {coverSrc ? (
-        <div className="h-32 w-full overflow-hidden">
-          <img src={coverSrc} alt="" className="h-full w-full object-cover" />
-        </div>
-      ) : null}
+
+
 
       <section className="px-4 pt-4">
         <div className="flex items-center gap-5">
