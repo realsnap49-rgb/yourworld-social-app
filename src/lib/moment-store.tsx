@@ -210,20 +210,42 @@ function payloadOf(m: NewMoment) {
   };
 }
 
-/** Uploads a blob/data url to the private moments bucket; returns a signed url. */
+/** Uploads a blob/data url to the private moments bucket; returns the storage path. */
 async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
   if (!src || (!src.startsWith("blob:") && !src.startsWith("data:"))) return src;
-  try {
-    const blob = await (await fetch(src)).blob();
-    const type = mediaType || blob.type || "application/octet-stream";
-    const ext = type.includes("video") ? "mp4" : type.includes("png") ? "png" : "jpg";
-    const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { url } = await uploadWithProgress("moments", path, blob, type);
-    return url ?? "";
-  } catch {
-    return "";
-  }
+  const res = await fetch(src);
+  if (!res.ok) throw new Error("Media is no longer available on this device");
+  const blob = await res.blob();
+  const type = mediaType || blob.type || "application/octet-stream";
+  const ext = type.includes("video")
+    ? type.includes("webm")
+      ? "webm"
+      : "mp4"
+    : type.includes("png")
+      ? "png"
+      : "jpg";
+  const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { url, error } = await uploadWithProgress("moments", path, blob, type);
+  if (error && !url) throw new Error(error);
+  // Store the storage path; every viewer signs their own short-lived URL.
+  return path;
 }
+
+/** Signs storage paths so any allowed viewer can play the media. */
+async function signMomentMedia(list: MyMoment[]) {
+  const paths = [
+    ...new Set(list.map((m) => m.media).filter((m) => m && !/^(https?:|data:|blob:)/.test(m))),
+  ];
+  if (!paths.length) return list;
+  const { data } = await supabase.storage.from("moments").createSignedUrls(paths, 60 * 60 * 6);
+  const byPath = new Map(
+    (data ?? [])
+      .filter((d) => d.signedUrl && d.path)
+      .map((d) => [d.path as string, d.signedUrl as string]),
+  );
+  return list.map((m) => (byPath.has(m.media) ? { ...m, media: byPath.get(m.media)! } : m));
+}
+
 
 export function MomentProvider({ children }: { children: ReactNode }) {
   const [moments, setMoments] = useState<MyMoment[]>([]);
@@ -276,34 +298,35 @@ export function MomentProvider({ children }: { children: ReactNode }) {
       ),
     );
 
-    setMoments(
-      list.map((row) =>
-        rowToMoment(
-          row,
-          ((views ?? []) as DbView[])
-            .filter((v) => v.moment_id === row.id)
-            .map((v) => ({
-              userId: v.viewer_id,
-              at: new Date(v.created_at).getTime(),
-              liked: v.liked,
-              screenshot: v.screenshot,
-            })),
-          ((replies ?? []) as DbReply[])
-            .filter((r) => r.moment_id === row.id)
-            .map((r) => ({
-              id: r.id,
-              userId: r.user_id,
-              text: r.text,
-              at: new Date(r.created_at).getTime(),
-            })),
+    const mapped = list.map((row) =>
+      rowToMoment(
+        row,
+        ((views ?? []) as DbView[])
+          .filter((v) => v.moment_id === row.id)
+          .map((v) => ({
+            userId: v.viewer_id,
+            at: new Date(v.created_at).getTime(),
+            liked: v.liked,
+            screenshot: v.screenshot,
+          })),
+        ((replies ?? []) as DbReply[])
+          .filter((r) => r.moment_id === row.id)
+          .map((r) => ({
+            id: r.id,
+            userId: r.user_id,
+            text: r.text,
+            at: new Date(r.created_at).getTime(),
+          })),
 
-          profileById.get(row.user_id),
-          uid,
-        ),
+        profileById.get(row.user_id),
+        uid,
       ),
     );
+
+    setMoments(await signMomentMedia(mapped));
     setLoading(false);
   }, []);
+
 
   useEffect(() => {
     void load();
@@ -351,8 +374,25 @@ export function MomentProvider({ children }: { children: ReactNode }) {
             setMoments((p) => p.filter((x) => x.id !== tempId));
             return;
           }
-          const media = m.media ? await uploadMomentMedia(uid, m.media, m.mediaType) : "";
+          let media = "";
+          if (m.media) {
+            try {
+              media = await uploadMomentMedia(uid, m.media, m.mediaType);
+            } catch (e) {
+              toast.error(
+                e instanceof Error ? e.message : "Couldn't upload this moment's media",
+              );
+              setMoments((p) => p.filter((x) => x.id !== tempId));
+              return;
+            }
+          }
+          if (m.kind !== "text" && !media) {
+            toast.error("Couldn't upload this moment's media");
+            setMoments((p) => p.filter((x) => x.id !== tempId));
+            return;
+          }
           const hours = m.duration === 12 ? 12 : 24;
+
           const { error } = await supabase.from("moments").insert({
             user_id: uid,
             kind: m.kind,
