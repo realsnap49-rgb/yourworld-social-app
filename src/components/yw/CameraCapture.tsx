@@ -508,18 +508,20 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedMod
 
       {/* BOTTOM CONTROLS */}
       <div className="relative z-20 flex flex-col items-center gap-4 bg-gradient-to-t from-black/80 to-transparent pb-6 pt-8">
-        <div className="flex items-center gap-7 text-[11px] font-black uppercase tracking-wide">
-          {(["POST", "REEL", "LIVE"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => !recording && setMode(m)}
-              className={mode === m ? "text-white" : "text-white/50"}
-            >
-              {m}
-              {mode === m && <span className="mx-auto mt-1 block h-1 w-1 rounded-full bg-white" />}
-            </button>
-          ))}
-        </div>
+        {modes.length > 1 && (
+          <div className="flex items-center gap-7 text-[11px] font-black uppercase tracking-wide">
+            {modes.map((m) => (
+              <button
+                key={m}
+                onClick={() => !recording && setMode(m)}
+                className={mode === m ? "text-white" : "text-white/50"}
+              >
+                {m}
+                {mode === m && <span className="mx-auto mt-1 block h-1 w-1 rounded-full bg-white" />}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex w-full items-center justify-around px-8">
           <button onClick={onPick} className="flex flex-col items-center gap-1 active:scale-90">
