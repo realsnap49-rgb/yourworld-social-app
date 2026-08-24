@@ -230,11 +230,13 @@ function FeedPostCardBase({
                 className={post.likedByMe ? "fill-pink-500 text-pink-500" : "text-zinc-300"}
               />
             </button>
-            <CommentsSheet postId={post.id}>
-              <button aria-label="Comments" className="text-zinc-300 transition-transform active:scale-75">
+            <CommentsSheet postId={post.id} onCountChange={setCommentCount}>
+              <button aria-label="Comments" className="flex items-center gap-1 text-zinc-300 transition-transform active:scale-75">
                 <MessageCircle size={22} />
+                {commentCount > 0 && <span className="text-xs font-semibold">{formatCount(commentCount)}</span>}
               </button>
             </CommentsSheet>
+
             <ShareSheet title={post.caption} url={shareUrl} media={src} mediaKind={isVideo ? "video" : "photo"}>
               <button aria-label="Share" className="text-zinc-300 transition-transform active:scale-75">
                 <Send size={20} />
