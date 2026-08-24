@@ -40,7 +40,9 @@ function FeedPostCardBase({
   const [src, setSrc] = useState<string>(post.media_url);
   const [hidden, setHidden] = useState(false);
   const [views, setViews] = useState(post.views ?? 0);
+  const [commentCount, setCommentCount] = useState(post.commentCount);
   const cardRef = useRef<HTMLElement | null>(null);
+
 
   useEffect(() => {
     let alive = true;
