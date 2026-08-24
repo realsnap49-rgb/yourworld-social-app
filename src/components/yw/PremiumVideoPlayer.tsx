@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
+  Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
   Lock, Unlock, RotateCw, Repeat, Sun, Gauge, MonitorPlay, RotateCcw,
   Subtitles, Languages, ChevronLeft,
 } from "lucide-react";
