@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
+import { uploadWithProgress } from "@/lib/storage-upload";
 import type { User } from "@/lib/yw-data";
 
 export type DbProfile = {
