@@ -6,7 +6,10 @@ import { FeedPostCard } from "@/components/yw/FeedPostCard";
 import { useLongVideos } from "@/lib/video-data";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { Search, Heart, Plus, ImagePlus } from "lucide-react";
+import { useMoments } from "@/lib/moment-store";
+import { useAlertsCount } from "@/lib/alerts-count";
 import ywLogo from "@/assets/yw-logo.png";
+
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -22,28 +25,43 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-type Story = { id: number; name: string; letter: string; bg: string; ring: string };
+type StoryRing = {
+  userId: string;
+  momentId: string;
+  name: string;
+  avatar: string | null;
+  letter: string;
+  media: string;
+  kind: string;
+  textBg: string;
+};
 
-const STORY_CIRCLES: Story[] = [
-  { id: 1, name: "riko.night", letter: "R", bg: "bg-[#7e22ce]", ring: "border-[#ec4899]" },
-  { id: 2, name: "sea.salt", letter: "M", bg: "bg-[#0d9488]", ring: "border-[#14b8a6]" },
-  { id: 3, name: "spinsolo", letter: "A", bg: "bg-[#ea580c]", ring: "border-[#f97316]" },
-  { id: 4, name: "slowbrunch", letter: "N", bg: "bg-[#dc2626]", ring: "border-[#ef4444]" },
-  { id: 5, name: "wavelen", letter: "K", bg: "bg-[#0284c7]", ring: "border-[#38bdf8]" },
-];
-
-const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
+const StoryCircle = memo(function StoryCircle({ story }: { story: StoryRing }) {
   return (
     <Link
-      to="/moment"
+      to="/moment/$momentId"
+      params={{ momentId: story.momentId }}
       preload="intent"
       className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform"
     >
-      <div className={`p-[2px] rounded-full border-2 ${story.ring}`}>
-        <div
-          className={`w-13 h-13 rounded-full ${story.bg} flex items-center justify-center font-bold text-2xl text-white border border-[#0d0d0f]`}
-        >
-          {story.letter}
+      <div className="p-[2px] rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600">
+        <div className="rounded-full border-2 border-[#0d0d0f] overflow-hidden">
+          {story.avatar ? (
+            <img
+              src={story.avatar}
+              alt={story.name}
+              className="w-13 h-13 rounded-full object-cover"
+            />
+          ) : story.kind !== "text" && story.media ? (
+            <img src={story.media} alt="" className="w-13 h-13 rounded-full object-cover" />
+          ) : (
+            <div
+              className="w-13 h-13 rounded-full flex items-center justify-center font-bold text-2xl text-white"
+              style={{ background: story.textBg || "#7e22ce" }}
+            >
+              {story.letter}
+            </div>
+          )}
         </div>
       </div>
       <span className="text-[11px] font-medium text-zinc-300 w-13 truncate text-center">
@@ -52,6 +70,7 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: Story }) {
     </Link>
   );
 });
+
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -69,6 +88,37 @@ export function HomePage() {
     toggleLike: likeVideo,
     reload: reloadVideos,
   } = useLongVideos();
+  const { moments } = useMoments();
+  const { count: alertCount } = useAlertsCount();
+
+  const myLatest = React.useMemo(
+    () => moments.find((m) => m.mine),
+    [moments],
+  );
+
+  const stories = React.useMemo<StoryRing[]>(() => {
+    const seen = new Set<string>();
+    const list: StoryRing[] = [];
+    for (const m of moments) {
+      if (m.mine) continue;
+      const uid = m.author?.id ?? "";
+      if (!uid || seen.has(uid)) continue;
+      seen.add(uid);
+      const name = m.author?.username ?? "user";
+      list.push({
+        userId: uid,
+        momentId: m.id,
+        name,
+        avatar: m.author?.avatar ?? null,
+        letter: name.charAt(0).toUpperCase(),
+        media: m.media,
+        kind: m.kind,
+        textBg: m.textBg,
+      });
+    }
+    return list;
+  }, [moments]);
+
 
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
@@ -116,14 +166,26 @@ export function HomePage() {
       <div className="px-4 py-4 overflow-x-auto flex items-center gap-4 border-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         
         {/* Your Moment */}
-        <div 
-          onClick={() => navigate({ to: "/moment/create" })} 
+        <div
+          onClick={() =>
+            myLatest
+              ? navigate({ to: "/moment/$momentId", params: { momentId: myLatest.id } })
+              : navigate({ to: "/moment/create" })
+          }
           className="flex flex-col items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform"
         >
           <div className="relative">
-            <div className="w-13 h-13 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
-              Y
-            </div>
+            {myLatest && myLatest.kind !== "text" && myLatest.media ? (
+              <img
+                src={myLatest.media}
+                alt="Your moment"
+                className="w-13 h-13 rounded-full object-cover border-2 border-[#d946ef]"
+              />
+            ) : (
+              <div className="w-13 h-13 rounded-full bg-[#a83279] border-2 border-[#d946ef] flex items-center justify-center font-bold text-2xl text-white shadow-md">
+                Y
+              </div>
+            )}
             <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#ec4899] border-2 border-[#0d0d0f] flex items-center justify-center text-white">
               <Plus size={12} strokeWidth={3} />
             </div>
@@ -132,9 +194,10 @@ export function HomePage() {
         </div>
 
         {/* Friends Stories */}
-        {STORY_CIRCLES.map((s) => (
-          <StoryCircle key={s.id} story={s} />
+        {stories.map((s) => (
+          <StoryCircle key={s.userId} story={s} />
         ))}
+
 
       </div>
 

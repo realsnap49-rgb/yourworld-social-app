@@ -4,10 +4,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { users } from "@/lib/yw-data";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { uploadWithProgress } from "@/lib/storage-upload";
+
 
 export type MomentKind = "photo" | "video" | "text";
 export type MomentPrivacy = "everyone" | "followers" | "close" | "onlyme";
@@ -37,6 +41,9 @@ export type MomentPoll = {
 export type MomentReply = { id: string; userId: string; text: string; at: number };
 
 export type MomentViewer = { userId: string; at: number; liked: boolean; screenshot: boolean };
+
+export type MomentAuthor = { id: string; name: string; username: string; avatar: string | null };
+
 
 export type MyMoment = {
   id: string;
@@ -81,6 +88,9 @@ export type MyMoment = {
   archived: boolean;
   viewers: MomentViewer[];
   replies: MomentReply[];
+  /** author of the moment (real profile) */
+  author?: MomentAuthor;
+  mine?: boolean;
 };
 
 export type NewMoment = Omit<
@@ -91,6 +101,7 @@ export type NewMoment = Omit<
 type Store = {
   moments: MyMoment[];
   archive: MyMoment[];
+  loading: boolean;
   addMoment: (m: NewMoment) => MyMoment;
   deleteMoment: (id: string) => void;
   archiveMoment: (id: string) => void;
@@ -98,71 +109,218 @@ type Store = {
   addReply: (id: string, text: string) => void;
   votePoll: (id: string, option: 0 | 1) => void;
   registerScreenshot: (id: string) => void;
+  registerView: (id: string, liked?: boolean) => void;
+  reload: () => Promise<void>;
 };
 
 const MomentContext = createContext<Store | null>(null);
 
-/** Demo audience so views / likes / viewer list feel alive right away. */
-function seedViewers(): MomentViewer[] {
-  const now = Date.now();
-  return users.slice(0, 4).map((u, i) => ({
-    userId: u.id,
-    at: now - (i + 1) * 7 * 60_000,
-    liked: i % 2 === 0,
-    screenshot: i === 1,
-  }));
+type DbView = {
+  moment_id: string;
+  viewer_id: string;
+  liked: boolean;
+  screenshot: boolean;
+  created_at: string;
+};
+
+type DbReply = {
+  id: string;
+  moment_id: string;
+  user_id: string;
+  text: string;
+  created_at: string;
+};
+
+type DbMoment = {
+
+  id: string;
+  user_id: string;
+  kind: string;
+  media_url: string | null;
+  media_type: string | null;
+  text: string;
+  text_bg: string;
+  payload: Record<string, unknown> | null;
+  privacy: string;
+  duration: number;
+  allow_download: boolean;
+  screenshot_alert: boolean;
+  poll: MomentPoll | null;
+  archived: boolean;
+  created_at: string;
+};
+
+function rowToMoment(
+  row: DbMoment,
+  views: MomentViewer[],
+  replies: MomentReply[],
+  author: MomentAuthor | undefined,
+  uid: string | null,
+): MyMoment {
+  const p = (row.payload ?? {}) as Record<string, never>;
+  return {
+    id: row.id,
+    kind: (row.kind as MomentKind) ?? "photo",
+    media: row.media_url ?? "",
+    mediaType: row.media_type ?? undefined,
+    text: row.text ?? "",
+    textBg: row.text_bg ?? "",
+    music: p["music"],
+    musicUrl: p["musicUrl"],
+    musicStart: p["musicStart"],
+    musicEnd: p["musicEnd"],
+    musicVolume: p["musicVolume"],
+    stickers: (p["stickers"] as Sticker[] | undefined) ?? [],
+    drawing: p["drawing"],
+    trim: p["trim"],
+    crop: p["crop"],
+    location: p["location"],
+    mentions: (p["mentions"] as string[] | undefined) ?? [],
+    privacy: (row.privacy as MomentPrivacy) ?? "everyone",
+    duration: (row.duration === 12 ? 12 : 24) as 12 | 24,
+    effect: (p["effect"] as MomentEffect | undefined) ?? "none",
+    ai: (p["ai"] as Partial<Record<AiTool, boolean>> | undefined) ?? {},
+    allowDownload: row.allow_download,
+    screenshotAlert: row.screenshot_alert,
+    poll: row.poll,
+    createdAt: new Date(row.created_at).getTime(),
+    archived: row.archived,
+    viewers: views,
+    replies,
+    author,
+    mine: !!uid && row.user_id === uid,
+  };
 }
 
-const STORAGE_KEY = "yw_moment_store_v1";
+function payloadOf(m: NewMoment) {
+  return {
+    music: m.music ?? null,
+    musicUrl: m.musicUrl ?? null,
+    musicStart: m.musicStart ?? null,
+    musicEnd: m.musicEnd ?? null,
+    musicVolume: m.musicVolume ?? null,
+    stickers: m.stickers ?? [],
+    drawing: m.drawing ?? null,
+    trim: m.trim ?? null,
+    crop: m.crop ?? null,
+    location: m.location ?? null,
+    mentions: m.mentions ?? [],
+    effect: m.effect ?? "none",
+    ai: m.ai ?? {},
+  };
+}
 
-/** blob: urls die on reload — inline them so moments survive a refresh */
-async function persistableMedia(src: string): Promise<string> {
-  if (!src || !src.startsWith("blob:")) return src;
+/** Uploads a blob/data url to the private moments bucket; returns a signed url. */
+async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
+  if (!src || (!src.startsWith("blob:") && !src.startsWith("data:"))) return src;
   try {
     const blob = await (await fetch(src)).blob();
-    if (blob.size > 4_500_000) return src; // too big for localStorage
-    return await new Promise<string>((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result));
-      fr.onerror = () => reject(fr.error);
-      fr.readAsDataURL(blob);
-    });
+    const type = mediaType || blob.type || "application/octet-stream";
+    const ext = type.includes("video") ? "mp4" : type.includes("png") ? "png" : "jpg";
+    const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { url } = await uploadWithProgress("moments", path, blob, type);
+    return url ?? "";
   } catch {
-    return src;
-  }
-}
-
-function loadStored(): MyMoment[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const list = JSON.parse(raw) as MyMoment[];
-    const now = Date.now();
-    return list.filter(
-      (m) => m.archived || m.createdAt + (m.duration ?? 24) * 3600_000 > now,
-    );
-  } catch {
-    return [];
+    return "";
   }
 }
 
 export function MomentProvider({ children }: { children: ReactNode }) {
   const [moments, setMoments] = useState<MyMoment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const uidRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    setMoments(loadStored());
+  const load = useCallback(async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id ?? null;
+    uidRef.current = uid;
+    if (!uid) {
+      setMoments([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data: rows } = await supabase
+      .from("moments")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const list = (rows ?? []) as unknown as DbMoment[];
+    if (!list.length) {
+      setMoments([]);
+      setLoading(false);
+      return;
+    }
+
+    const ids = list.map((r) => r.id);
+    const authorIds = [...new Set(list.map((r) => r.user_id))];
+
+    const [{ data: views }, { data: replies }, { data: profiles }] = await Promise.all([
+      supabase.from("moment_views").select("*").in("moment_id", ids),
+      supabase.from("moment_replies").select("*").in("moment_id", ids),
+      supabase.rpc("get_public_profiles", { ids: authorIds }),
+    ]);
+
+    const profileById = new Map(
+      ((profiles ?? []) as { id: string; username: string | null; display_name?: string | null; avatar_url: string | null }[]).map(
+        (p) => [
+          p.id,
+          {
+            id: p.id,
+            username: p.username ?? "user",
+            name: p.display_name ?? p.username ?? "User",
+            avatar: p.avatar_url,
+          } satisfies MomentAuthor,
+        ],
+      ),
+    );
+
+    setMoments(
+      list.map((row) =>
+        rowToMoment(
+          row,
+          ((views ?? []) as DbView[])
+            .filter((v) => v.moment_id === row.id)
+            .map((v) => ({
+              userId: v.viewer_id,
+              at: new Date(v.created_at).getTime(),
+              liked: v.liked,
+              screenshot: v.screenshot,
+            })),
+          ((replies ?? []) as DbReply[])
+            .filter((r) => r.moment_id === row.id)
+            .map((r) => ({
+              id: r.id,
+              userId: r.user_id,
+              text: r.text,
+              at: new Date(r.created_at).getTime(),
+            })),
+
+          profileById.get(row.user_id),
+          uid,
+        ),
+      ),
+    );
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(moments));
-    } catch {
-      /* quota — keep in-memory only */
-    }
-  }, [moments]);
+    void load();
+    const channel = supabase
+      .channel("moments-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "moments" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "moment_views" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "moment_replies" }, () => void load())
+      .subscribe();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => void load());
+    return () => {
+      void supabase.removeChannel(channel);
+      sub.subscription.unsubscribe();
+    };
+  }, [load]);
 
-  const update = useCallback(
+  const patch = useCallback(
     (id: string, fn: (m: MyMoment) => MyMoment) =>
       setMoments((p) => p.map((m) => (m.id === id ? fn(m) : m))),
     [],
@@ -172,50 +330,104 @@ export function MomentProvider({ children }: { children: ReactNode }) {
     () => ({
       moments: moments.filter((m) => !m.archived),
       archive: moments.filter((m) => m.archived),
+      loading,
       addMoment: (m) => {
-        const created: MyMoment = {
+        const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const optimistic: MyMoment = {
           ...m,
-          id: `mm-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: tempId,
           createdAt: Date.now(),
           archived: false,
-          viewers: seedViewers(),
+          viewers: [],
           replies: [],
+          mine: true,
         };
-        setMoments((p) => [created, ...p]);
-        // inline blob media so the moment survives a reload
-        void Promise.all([
-          persistableMedia(created.media),
-          created.musicUrl ? persistableMedia(created.musicUrl) : Promise.resolve(undefined),
-        ]).then(([media, musicUrl]) =>
-          update(created.id, (x) => ({ ...x, media, musicUrl: musicUrl ?? x.musicUrl })),
-        );
-        return created;
+        setMoments((p) => [optimistic, ...p]);
+
+        void (async () => {
+          const uid = uidRef.current ?? (await supabase.auth.getUser()).data.user?.id ?? null;
+          if (!uid) {
+            toast.error("Sign in to publish a moment");
+            setMoments((p) => p.filter((x) => x.id !== tempId));
+            return;
+          }
+          const media = m.media ? await uploadMomentMedia(uid, m.media, m.mediaType) : "";
+          const hours = m.duration === 12 ? 12 : 24;
+          const { error } = await supabase.from("moments").insert({
+            user_id: uid,
+            kind: m.kind,
+            media_url: media || null,
+            media_type: m.mediaType ?? null,
+            text: m.text ?? "",
+            text_bg: m.textBg ?? "",
+            payload: payloadOf(m),
+            privacy: m.privacy,
+            duration: hours,
+            allow_download: m.allowDownload,
+            screenshot_alert: m.screenshotAlert,
+            poll: m.poll,
+            expires_at: new Date(Date.now() + hours * 3600_000).toISOString(),
+          });
+          setMoments((p) => p.filter((x) => x.id !== tempId));
+          if (error) toast.error("Couldn't publish this moment");
+          await load();
+        })();
+
+        return optimistic;
       },
-      deleteMoment: (id) => setMoments((p) => p.filter((m) => m.id !== id)),
-      archiveMoment: (id) => update(id, (m) => ({ ...m, archived: true })),
-      restoreMoment: (id) => update(id, (m) => ({ ...m, archived: false })),
-      addReply: (id, text) =>
-        update(id, (m) => ({
+      deleteMoment: (id) => {
+        setMoments((p) => p.filter((m) => m.id !== id));
+        void supabase.from("moments").delete().eq("id", id);
+      },
+      archiveMoment: (id) => {
+        patch(id, (m) => ({ ...m, archived: true }));
+        void supabase.from("moments").update({ archived: true }).eq("id", id);
+      },
+      restoreMoment: (id) => {
+        patch(id, (m) => ({ ...m, archived: false }));
+        void supabase.from("moments").update({ archived: false }).eq("id", id);
+      },
+      addReply: (id, text) => {
+        const uid = uidRef.current;
+        if (!uid || !text.trim()) return;
+        patch(id, (m) => ({
           ...m,
-          replies: [
-            ...m.replies,
-            { id: `r-${Date.now()}`, userId: "u0", text, at: Date.now() },
-          ],
-        })),
-      votePoll: (id, option) =>
-        update(id, (m) => {
-          if (!m.poll || m.poll.myVote !== null) return m;
-          const votes: [number, number] = [...m.poll.votes] as [number, number];
-          votes[option] += 1;
-          return { ...m, poll: { ...m.poll, votes, myVote: option } };
-        }),
-      registerScreenshot: (id) =>
-        update(id, (m) => ({
-          ...m,
-          viewers: m.viewers.map((v, i) => (i === 0 ? { ...v, screenshot: true } : v)),
-        })),
+          replies: [...m.replies, { id: `tmp-${Date.now()}`, userId: uid, text, at: Date.now() }],
+        }));
+        void supabase.from("moment_replies").insert({ moment_id: id, user_id: uid, text });
+      },
+      votePoll: (id, option) => {
+        const target = moments.find((m) => m.id === id);
+        if (!target?.poll || target.poll.myVote !== null) return;
+        const votes: [number, number] = [...target.poll.votes] as [number, number];
+        votes[option] += 1;
+        const poll = { ...target.poll, votes, myVote: option };
+        patch(id, (m) => ({ ...m, poll }));
+        if (target.mine) void supabase.from("moments").update({ poll }).eq("id", id);
+      },
+      registerScreenshot: (id) => {
+        const uid = uidRef.current;
+        if (!uid) return;
+        void supabase
+          .from("moment_views")
+          .upsert(
+            { moment_id: id, viewer_id: uid, screenshot: true },
+            { onConflict: "moment_id,viewer_id" },
+          );
+      },
+      registerView: (id, liked) => {
+        const uid = uidRef.current;
+        if (!uid || id.startsWith("pending-")) return;
+        void supabase
+          .from("moment_views")
+          .upsert(
+            { moment_id: id, viewer_id: uid, ...(liked === undefined ? {} : { liked }) },
+            { onConflict: "moment_id,viewer_id" },
+          );
+      },
+      reload: load,
     }),
-    [moments, update],
+    [moments, loading, patch, load],
   );
 
   return <MomentContext.Provider value={value}>{children}</MomentContext.Provider>;
@@ -226,6 +438,7 @@ export function useMoments() {
   if (!ctx) throw new Error("useMoments must be used inside MomentProvider");
   return ctx;
 }
+
 
 export const MOMENT_MUSIC = [
   "midnight drive — lowtide",
