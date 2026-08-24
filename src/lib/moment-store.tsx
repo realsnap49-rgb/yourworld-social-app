@@ -210,20 +210,42 @@ function payloadOf(m: NewMoment) {
   };
 }
 
-/** Uploads a blob/data url to the private moments bucket; returns a signed url. */
+/** Uploads a blob/data url to the private moments bucket; returns the storage path. */
 async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
   if (!src || (!src.startsWith("blob:") && !src.startsWith("data:"))) return src;
-  try {
-    const blob = await (await fetch(src)).blob();
-    const type = mediaType || blob.type || "application/octet-stream";
-    const ext = type.includes("video") ? "mp4" : type.includes("png") ? "png" : "jpg";
-    const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { url } = await uploadWithProgress("moments", path, blob, type);
-    return url ?? "";
-  } catch {
-    return "";
-  }
+  const res = await fetch(src);
+  if (!res.ok) throw new Error("Media is no longer available on this device");
+  const blob = await res.blob();
+  const type = mediaType || blob.type || "application/octet-stream";
+  const ext = type.includes("video")
+    ? type.includes("webm")
+      ? "webm"
+      : "mp4"
+    : type.includes("png")
+      ? "png"
+      : "jpg";
+  const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { url, error } = await uploadWithProgress("moments", path, blob, type);
+  if (error && !url) throw new Error(error);
+  // Store the storage path; every viewer signs their own short-lived URL.
+  return path;
 }
+
+/** Signs storage paths so any allowed viewer can play the media. */
+async function signMomentMedia(list: MyMoment[]) {
+  const paths = [
+    ...new Set(list.map((m) => m.media).filter((m) => m && !/^(https?:|data:|blob:)/.test(m))),
+  ];
+  if (!paths.length) return list;
+  const { data } = await supabase.storage.from("moments").createSignedUrls(paths, 60 * 60 * 6);
+  const byPath = new Map(
+    (data ?? [])
+      .filter((d) => d.signedUrl && d.path)
+      .map((d) => [d.path as string, d.signedUrl as string]),
+  );
+  return list.map((m) => (byPath.has(m.media) ? { ...m, media: byPath.get(m.media)! } : m));
+}
+
 
 export function MomentProvider({ children }: { children: ReactNode }) {
   const [moments, setMoments] = useState<MyMoment[]>([]);
