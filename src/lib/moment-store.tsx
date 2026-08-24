@@ -216,7 +216,13 @@ async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
   const res = await fetch(src);
   if (!res.ok) throw new Error("Media is no longer available on this device");
   const blob = await res.blob();
-  const type = mediaType || blob.type || "application/octet-stream";
+  // Callers sometimes pass a short kind ("video"/"image") instead of a real
+  // MIME type — storage rejects those with a 400, so normalise here.
+  const hinted = mediaType && mediaType.includes("/") ? mediaType : "";
+  const type =
+    blob.type ||
+    hinted ||
+    (mediaType === "video" ? "video/mp4" : "image/jpeg");
   const ext = type.includes("video")
     ? type.includes("webm")
       ? "webm"
@@ -230,6 +236,7 @@ async function uploadMomentMedia(uid: string, src: string, mediaType?: string) {
   // Store the storage path; every viewer signs their own short-lived URL.
   return path;
 }
+
 
 /** Signs storage paths so any allowed viewer can play the media. */
 async function signMomentMedia(list: MyMoment[]) {
