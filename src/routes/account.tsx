@@ -758,15 +758,6 @@ function AccountPage() {
           <p className="font-ui text-[13px] text-muted-foreground">@{username}</p>
         </div>
 
-        {/* ── edit profile ── */}
-        <Section icon={User} title="Edit Profile">
-          <div className="space-y-3.5">
-            <Field label="Full name" value={name} onChange={setName} placeholder="Your name" />
-            <Field label="Username" value={username} onChange={setUsername} placeholder="username" hint="yourworld.app/@username" />
-            <Field label="Bio" value={bio} onChange={setBio} placeholder="Write something about yourself…" multiline rows={4} />
-          </div>
-        </Section>
-
         {/* ── contact details ── */}
         <Section icon={Mail} title="Contact Details">
           <div className="space-y-3.5">
