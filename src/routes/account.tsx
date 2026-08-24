@@ -60,52 +60,49 @@ type Session = {
   kind: "phone" | "laptop" | "desktop";
 };
 
-const INITIAL_SESSIONS: Session[] = [
-  {
-    id: "s0",
-    label: "iPhone 15 Pro",
-    browser: "Safari 17",
-    os: "iOS 17.4",
-    location: "Tokyo, Japan",
-    ip: "203.0.113.42",
+/** Builds the real current-device session from the browser environment. */
+function currentSession(): Session {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  const isPhone = /Android|iPhone|iPad|Mobile/i.test(ua);
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /Chrome\//.test(ua)
+      ? "Chrome"
+      : /Firefox\//.test(ua)
+        ? "Firefox"
+        : /Safari\//.test(ua)
+          ? "Safari"
+          : "Browser";
+  const os = /Android/i.test(ua)
+    ? "Android"
+    : /iPhone|iPad|iOS/i.test(ua)
+      ? "iOS"
+      : /Mac OS X/i.test(ua)
+        ? "macOS"
+        : /Windows/i.test(ua)
+          ? "Windows"
+          : /Linux/i.test(ua)
+            ? "Linux"
+            : "Unknown OS";
+  let zone = "";
+  try {
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+  } catch {
+    zone = "";
+  }
+  return {
+    id: "current",
+    label: `${os} · ${browser}`,
+    browser,
+    os,
+    location: zone || "Unknown location",
+    ip: "This device",
     lastActive: "Active now",
     isCurrent: true,
-    kind: "phone",
-  },
-  {
-    id: "s1",
-    label: "MacBook Pro",
-    browser: "Chrome 124",
-    os: "macOS 14.4",
-    location: "Tokyo, Japan",
-    ip: "203.0.113.43",
-    lastActive: "2 hours ago",
-    isCurrent: false,
-    kind: "laptop",
-  },
-  {
-    id: "s2",
-    label: "Windows PC",
-    browser: "Firefox 125",
-    os: "Windows 11",
-    location: "Osaka, Japan",
-    ip: "198.51.100.7",
-    lastActive: "Yesterday, 9:14 PM",
-    isCurrent: false,
-    kind: "desktop",
-  },
-  {
-    id: "s3",
-    label: "Samsung Galaxy S24",
-    browser: "Chrome 124",
-    os: "Android 14",
-    location: "Kyoto, Japan",
-    ip: "198.51.100.81",
-    lastActive: "3 days ago",
-    isCurrent: false,
-    kind: "phone",
-  },
-];
+    kind: isPhone ? "phone" : "desktop",
+  };
+}
+
 
 /* ══════════════════ SMALL HELPERS ══════════════════ */
 
@@ -484,7 +481,7 @@ function ActiveSessionsSheet({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const [sessions, setSessions] = useState<Session[]>(INITIAL_SESSIONS);
+  const [sessions, setSessions] = useState<Session[]>(() => [currentSession()]);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [pwdOpen, setPwdOpen] = useState(false);
   const [removedId, setRemovedId] = useState<string | null>(null);

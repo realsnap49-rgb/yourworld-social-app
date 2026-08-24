@@ -71,6 +71,127 @@ export type Database = {
         }
         Relationships: []
       }
+      moment_replies: {
+        Row: {
+          created_at: string
+          id: string
+          moment_id: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          moment_id: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          moment_id?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_replies_moment_id_fkey"
+            columns: ["moment_id"]
+            isOneToOne: false
+            referencedRelation: "moments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_views: {
+        Row: {
+          created_at: string
+          liked: boolean
+          moment_id: string
+          screenshot: boolean
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          liked?: boolean
+          moment_id: string
+          screenshot?: boolean
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          liked?: boolean
+          moment_id?: string
+          screenshot?: boolean
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_views_moment_id_fkey"
+            columns: ["moment_id"]
+            isOneToOne: false
+            referencedRelation: "moments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moments: {
+        Row: {
+          allow_download: boolean
+          archived: boolean
+          created_at: string
+          duration: number
+          expires_at: string
+          id: string
+          kind: string
+          media_type: string | null
+          media_url: string | null
+          payload: Json
+          poll: Json | null
+          privacy: string
+          screenshot_alert: boolean
+          text: string
+          text_bg: string
+          user_id: string
+        }
+        Insert: {
+          allow_download?: boolean
+          archived?: boolean
+          created_at?: string
+          duration?: number
+          expires_at?: string
+          id?: string
+          kind?: string
+          media_type?: string | null
+          media_url?: string | null
+          payload?: Json
+          poll?: Json | null
+          privacy?: string
+          screenshot_alert?: boolean
+          text?: string
+          text_bg?: string
+          user_id: string
+        }
+        Update: {
+          allow_download?: boolean
+          archived?: boolean
+          created_at?: string
+          duration?: number
+          expires_at?: string
+          id?: string
+          kind?: string
+          media_type?: string | null
+          media_url?: string | null
+          payload?: Json
+          poll?: Json | null
+          privacy?: string
+          screenshot_alert?: boolean
+          text?: string
+          text_bg?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       orbit_chat_requests: {
         Row: {
           addressee_id: string
@@ -687,6 +808,10 @@ export type Database = {
     }
     Functions: {
       burn_view_once: { Args: { _msg_id: string }; Returns: undefined }
+      can_view_moment: {
+        Args: { _moment_id: string; _viewer: string }
+        Returns: boolean
+      }
       can_view_post: { Args: { _post_id: string }; Returns: boolean }
       delete_expired_orbit_messages: { Args: never; Returns: number }
       discover_orbit_profiles: {
