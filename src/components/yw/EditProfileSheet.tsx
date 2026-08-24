@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Image as ImageIcon, BadgeCheck, X } from "lucide-react";
+import { Camera, BadgeCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,6 @@ export function EditProfileSheet({
   const [draft, setDraft] = useState<ProfileEdit>(value);
   const [saving, setSaving] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
-  const coverInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) setDraft(value);
