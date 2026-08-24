@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
+import { uploadWithProgress } from "@/lib/storage-upload";
 import type { User } from "@/lib/yw-data";
 
 export type DbProfile = {
@@ -224,6 +225,7 @@ export async function publishReel(opts: {
   audience?: "everyone" | "close_friends";
   taggedUserIds?: string[];
   viewerUserIds?: string[];
+  onProgress?: (percent: number) => void;
 }): Promise<{ error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user.id;
@@ -237,17 +239,20 @@ export async function publishReel(opts: {
       const blob = await (await fetch(opts.fileUrl)).blob();
       const ext = blob.type.includes("webm") ? "webm" : "mp4";
       const path = `${uid}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("reels")
-        .upload(path, blob, { contentType: blob.type || "video/mp4", upsert: false });
-      if (upErr) return { error: upErr.message };
-      const { data: signed } = await supabase.storage
-        .from("reels")
-        .createSignedUrl(path, 60 * 60 * 24 * 365);
-      mediaUrl = signed?.signedUrl ?? path;
+      const { url, error: upErr } = await uploadWithProgress(
+        "reels",
+        path,
+        blob,
+        blob.type || "video/mp4",
+        opts.onProgress,
+      );
+      if (upErr || !url) return { error: upErr ?? "Upload failed" };
+      mediaUrl = url;
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Upload failed" };
     }
+  } else {
+    opts.onProgress?.(100);
   }
 
   const { error } = await supabase.from("posts").insert({
@@ -278,6 +283,7 @@ export async function publishPost(opts: {
   location?: string | null;
   allowDownload?: boolean;
   audience?: "everyone" | "close_friends";
+  onProgress?: (percent: number) => void;
 }): Promise<{ error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user.id;
@@ -291,17 +297,20 @@ export async function publishPost(opts: {
       const type = blob.type || (opts.mediaType === "video" ? "video/mp4" : "image/jpeg");
       const ext = type.split("/")[1]?.split(";")[0] || (opts.mediaType === "video" ? "mp4" : "jpg");
       const path = `${uid}/post-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("reels")
-        .upload(path, blob, { contentType: type, upsert: false });
-      if (upErr) return { error: upErr.message };
-      const { data: signed } = await supabase.storage
-        .from("reels")
-        .createSignedUrl(path, 60 * 60 * 24 * 365);
-      mediaUrl = signed?.signedUrl ?? path;
+      const { url, error: upErr } = await uploadWithProgress(
+        "reels",
+        path,
+        blob,
+        type,
+        opts.onProgress,
+      );
+      if (upErr || !url) return { error: upErr ?? "Upload failed" };
+      mediaUrl = url;
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Upload failed" };
     }
+  } else {
+    opts.onProgress?.(100);
   }
 
   const { error } = await supabase.from("posts").insert({

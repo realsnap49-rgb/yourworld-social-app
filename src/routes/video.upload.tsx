@@ -11,6 +11,7 @@ import {
   formatDuration,
   publishLongVideo,
 } from "@/lib/video-data";
+import { useUploads } from "@/lib/upload-progress";
 
 export const Route = createFileRoute("/video/upload")({
   head: () => ({
@@ -35,6 +36,7 @@ export const Route = createFileRoute("/video/upload")({
 
 function VideoUploadPage() {
   const navigate = useNavigate();
+  const { startUpload } = useUploads();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoInput = useRef<HTMLInputElement | null>(null);
   const thumbInput = useRef<HTMLInputElement | null>(null);
@@ -95,33 +97,41 @@ function VideoUploadPage() {
   const canPublish =
     !!fileUrl && title.trim().length >= 2 && (!scheduled || !!scheduledAt) && !busy;
 
-  const submit = async () => {
+  const submit = () => {
     if (!fileUrl) return;
     if (scheduled && scheduledAt && scheduledAt.getTime() <= Date.now()) {
       toast.error("Pick a future date and time to schedule");
       return;
     }
     setBusy(true);
-    const { error } = await publishLongVideo({
-      fileUrl,
-      thumbnailUrl: thumb,
-      title,
-      description,
-      tags,
-      orientation,
-      durationSeconds: duration,
-      scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
+
+    // Upload keeps running in the background while the user browses the app.
+    void startUpload(
+      { kind: "video", label: title.trim() || "Long video", thumbnail: thumb, viewTo: "/" },
+      (onProgress) =>
+        publishLongVideo({
+          fileUrl,
+          thumbnailUrl: thumb,
+          title,
+          description,
+          tags,
+          orientation,
+          durationSeconds: duration,
+          scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
+          onProgress,
+        }),
+    ).then(({ error }) => {
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      toast.success(
+        scheduledAt
+          ? `Scheduled for ${scheduledAt.toLocaleString()}`
+          : "Published — it's live on your feed",
+      );
     });
-    setBusy(false);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-    toast.success(
-      scheduledAt
-        ? `Scheduled for ${scheduledAt.toLocaleString()}`
-        : "Published — it's live on your feed",
-    );
+
     navigate({ to: "/" });
   };
 

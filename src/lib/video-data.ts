@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { rememberLocalMedia, timeAgo, type DbProfile } from "@/lib/social-data";
+import { uploadWithProgress } from "@/lib/storage-upload";
 
 export const VIDEO_CATEGORIES = [
   "Vlog",
@@ -62,18 +63,19 @@ async function uploadToStorage(
   uid: string,
   ext: string,
   fallbackType: string,
+  onProgress?: (p: number) => void,
 ): Promise<string | null> {
   try {
     const blob = await (await fetch(blobUrl)).blob();
     const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabase.storage
-      .from("reels")
-      .upload(path, blob, { contentType: blob.type || fallbackType, upsert: false });
-    if (error) return null;
-    const { data } = await supabase.storage
-      .from("reels")
-      .createSignedUrl(path, 60 * 60 * 24 * 365);
-    return data?.signedUrl ?? path;
+    const { url } = await uploadWithProgress(
+      "reels",
+      path,
+      blob,
+      blob.type || fallbackType,
+      onProgress,
+    );
+    return url;
   } catch {
     return null;
   }
@@ -89,6 +91,7 @@ export async function publishLongVideo(opts: {
   orientation: "landscape" | "portrait";
   durationSeconds?: number | null;
   scheduledAt?: string | null;
+  onProgress?: (percent: number) => void;
 }): Promise<{ error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const uid = sessionData.session?.user.id;
@@ -96,7 +99,10 @@ export async function publishLongVideo(opts: {
 
   let mediaUrl = opts.fileUrl;
   if (/^(blob:|data:)/.test(mediaUrl)) {
-    const up = await uploadToStorage(mediaUrl, uid, "mp4", "video/mp4");
+    // Reserve the last few percent for the thumbnail + database write.
+    const up = await uploadToStorage(mediaUrl, uid, "mp4", "video/mp4", (p) =>
+      opts.onProgress?.(Math.min(97, Math.round(p * 0.97))),
+    );
     if (!up) return { error: "Video upload failed. Please try again." };
     mediaUrl = up;
   }
@@ -124,6 +130,7 @@ export async function publishLongVideo(opts: {
     viewer_user_ids: [],
   });
 
+  opts.onProgress?.(100);
   if (!error) rememberLocalMedia(mediaUrl, opts.fileUrl);
   return { error: error?.message ?? null };
 }

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { publishPost } from "@/lib/social-data";
+import { useUploads } from "@/lib/upload-progress";
 
 export const Route = createFileRoute("/post/create")({
   head: () => ({
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/post/create")({
 
 function PostCreatePage() {
   const navigate = useNavigate();
+  const { startUpload } = useUploads();
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const [fileUrl, setFileUrl] = useState<string | null>(null);
@@ -62,24 +64,34 @@ function PostCreatePage() {
     setFileUrl(URL.createObjectURL(file));
   };
 
-  const submit = async () => {
+  const submit = () => {
     if (!fileUrl) return;
     setBusy(true);
-    const { error } = await publishPost({
-      fileUrl,
-      mediaType,
-      caption,
-      hashtags,
-      location: location.trim() || null,
-      allowDownload,
-      audience: closeFriends ? "close_friends" : "everyone",
+
+    // Runs in the background: the progress bar keeps counting while browsing.
+    void startUpload(
+      {
+        kind: "post",
+        label: caption.trim() || (mediaType === "video" ? "New video post" : "New photo post"),
+        thumbnail: mediaType === "image" ? fileUrl : null,
+        viewTo: "/",
+      },
+      (onProgress) =>
+        publishPost({
+          fileUrl,
+          mediaType,
+          caption,
+          hashtags,
+          location: location.trim() || null,
+          allowDownload,
+          audience: closeFriends ? "close_friends" : "everyone",
+          onProgress,
+        }),
+    ).then(({ error }) => {
+      if (error) toast.error(error);
+      else toast.success("Posted — it's live on your feed");
     });
-    setBusy(false);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-    toast.success("Posted — it's live on your feed");
+
     navigate({ to: "/" });
   };
 

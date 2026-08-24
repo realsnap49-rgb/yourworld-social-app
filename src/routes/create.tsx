@@ -11,6 +11,7 @@ import { CameraCapture } from "@/components/yw/CameraCapture";
 import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import { publishReel } from "@/lib/social-data";
+import { useUploads } from "@/lib/upload-progress";
 import { canMuxReel, renderReelWithMusic } from "@/lib/reel-mux";
 import { ReelPublishSheet, type ReelPublishMeta } from "@/components/yw/ReelPublishSheet";
 
@@ -77,6 +78,7 @@ const fmtSec = (s: number) => {
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
+  const { startUpload } = useUploads();
   const [clips, setClips] = useState<ClipItem[]>([]);
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -175,25 +177,30 @@ export function CreateStudioPage() {
       return;
     }
 
-    const { error } = await publishReel({
-      fileUrl: uploadUrl,
-      caption,
-      hashtags: meta.hashtags,
-      location: meta.location,
-      link: meta.link,
-      audience: meta.audience,
-      taggedUserIds: meta.taggedUserIds,
-      viewerUserIds: meta.viewerUserIds,
-      audio: audioTrack?.title ?? null,
+    // Upload continues in the background with a live percentage bar.
+    void startUpload(
+      { kind: "reel", label: caption || "New reel", thumbnail: null, viewTo: "/reels" },
+      (onProgress) =>
+        publishReel({
+          fileUrl: uploadUrl,
+          caption,
+          hashtags: meta.hashtags,
+          location: meta.location,
+          link: meta.link,
+          audience: meta.audience,
+          taggedUserIds: meta.taggedUserIds,
+          viewerUserIds: meta.viewerUserIds,
+          audio: audioTrack?.title ?? null,
+          onProgress,
+        }),
+    ).then(({ error }) => {
+      if (error) toast.error(error);
+      else toast.success("Reel posted");
     });
+
     setPosting(false);
-    if (error) {
-      toast.error(error);
-      return;
-    }
     setShowPublish(false);
     setShowExport(false);
-    toast.success("Reel posted");
     navigate({ to: "/reels" });
   };
 
