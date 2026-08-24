@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { publishPost } from "@/lib/social-data";
+import { useUploads } from "@/lib/upload-progress";
 
 export const Route = createFileRoute("/post/create")({
   head: () => ({
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/post/create")({
 
 function PostCreatePage() {
   const navigate = useNavigate();
+  const { startUpload } = useUploads();
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const [fileUrl, setFileUrl] = useState<string | null>(null);

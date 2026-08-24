@@ -11,6 +11,7 @@ import { CameraCapture } from "@/components/yw/CameraCapture";
 import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import { publishReel } from "@/lib/social-data";
+import { useUploads } from "@/lib/upload-progress";
 import { canMuxReel, renderReelWithMusic } from "@/lib/reel-mux";
 import { ReelPublishSheet, type ReelPublishMeta } from "@/components/yw/ReelPublishSheet";
 

@@ -11,6 +11,7 @@ import {
   formatDuration,
   publishLongVideo,
 } from "@/lib/video-data";
+import { useUploads } from "@/lib/upload-progress";
 
 export const Route = createFileRoute("/video/upload")({
   head: () => ({
@@ -35,6 +36,7 @@ export const Route = createFileRoute("/video/upload")({
 
 function VideoUploadPage() {
   const navigate = useNavigate();
+  const { startUpload } = useUploads();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoInput = useRef<HTMLInputElement | null>(null);
   const thumbInput = useRef<HTMLInputElement | null>(null);
