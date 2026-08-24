@@ -227,7 +227,7 @@ export function useLongVideos() {
 
   const toggleLike = useCallback(
     async (id: string) => {
-      if (!me) return;
+      if (!me) throw new Error("Sign in required");
       let wasLiked = false;
       setVideos((prev) =>
         prev.map((v) => {
@@ -236,10 +236,18 @@ export function useLongVideos() {
           return { ...v, likedByMe: !v.likedByMe, likeCount: v.likeCount + (v.likedByMe ? -1 : 1) };
         }),
       );
-      if (wasLiked) {
-        await supabase.from("post_likes").delete().eq("post_id", id).eq("user_id", me);
-      } else {
-        await supabase.from("post_likes").insert({ post_id: id, user_id: me });
+      const { error } = wasLiked
+        ? await supabase.from("post_likes").delete().eq("post_id", id).eq("user_id", me)
+        : await supabase.from("post_likes").insert({ post_id: id, user_id: me });
+      if (error) {
+        setVideos((prev) =>
+          prev.map((v) =>
+            v.id === id
+              ? { ...v, likedByMe: wasLiked, likeCount: v.likeCount + (wasLiked ? 1 : -1) }
+              : v,
+          ),
+        );
+        throw error;
       }
     },
     [me],

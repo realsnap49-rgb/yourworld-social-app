@@ -15,7 +15,6 @@ type Props = {
 };
 
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-const QUALITIES = ["Auto", "1080p", "720p", "480p", "360p", "144p"];
 const FITS = ["Fit", "Fill", "Stretch"] as const;
 
 function fmt(t: number) {
@@ -40,8 +39,8 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [dur, setDur] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [quality, setQuality] = useState("Auto");
-  const [fit, setFit] = useState<(typeof FITS)[number]>("Fit");
+  const [quality, setQuality] = useState("Original");
+  const [fit, setFit] = useState<(typeof FITS)[number]>("Fill");
   const [loop, setLoop] = useState(false);
   const [locked, setLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -182,7 +181,12 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         )}
         onPlay={() => { setPlaying(true); poke(); }}
         onPause={() => { setPlaying(false); setShowUI(true); }}
-        onLoadedMetadata={(e) => setDur(e.currentTarget.duration || 0)}
+        onLoadedMetadata={(e) => {
+          const video = e.currentTarget;
+          setDur(video.duration || 0);
+          const height = video.videoHeight;
+          setQuality(height ? `Original · ${height}p` : "Original");
+        }}
         onTimeUpdate={(e) => {
           const v = e.currentTarget;
           setTime(v.currentTime);
@@ -290,7 +294,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
               </div>
               <div className="flex items-center gap-3">
                 <button onClick={() => setMenu("speed")} className="rounded-full bg-white/10 px-2 py-0.5">{speed}x</button>
-                <button onClick={() => setMenu("quality")} className="rounded-full bg-white/10 px-2 py-0.5">{quality}</button>
+                <button onClick={() => setMenu("quality")} className="max-w-24 truncate rounded-full bg-white/10 px-2 py-0.5">{quality}</button>
                 <button onClick={() => setLoop((l) => !l)} aria-label="Loop">
                   <Repeat size={16} className={loop ? "text-pink-400" : ""} />
                 </button>
@@ -313,7 +317,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
             {menu === "root" && (
               <div className="space-y-1">
                 <Row icon={<Gauge size={16} />} label="Playback speed" value={`${speed}x`} onClick={() => setMenu("speed")} />
-                <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
+                 <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
                 <Row icon={<Maximize size={16} />} label="Screen fit" value={fit} onClick={() => setMenu("fit")} />
                 <Row icon={<Sun size={16} />} label="Brightness" value={`${Math.round(brightness * 100)}%`} onClick={() => setBrightness((b) => (b >= 1.6 ? 0.5 : b + 0.25))} />
                 <Row icon={<Repeat size={16} />} label="Loop" value={loop ? "On" : "Off"} onClick={() => setLoop((l) => !l)} />
@@ -331,9 +335,9 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
             {menu === "quality" && (
               <OptionList
                 title="Quality"
-                options={QUALITIES}
+                options={[quality]}
                 active={quality}
-                onPick={(o) => { setQuality(o); setMenu(null); flash(o); }}
+                onPick={(o) => { setMenu(null); flash(o); }}
               />
             )}
             {menu === "fit" && (

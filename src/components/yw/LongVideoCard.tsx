@@ -45,6 +45,7 @@ export function LongVideoCard({
   const [src, setSrc] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
   const [commentCount, setCommentCount] = useState(video.commentCount);
+  const [liking, setLiking] = useState(false);
   const counted = useRef(false);
 
   const isMine = currentUserId === video.userId;
@@ -63,24 +64,52 @@ export function LongVideoCard({
   };
 
   const handleDownload = async () => {
+    const toastId = toast.loading("Preparing download…");
     try {
       const url = src ?? (await resolveMediaUrl(video.mediaUrl, "reels"));
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Download failed");
+      const blobUrl = URL.createObjectURL(await response.blob());
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = `yw-${video.id}.mp4`;
+      document.body.appendChild(a);
       a.click();
-      toast.success("Saved to your device");
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1_000);
+      toast.success("Saved to your device", { id: toastId });
     } catch {
-      toast.error("Couldn't save this video");
+      toast.error("Couldn't save this video", { id: toastId });
     }
   };
 
   const handleSave = async () => {
     if (!onToggleSave) return;
+    if (!currentUserId) {
+      toast.error("Sign in to save videos");
+      return;
+    }
     try {
-      await onToggleSave(video.id);
+      const savedNow = await onToggleSave(video.id);
+      toast.success(savedNow === false ? "Removed from saved" : "Video saved");
     } catch {
       toast.error("Couldn't update saved videos");
+    }
+  };
+
+  const handleLike = async () => {
+    if (!currentUserId) {
+      toast.error("Sign in to like videos");
+      return;
+    }
+    if (liking) return;
+    setLiking(true);
+    try {
+      await onLike(video.id);
+    } catch {
+      toast.error("Couldn't update like");
+    } finally {
+      setLiking(false);
     }
   };
 
@@ -110,9 +139,9 @@ export function LongVideoCard({
   if (hidden) return null;
 
   return (
-    <article className="space-y-3 overflow-hidden rounded-3xl border border-zinc-800/80 bg-[#141418] p-1.5 shadow-2xl">
+    <article className="space-y-3 overflow-hidden border-y border-zinc-800/80 bg-[#141418] shadow-2xl">
       <div
-        className={`relative w-full overflow-hidden rounded-2xl bg-black ${
+        className={`relative w-full overflow-hidden bg-black ${
           video.orientation === "portrait" ? "aspect-[9/16]" : "aspect-video"
         }`}
       >
@@ -241,9 +270,10 @@ export function LongVideoCard({
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => onLike(video.id)}
+                onClick={handleLike}
               aria-label="Like"
-              className="flex items-center gap-1 text-xs text-zinc-300 transition-transform active:scale-75"
+                disabled={liking}
+                className="flex items-center gap-1 text-xs text-zinc-300 transition-transform active:scale-75 disabled:opacity-60"
             >
               <Heart
                 size={20}
