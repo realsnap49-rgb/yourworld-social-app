@@ -18,6 +18,9 @@ import { ReelPublishSheet, type ReelPublishMeta } from "@/components/yw/ReelPubl
 import type { AudioTrackState } from "@/components/yw/editor/AudioTrackLane";
 
 export const Route = createFileRoute("/create")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: search.mode === "live" ? ("live" as const) : ("reel" as const),
+  }),
   head: () => ({
     meta: [
       { title: "Camera & Pro Edits Studio — YourWorld" },
@@ -78,6 +81,7 @@ const fmtSec = (s: number) => {
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
+  const { mode } = Route.useSearch();
   const { startUpload } = useUploads();
   const [clips, setClips] = useState<ClipItem[]>([]);
   const [activeClipIndex, setActiveClipIndex] = useState(0);
@@ -751,6 +755,7 @@ export function CreateStudioPage() {
       {clips.length === 0 ? (
         /* MINIMALIST LIVE CAMERA */
         <CameraCapture
+          allowedModes={mode === "live" ? ["LIVE"] : ["REEL"]}
           onClose={() => navigate({ to: "/" })}
           onCapture={(files) => addFiles(files)}
           onPick={() => fileInputRef.current?.click()}
