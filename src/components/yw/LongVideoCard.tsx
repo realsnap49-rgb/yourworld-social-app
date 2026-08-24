@@ -3,6 +3,7 @@ import {
   Play, Eye, Heart, Clock, MessageCircle, Send, Bookmark,
   Download, MoreHorizontal, Link2, Trash2, EyeOff,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatDuration, formatViews, timeAgo, type LongVideo } from "@/lib/video-data";
 import { resolveMediaUrl } from "@/lib/social-data";
@@ -236,10 +237,16 @@ export function LongVideoCard({
         </div>
 
         <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-[#8b2fc9] text-[11px] font-bold text-white">
-            {video.author.letter}
-          </span>
-          <span className="font-semibold text-zinc-200">@{video.author.username}</span>
+          <Link
+            to="/u/$userId"
+            params={{ userId: video.userId }}
+            className="flex items-center gap-2 transition-opacity active:opacity-70"
+          >
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-[#8b2fc9] text-[11px] font-bold text-white">
+              {video.author.letter}
+            </span>
+            <span className="font-semibold text-zinc-200">@{video.author.username}</span>
+          </Link>
           <span>·</span>
           <span className="inline-flex items-center gap-1">
             <Eye size={12} /> {formatViews(video.views)}

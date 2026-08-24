@@ -3,6 +3,7 @@ import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download,
   Link2, Trash2, EyeOff, Eye,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { ShareSheet } from "@/components/yw/ShareSheet";
@@ -136,7 +137,11 @@ function FeedPostCardBase({
       className="space-y-3 overflow-hidden rounded-3xl border border-zinc-800/80 bg-[#141418] p-1.5 shadow-2xl"
     >
       <header className="flex items-center justify-between p-3">
-        <div className="flex min-w-0 items-center gap-3">
+        <Link
+          to="/u/$userId"
+          params={{ userId: post.user_id }}
+          className="flex min-w-0 items-center gap-3 transition-opacity active:opacity-70"
+        >
           <div
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-pink-500/80 text-base font-bold text-white"
             style={{ background: `hsl(${post.author.hue} 60% 40%)` }}
@@ -151,7 +156,7 @@ function FeedPostCardBase({
               <span className="truncate text-[10px] text-zinc-400">{post.location}</span>
             )}
           </div>
-        </div>
+        </Link>
         <div className="flex items-center gap-1.5">
           {!isMine && (
             <button

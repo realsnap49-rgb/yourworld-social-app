@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Heart,
@@ -473,8 +473,14 @@ function ReelItem({
 
       <div className="absolute bottom-4 left-0 right-16 space-y-2 px-4">
         <div className="flex items-center gap-2.5">
-          <YwAvatar user={user} size={36} className="ring-2 ring-foreground/30" />
-          <span className="truncate text-sm font-semibold drop-shadow">@{user.username}</span>
+          <Link
+            to="/u/$userId"
+            params={{ userId: reel.userId }}
+            className="flex min-w-0 items-center gap-2.5 transition-opacity active:opacity-70"
+          >
+            <YwAvatar user={user} size={36} className="ring-2 ring-foreground/30" />
+            <span className="truncate text-sm font-semibold drop-shadow">@{user.username}</span>
+          </Link>
           <button
             onClick={() => toggleFollow(user.id)}
             className={cn(
