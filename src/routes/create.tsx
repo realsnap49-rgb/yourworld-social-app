@@ -176,25 +176,30 @@ export function CreateStudioPage() {
       return;
     }
 
-    const { error } = await publishReel({
-      fileUrl: uploadUrl,
-      caption,
-      hashtags: meta.hashtags,
-      location: meta.location,
-      link: meta.link,
-      audience: meta.audience,
-      taggedUserIds: meta.taggedUserIds,
-      viewerUserIds: meta.viewerUserIds,
-      audio: audioTrack?.title ?? null,
+    // Upload continues in the background with a live percentage bar.
+    void startUpload(
+      { kind: "reel", label: caption || "New reel", thumbnail: null, viewTo: "/reels" },
+      (onProgress) =>
+        publishReel({
+          fileUrl: uploadUrl,
+          caption,
+          hashtags: meta.hashtags,
+          location: meta.location,
+          link: meta.link,
+          audience: meta.audience,
+          taggedUserIds: meta.taggedUserIds,
+          viewerUserIds: meta.viewerUserIds,
+          audio: audioTrack?.title ?? null,
+          onProgress,
+        }),
+    ).then(({ error }) => {
+      if (error) toast.error(error);
+      else toast.success("Reel posted");
     });
+
     setPosting(false);
-    if (error) {
-      toast.error(error);
-      return;
-    }
     setShowPublish(false);
     setShowExport(false);
-    toast.success("Reel posted");
     navigate({ to: "/reels" });
   };
 
