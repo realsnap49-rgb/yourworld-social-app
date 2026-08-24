@@ -33,7 +33,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedMod
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
-  const [mode, setMode] = useState<Mode>("REEL");
+  const [mode, setMode] = useState<Mode>(modes.includes("REEL") ? "REEL" : modes[0]);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [zoom, setZoom] = useState(1);
