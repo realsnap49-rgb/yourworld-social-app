@@ -6,6 +6,7 @@ import { FeedPostCard } from "@/components/yw/FeedPostCard";
 import { useLongVideos } from "@/lib/video-data";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { Search, Heart, Plus, ImagePlus } from "lucide-react";
+import ywLogo from "@/assets/yw-logo.png";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -74,11 +75,18 @@ export function HomePage() {
       
       {/* 1. TOP APP BAR */}
       <div className="sticky top-0 z-40 bg-[#0d0d0f]/90 border-b border-zinc-900/50 backdrop-blur-md px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center">
-  <h1 className="text-2xl font-extrabold tracking-wider bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
-    YourWorld
-  </h1>
-</div>
+        <div className="flex items-center gap-2">
+          <img
+            src={ywLogo}
+            alt="YourWorld logo"
+            width={1024}
+            height={1024}
+            className="h-8 w-8 object-contain drop-shadow-[0_0_12px_rgba(168,85,247,0.45)]"
+          />
+          <h1 className="text-2xl font-extrabold tracking-wider bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
+            YourWorld
+          </h1>
+        </div>
 
         <div className="flex items-center gap-4">
           <Link
