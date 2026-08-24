@@ -298,34 +298,35 @@ export function MomentProvider({ children }: { children: ReactNode }) {
       ),
     );
 
-    setMoments(
-      list.map((row) =>
-        rowToMoment(
-          row,
-          ((views ?? []) as DbView[])
-            .filter((v) => v.moment_id === row.id)
-            .map((v) => ({
-              userId: v.viewer_id,
-              at: new Date(v.created_at).getTime(),
-              liked: v.liked,
-              screenshot: v.screenshot,
-            })),
-          ((replies ?? []) as DbReply[])
-            .filter((r) => r.moment_id === row.id)
-            .map((r) => ({
-              id: r.id,
-              userId: r.user_id,
-              text: r.text,
-              at: new Date(r.created_at).getTime(),
-            })),
+    const mapped = list.map((row) =>
+      rowToMoment(
+        row,
+        ((views ?? []) as DbView[])
+          .filter((v) => v.moment_id === row.id)
+          .map((v) => ({
+            userId: v.viewer_id,
+            at: new Date(v.created_at).getTime(),
+            liked: v.liked,
+            screenshot: v.screenshot,
+          })),
+        ((replies ?? []) as DbReply[])
+          .filter((r) => r.moment_id === row.id)
+          .map((r) => ({
+            id: r.id,
+            userId: r.user_id,
+            text: r.text,
+            at: new Date(r.created_at).getTime(),
+          })),
 
-          profileById.get(row.user_id),
-          uid,
-        ),
+        profileById.get(row.user_id),
+        uid,
       ),
     );
+
+    setMoments(await signMomentMedia(mapped));
     setLoading(false);
   }, []);
+
 
   useEffect(() => {
     void load();
