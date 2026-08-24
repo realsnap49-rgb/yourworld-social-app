@@ -1,20 +1,56 @@
 import React, { useRef, useState } from "react";
-import { Play, Eye, Heart, Clock } from "lucide-react";
+import {
+  Play, Eye, Heart, Clock, MessageCircle, Send, Bookmark,
+  Download, MoreHorizontal, Link2, Trash2, EyeOff,
+} from "lucide-react";
+import { toast } from "sonner";
 import { formatDuration, formatViews, timeAgo, type LongVideo } from "@/lib/video-data";
 import { resolveMediaUrl } from "@/lib/social-data";
+import { deletePost } from "@/lib/post-actions";
 import { PremiumVideoPlayer } from "@/components/yw/PremiumVideoPlayer";
+import { CommentsSheet } from "@/components/yw/CommentsSheet";
+import { ShareSheet } from "@/components/yw/ShareSheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { formatCount } from "@/lib/yw-data";
+import { useYw } from "@/lib/yw-store";
+import { cn } from "@/lib/utils";
 
 type Props = {
   video: LongVideo;
   onView: (id: string) => void;
   onLike: (id: string) => void;
+  currentUserId?: string | null;
+  isSaved?: boolean;
+  onToggleSave?: (id: string) => void | Promise<unknown>;
+  onDeleted?: (id: string) => void;
 };
 
 /** Feed card for long-form videos — supports 16:9 and 9:16 playback. */
-export function LongVideoCard({ video, onView, onLike }: Props) {
+export function LongVideoCard({
+  video,
+  onView,
+  onLike,
+  currentUserId = null,
+  isSaved = false,
+  onToggleSave,
+  onDeleted,
+}: Props) {
+  const { following, toggleFollow } = useYw();
   const [playing, setPlaying] = useState(false);
   const [src, setSrc] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
+  const [commentCount, setCommentCount] = useState(video.commentCount);
   const counted = useRef(false);
+
+  const isMine = currentUserId === video.userId;
+  const isFollowing = !!following[video.userId];
+  const shareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/?post=${video.id}` : undefined;
 
   const start = async () => {
     const url = await resolveMediaUrl(video.mediaUrl, "reels");
@@ -26,8 +62,52 @@ export function LongVideoCard({ video, onView, onLike }: Props) {
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      const url = src ?? (await resolveMediaUrl(video.mediaUrl, "reels"));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `yw-${video.id}.mp4`;
+      a.click();
+      toast.success("Saved to your device");
+    } catch {
+      toast.error("Couldn't save this video");
+    }
+  };
+
+  const handleSave = async () => {
+    if (!onToggleSave) return;
+    try {
+      await onToggleSave(video.id);
+    } catch {
+      toast.error("Couldn't update saved videos");
+    }
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl ?? "");
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deletePost(video.id);
+      setHidden(true);
+      onDeleted?.(video.id);
+      toast.success("Video deleted");
+    } catch {
+      toast.error("Couldn't delete this video");
+    }
+  };
+
   const upcoming =
     !!video.scheduledAt && new Date(video.scheduledAt).getTime() > Date.now();
+
+  if (hidden) return null;
 
   return (
     <article className="space-y-3 overflow-hidden rounded-3xl border border-zinc-800/80 bg-[#141418] p-1.5 shadow-2xl">
@@ -74,7 +154,55 @@ export function LongVideoCard({ video, onView, onLike }: Props) {
       </div>
 
       <div className="space-y-2 px-3 pb-3">
-        <h3 className="text-sm font-bold leading-snug text-white">{video.title}</h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm font-bold leading-snug text-white">{video.title}</h3>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {!isMine && (
+              <button
+                type="button"
+                onClick={() => toggleFollow(video.userId)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-[11px] font-semibold transition-all active:scale-95",
+                  isFollowing ? "bg-zinc-800 text-white" : "bg-pink-500 text-white",
+                )}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button aria-label="More options" className="p-1 text-zinc-400 hover:text-white">
+                  <MoreHorizontal size={18} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={copyLink}>
+                  <Link2 className="mr-2 h-4 w-4" /> Copy link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSave}>
+                  <Bookmark className="mr-2 h-4 w-4" />{" "}
+                  {isSaved ? "Remove from saved" : "Save video"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownload}>
+                  <Download className="mr-2 h-4 w-4" /> Download
+                </DropdownMenuItem>
+                {!isMine && (
+                  <DropdownMenuItem onClick={() => setHidden(true)}>
+                    <EyeOff className="mr-2 h-4 w-4" /> Not interested
+                  </DropdownMenuItem>
+                )}
+                {isMine && (
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete video
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2 text-[11px] text-zinc-400">
           <span className="grid h-6 w-6 place-items-center rounded-full bg-[#8b2fc9] text-[11px] font-bold text-white">
@@ -110,16 +238,57 @@ export function LongVideoCard({ video, onView, onLike }: Props) {
           </div>
         )}
 
-        <button
-          onClick={() => onLike(video.id)}
-          className="flex items-center gap-1.5 pt-1 text-xs text-zinc-300 active:scale-90"
-        >
-          <Heart
-            size={18}
-            className={video.likedByMe ? "fill-pink-500 text-pink-500" : "text-zinc-300"}
-          />
-          {video.likeCount}
-        </button>
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => onLike(video.id)}
+              aria-label="Like"
+              className="flex items-center gap-1 text-xs text-zinc-300 transition-transform active:scale-75"
+            >
+              <Heart
+                size={20}
+                className={video.likedByMe ? "fill-pink-500 text-pink-500" : "text-zinc-300"}
+              />
+              {video.likeCount > 0 && (
+                <span className="font-semibold">{formatCount(video.likeCount)}</span>
+              )}
+            </button>
+
+            <CommentsSheet postId={video.id} onCountChange={setCommentCount}>
+              <button
+                aria-label="Comments"
+                className="flex items-center gap-1 text-xs text-zinc-300 transition-transform active:scale-75"
+              >
+                <MessageCircle size={20} />
+                {commentCount > 0 && (
+                  <span className="font-semibold">{formatCount(commentCount)}</span>
+                )}
+              </button>
+            </CommentsSheet>
+
+            <ShareSheet title={video.title} url={shareUrl} media={src ?? undefined} mediaKind="video">
+              <button aria-label="Share" className="text-zinc-300 transition-transform active:scale-75">
+                <Send size={18} />
+              </button>
+            </ShareSheet>
+
+            <button
+              onClick={handleDownload}
+              aria-label="Download"
+              className="text-zinc-400 transition-transform hover:text-white active:scale-75"
+            >
+              <Download size={18} />
+            </button>
+          </div>
+
+          <button
+            onClick={handleSave}
+            aria-label="Save"
+            className="text-zinc-300 transition-transform active:scale-75"
+          >
+            <Bookmark size={20} className={isSaved ? "fill-white text-white" : "text-zinc-300"} />
+          </button>
+        </div>
       </div>
     </article>
   );

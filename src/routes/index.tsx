@@ -62,7 +62,12 @@ export function HomePage() {
     reload,
   } = useSocialPosts("post");
   const { saved, toggleSave } = usePostSaves();
-  const { videos: longVideos, countView, toggleLike: likeVideo } = useLongVideos();
+  const {
+    videos: longVideos,
+    countView,
+    toggleLike: likeVideo,
+    reload: reloadVideos,
+  } = useLongVideos();
 
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
@@ -128,7 +133,16 @@ export function HomePage() {
       {/* 3. LONG VIDEOS + POST CARD FEED */}
       <div className="max-w-md mx-auto p-3 space-y-4">
         {longVideos.map((v) => (
-          <LongVideoCard key={v.id} video={v} onView={countView} onLike={likeVideo} />
+          <LongVideoCard
+            key={v.id}
+            video={v}
+            onView={countView}
+            onLike={likeVideo}
+            currentUserId={currentUserId}
+            isSaved={!!saved[v.id]}
+            onToggleSave={toggleSave}
+            onDeleted={() => void reloadVideos()}
+          />
         ))}
         {posts.map((post) => (
           <FeedPostCard
