@@ -852,7 +852,6 @@ export type Database = {
           username: string
         }[]
       }
-      is_active_avatar: { Args: { _object_name: string }; Returns: boolean }
       list_follows: {
         Args: { _kind: string; _limit?: number; _user_id: string }
         Returns: {
