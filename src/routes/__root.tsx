@@ -22,6 +22,7 @@ import { AuthProvider, AuthGate } from "@/lib/auth-store";
 import { SearchProvider } from "@/lib/search-store";
 import { ChannelProvider } from "@/lib/channel-store";
 import { CallProvider } from "@/lib/call-store";
+import { UploadProvider } from "@/lib/upload-progress";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
