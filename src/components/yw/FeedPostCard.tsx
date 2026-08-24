@@ -1,12 +1,20 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Download,
+  Link2, Trash2, EyeOff, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { ShareSheet } from "@/components/yw/ShareSheet";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { resolveMediaUrl, timeAgo, type SocialPost } from "@/lib/social-data";
+import { deletePost, registerPostView } from "@/lib/post-actions";
 import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
@@ -17,15 +25,22 @@ function FeedPostCardBase({
   post,
   currentUserId,
   onToggleLike,
-  onCommentPosted,
+  isSaved = false,
+  onToggleSave,
+  onDeleted,
 }: {
   post: SocialPost;
   currentUserId: string | null;
   onToggleLike: (id: string) => void;
-  onCommentPosted?: (id: string) => void;
+  isSaved?: boolean;
+  onToggleSave?: (id: string) => void | Promise<unknown>;
+  onDeleted?: (id: string) => void;
 }) {
-  const { saved, following, toggleSave, toggleFollow } = useYw();
+  const { following, toggleFollow } = useYw();
   const [src, setSrc] = useState<string>(post.media_url);
+  const [hidden, setHidden] = useState(false);
+  const [views, setViews] = useState(post.views ?? 0);
+  const cardRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -37,10 +52,30 @@ function FeedPostCardBase({
     };
   }, [post.media_url]);
 
-  const isSaved = !!saved[post.id];
+  // Real view counting — once the card has actually been seen.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting && e.intersectionRatio > 0.6)) {
+          io.disconnect();
+          void registerPostView(post.id)
+            .then(() => setViews((v) => v + 1))
+            .catch(() => {});
+        }
+      },
+      { threshold: [0.6] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [post.id]);
+
   const isMine = currentUserId === post.user_id;
   const isFollowing = !!following[post.user_id];
   const isVideo = post.media_type === "video";
+  const shareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/?post=${post.id}` : undefined;
 
   const handleDownload = async () => {
     if (!post.allow_download) {
@@ -62,8 +97,42 @@ function FeedPostCardBase({
     }
   };
 
+  const handleSave = async () => {
+    if (!onToggleSave) return;
+    try {
+      await onToggleSave(post.id);
+    } catch {
+      toast.error("Couldn't update saved posts");
+    }
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl ?? "");
+      toast.success("Link copied");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deletePost(post.id);
+      setHidden(true);
+      onDeleted?.(post.id);
+      toast.success("Post deleted");
+    } catch {
+      toast.error("Couldn't delete this post");
+    }
+  };
+
+  if (hidden) return null;
+
   return (
-    <article className="space-y-3 overflow-hidden rounded-3xl border border-zinc-800/80 bg-[#141418] p-1.5 shadow-2xl">
+    <article
+      ref={cardRef}
+      className="space-y-3 overflow-hidden rounded-3xl border border-zinc-800/80 bg-[#141418] p-1.5 shadow-2xl"
+    >
       <header className="flex items-center justify-between p-3">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -94,9 +163,39 @@ function FeedPostCardBase({
               {isFollowing ? "Following" : "Follow"}
             </button>
           )}
-          <button aria-label="More options" className="p-1 text-zinc-400 hover:text-white">
-            <MoreHorizontal size={18} />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button aria-label="More options" className="p-1 text-zinc-400 hover:text-white">
+                <MoreHorizontal size={18} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onClick={copyLink}>
+                <Link2 className="mr-2 h-4 w-4" /> Copy link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSave}>
+                <Bookmark className="mr-2 h-4 w-4" /> {isSaved ? "Remove from saved" : "Save post"}
+              </DropdownMenuItem>
+              {post.allow_download && (
+                <DropdownMenuItem onClick={handleDownload}>
+                  <Download className="mr-2 h-4 w-4" /> Download
+                </DropdownMenuItem>
+              )}
+              {!isMine && (
+                <DropdownMenuItem onClick={() => setHidden(true)}>
+                  <EyeOff className="mr-2 h-4 w-4" /> Not interested
+                </DropdownMenuItem>
+              )}
+              {isMine && (
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete post
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -130,15 +229,11 @@ function FeedPostCardBase({
               />
             </button>
             <CommentsSheet postId={post.id}>
-              <button
-                aria-label="Comments"
-                onClick={() => onCommentPosted?.(post.id)}
-                className="text-zinc-300 transition-transform active:scale-75"
-              >
+              <button aria-label="Comments" className="text-zinc-300 transition-transform active:scale-75">
                 <MessageCircle size={22} />
               </button>
             </CommentsSheet>
-            <ShareSheet title={post.caption}>
+            <ShareSheet title={post.caption} url={shareUrl} media={src} mediaKind={isVideo ? "video" : "photo"}>
               <button aria-label="Share" className="text-zinc-300 transition-transform active:scale-75">
                 <Send size={20} />
               </button>
@@ -154,7 +249,7 @@ function FeedPostCardBase({
             )}
           </div>
           <button
-            onClick={() => toggleSave(post.id)}
+            onClick={handleSave}
             aria-label="Save"
             className="text-zinc-300 transition-transform active:scale-75"
           >
@@ -162,7 +257,12 @@ function FeedPostCardBase({
           </button>
         </div>
 
-        <div className="text-xs font-bold text-white">{formatCount(post.likeCount)} likes</div>
+        <div className="flex items-center gap-3 text-xs font-bold text-white">
+          <span>{formatCount(post.likeCount)} likes</span>
+          <span className="flex items-center gap-1 font-medium text-zinc-400">
+            <Eye size={13} /> {formatCount(views)}
+          </span>
+        </div>
         {post.caption && (
           <p className="text-xs leading-relaxed text-zinc-300">
             <span className="mr-1.5 font-bold text-white">@{post.author.username}</span>
