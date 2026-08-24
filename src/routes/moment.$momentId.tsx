@@ -69,6 +69,22 @@ function MomentViewer() {
   );
   const [reply, setReply] = useState("");
   const [tab, setTab] = useState<"viewers" | "replies">("viewers");
+  const people = useProfiles(
+    useMemo(
+      () => [
+        ...(moment?.viewers ?? []).map((v) => v.userId),
+        ...(moment?.replies ?? []).map((r) => r.userId),
+      ],
+      [moment],
+    ),
+  );
+
+  // Count a real view once the moment opens
+  useEffect(() => {
+    if (moment && !moment.mine) registerView(moment.id);
+  }, [moment, registerView]);
+
+
 
   // Screenshot / capture alert
   useEffect(() => {
