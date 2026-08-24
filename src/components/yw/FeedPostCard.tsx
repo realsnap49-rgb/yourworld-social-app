@@ -283,11 +283,12 @@ function FeedPostCardBase({
           </div>
         )}
         <div className="flex items-center gap-2 pt-0.5">
-          <CommentsSheet postId={post.id}>
+          <CommentsSheet postId={post.id} onCountChange={setCommentCount}>
             <button className="text-[11.5px] text-zinc-400 hover:text-white">
-              View all {post.commentCount} comments
+              {commentCount > 0 ? `View all ${commentCount} comments` : "Add a comment"}
             </button>
           </CommentsSheet>
+
           <span aria-hidden className="h-[3px] w-[3px] rounded-full bg-zinc-600" />
           <span className="text-[10px] uppercase tracking-widest text-zinc-500">
             {timeAgo(post.created_at)}
