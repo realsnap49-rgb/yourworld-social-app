@@ -139,7 +139,7 @@ export function HomePage() {
       </div>
 
       {/* 3. LONG VIDEOS + POST CARD FEED */}
-      <div className="max-w-md mx-auto p-3 space-y-4">
+      <div className="mx-auto w-full max-w-2xl space-y-4">
         {longVideos.map((v) => (
           <LongVideoCard
             key={v.id}
@@ -153,21 +153,22 @@ export function HomePage() {
           />
         ))}
         {posts.map((post) => (
-          <FeedPostCard
-            key={post.id}
-            post={post}
-            currentUserId={currentUserId}
-            onToggleLike={toggleLike}
-            isSaved={!!saved[post.id]}
-            onToggleSave={toggleSave}
-            onDeleted={() => void reload()}
-          />
+          <div key={post.id} className="px-3">
+            <FeedPostCard
+              post={post}
+              currentUserId={currentUserId}
+              onToggleLike={toggleLike}
+              isSaved={!!saved[post.id]}
+              onToggleSave={toggleSave}
+              onDeleted={() => void reload()}
+            />
+          </div>
         ))}
 
         {!loading && posts.length === 0 && longVideos.length === 0 && (
           <button
             onClick={() => navigate({ to: "/post/create" })}
-            className="flex w-full flex-col items-center gap-3 rounded-3xl border border-dashed border-zinc-800 bg-[#141418] px-6 py-14 text-center active:scale-[0.99]"
+            className="mx-3 flex w-[calc(100%-1.5rem)] flex-col items-center gap-3 rounded-3xl border border-dashed border-zinc-800 bg-[#141418] px-6 py-14 text-center active:scale-[0.99]"
           >
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600">
               <ImagePlus size={24} />
