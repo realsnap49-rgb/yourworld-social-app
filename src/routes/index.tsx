@@ -62,7 +62,12 @@ export function HomePage() {
     reload,
   } = useSocialPosts("post");
   const { saved, toggleSave } = usePostSaves();
-  const { videos: longVideos, countView, toggleLike: likeVideo } = useLongVideos();
+  const {
+    videos: longVideos,
+    countView,
+    toggleLike: likeVideo,
+    reload: reloadVideos,
+  } = useLongVideos();
 
   return (
     <div className="min-h-screen bg-[#0d0d0f] text-white font-sans pb-28 select-none">
