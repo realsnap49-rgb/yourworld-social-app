@@ -755,6 +755,7 @@ export function CreateStudioPage() {
       {clips.length === 0 ? (
         /* MINIMALIST LIVE CAMERA */
         <CameraCapture
+          allowedModes={mode === "live" ? ["LIVE"] : ["REEL"]}
           onClose={() => navigate({ to: "/" })}
           onCapture={(files) => addFiles(files)}
           onPick={() => fileInputRef.current?.click()}
