@@ -6,6 +6,7 @@ import { FeedPostCard } from "@/components/yw/FeedPostCard";
 import { useLongVideos } from "@/lib/video-data";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { Search, Heart, Plus, ImagePlus } from "lucide-react";
+import ywLogo from "@/assets/yw-logo.png";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
