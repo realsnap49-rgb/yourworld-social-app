@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { rememberLocalMedia, timeAgo, type DbProfile } from "@/lib/social-data";
+import { uploadWithProgress } from "@/lib/storage-upload";
 
 export const VIDEO_CATEGORIES = [
   "Vlog",
