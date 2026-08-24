@@ -70,7 +70,7 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { saved } = useYw();
-  const { profile, avatarSrc, coverSrc, grid, reels, posts, loading, save, userId, reload } =
+  const { profile, avatarSrc, grid, reels, posts, loading, save, userId, reload } =
     useMyProfile();
   const [editOpen, setEditOpen] = useState(false);
   const counts = useFollowCounts(userId);
