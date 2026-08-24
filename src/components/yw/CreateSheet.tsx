@@ -54,7 +54,7 @@ export function CreateSheet({ isOpen, onClose }: CreateSheetProps) {
           </button>
 
           <button 
-            onClick={() => { onClose(); navigate({ to: "/create" }); }}
+            onClick={() => { onClose(); navigate({ to: "/create", search: { mode: "live" } }); }}
             className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
           >
             <div className="p-3 rounded-xl bg-zinc-800 text-red-500">
