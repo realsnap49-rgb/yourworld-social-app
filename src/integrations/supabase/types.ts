@@ -687,6 +687,7 @@ export type Database = {
     }
     Functions: {
       burn_view_once: { Args: { _msg_id: string }; Returns: undefined }
+      can_view_post: { Args: { _post_id: string }; Returns: boolean }
       delete_expired_orbit_messages: { Args: never; Returns: number }
       discover_orbit_profiles: {
         Args: { ids?: string[] }
@@ -724,6 +725,12 @@ export type Database = {
           display_name: string
           id: string
           username: string
+        }[]
+      }
+      list_follows: {
+        Args: { _kind: string; _limit?: number; _user_id: string }
+        Returns: {
+          id: string
         }[]
       }
       search_profiles: {
