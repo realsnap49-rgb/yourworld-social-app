@@ -18,6 +18,9 @@ import { ReelPublishSheet, type ReelPublishMeta } from "@/components/yw/ReelPubl
 import type { AudioTrackState } from "@/components/yw/editor/AudioTrackLane";
 
 export const Route = createFileRoute("/create")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: search.mode === "live" ? ("live" as const) : ("reel" as const),
+  }),
   head: () => ({
     meta: [
       { title: "Camera & Pro Edits Studio — YourWorld" },
