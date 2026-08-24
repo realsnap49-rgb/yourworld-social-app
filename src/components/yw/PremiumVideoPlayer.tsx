@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
   Lock, Unlock, RotateCw, Repeat, Sun, Gauge, MonitorPlay, RotateCcw, Rewind, FastForward,
-  Subtitles, Languages,
+  Subtitles, Languages, ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +41,8 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [dur, setDur] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [quality, setQuality] = useState("Original");
+  const [quality, setQuality] = useState("Auto");
+  const [sourceHeight, setSourceHeight] = useState(0);
   const [fit, setFit] = useState<(typeof FITS)[number]>("Fill");
   const [loop, setLoop] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -214,6 +215,15 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   };
 
   const progress = dur ? (time / dur) * 100 : 0;
+  const qualityOptions = useMemo(() => {
+    const standardHeights = [2160, 1440, 1080, 720, 480, 360, 240];
+    const available = sourceHeight
+      ? standardHeights.filter((height) => height <= sourceHeight)
+      : [1080, 720, 480, 360];
+    const sourceLabel = sourceHeight ? `Original · ${sourceHeight}p` : "Original";
+    return ["Auto", sourceLabel, ...available.map((height) => `${height}p`)]
+      .filter((option, index, options) => options.indexOf(option) === index);
+  }, [sourceHeight]);
 
   return (
     <div
@@ -242,8 +252,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         onLoadedMetadata={(e) => {
           const video = e.currentTarget;
           setDur(video.duration || 0);
-          const height = video.videoHeight;
-          setQuality(height ? `Original · ${height}p` : "Original");
+          setSourceHeight(video.videoHeight || 0);
           readMediaTracks();
         }}
         onTimeUpdate={(e) => {
@@ -302,16 +311,25 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
 
           {/* center transport */}
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
-            <div className="pointer-events-auto flex items-center gap-7">
-              <IconBtn big label="Rewind 10 seconds" onClick={() => seekBy(-10)}><Rewind size={20} /></IconBtn>
+            <div
+              className="pointer-events-auto flex touch-manipulation items-center gap-7"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <TransportButton label="Rewind 10 seconds" seconds="10" onClick={() => seekBy(-10)}>
+                <Rewind size={24} />
+              </TransportButton>
               <button
+                type="button"
                 onClick={toggle}
                 aria-label={playing ? "Pause" : "Play"}
-                className="grid h-16 w-16 place-items-center rounded-full bg-white/95 text-black shadow-2xl transition-transform active:scale-90"
+                className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white/95 text-black shadow-2xl transition-transform active:scale-90"
               >
                 {playing ? <Pause size={26} className="fill-black" /> : <Play size={26} className="ml-1 fill-black" />}
               </button>
-              <IconBtn big label="Forward 10 seconds" onClick={() => seekBy(10)}><FastForward size={20} /></IconBtn>
+              <TransportButton label="Forward 10 seconds" seconds="10" onClick={() => seekBy(10)}>
+                <FastForward size={24} />
+              </TransportButton>
             </div>
           </div>
 
@@ -352,8 +370,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 <span className="tabular-nums">{fmt(time)} / {fmt(dur)}</span>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => setMenu("speed")} className="rounded-full bg-white/10 px-2 py-0.5">{speed}x</button>
-                <button onClick={() => setMenu("quality")} className="max-w-24 truncate rounded-full bg-white/10 px-2 py-0.5">{quality}</button>
                 <button onClick={() => setLoop((l) => !l)} aria-label="Loop">
                   <Repeat size={16} className={loop ? "text-pink-400" : ""} />
                 </button>
@@ -396,9 +412,14 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
             {menu === "quality" && (
               <OptionList
                 title="Quality"
-                options={[quality]}
+                options={qualityOptions}
                 active={quality}
-                onPick={(o) => { setMenu(null); flash(o); }}
+                onPick={(option) => {
+                  setQuality(option);
+                  setMenu("root");
+                  flash(`Quality · ${option}`);
+                }}
+                onBack={() => setMenu("root")}
               />
             )}
             {menu === "fit" && (
@@ -459,10 +480,31 @@ function Row({ icon, label, value, onClick }: { icon: React.ReactNode; label: st
   );
 }
 
-function OptionList({ title, options, active, onPick, emptyHint }: { title: string; options: string[]; active: string; onPick: (o: string) => void; emptyHint?: string }) {
+function TransportButton({ children, label, seconds, onClick }: { children: React.ReactNode; label: string; seconds: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-black/55 text-white backdrop-blur transition-transform active:scale-90"
+    >
+      {children}
+      <span className="pointer-events-none absolute text-[9px] font-extrabold leading-none">{seconds}</span>
+    </button>
+  );
+}
+
+function OptionList({ title, options, active, onPick, emptyHint, onBack }: { title: string; options: string[]; active: string; onPick: (o: string) => void; emptyHint?: string; onBack?: () => void }) {
   return (
     <div className="space-y-1">
-      <p className="px-3 pb-1 pt-1 text-xs font-bold uppercase tracking-wide text-zinc-400">{title}</p>
+      <div className="flex items-center gap-1 px-1 pb-1 pt-1">
+        {onBack && (
+          <button type="button" onClick={onBack} aria-label="Back to settings" className="grid h-8 w-8 place-items-center rounded-full text-zinc-300 hover:bg-white/10">
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        <p className="px-2 text-xs font-bold uppercase tracking-wide text-zinc-400">{title}</p>
+      </div>
       {emptyHint && <p className="px-3 pb-2 text-xs text-zinc-500">{emptyHint}</p>}
       {options.map((o) => (
         <button
