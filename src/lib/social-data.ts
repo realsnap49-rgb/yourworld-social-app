@@ -22,6 +22,7 @@ export type DbPost = {
   audio: string | null;
   allow_download: boolean;
   created_at: string;
+  views?: number | null;
 };
 
 export type SocialPost = DbPost & {

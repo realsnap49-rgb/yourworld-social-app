@@ -1,6 +1,7 @@
 import React, { memo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSocialPosts } from "@/lib/social-data";
+import { usePostSaves } from "@/lib/post-actions";
 import { FeedPostCard } from "@/components/yw/FeedPostCard";
 import { useLongVideos } from "@/lib/video-data";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
@@ -58,8 +59,9 @@ export function HomePage() {
     loading,
     currentUserId,
     toggleLike,
-    bumpComment,
+    reload,
   } = useSocialPosts("post");
+  const { saved, toggleSave } = usePostSaves();
   const { videos: longVideos, countView, toggleLike: likeVideo } = useLongVideos();
 
   return (
@@ -134,7 +136,9 @@ export function HomePage() {
             post={post}
             currentUserId={currentUserId}
             onToggleLike={toggleLike}
-            onCommentPosted={bumpComment}
+            isSaved={!!saved[post.id]}
+            onToggleSave={toggleSave}
+            onDeleted={() => void reload()}
           />
         ))}
 
