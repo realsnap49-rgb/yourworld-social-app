@@ -135,7 +135,9 @@ export function HomePage() {
             post={post}
             currentUserId={currentUserId}
             onToggleLike={toggleLike}
-            onCommentPosted={bumpComment}
+            isSaved={!!saved[post.id]}
+            onToggleSave={toggleSave}
+            onDeleted={() => void reload()}
           />
         ))}
 
