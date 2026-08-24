@@ -58,8 +58,9 @@ export function HomePage() {
     loading,
     currentUserId,
     toggleLike,
-    bumpComment,
+    reload,
   } = useSocialPosts("post");
+  const { saved, toggleSave } = usePostSaves();
   const { videos: longVideos, countView, toggleLike: likeVideo } = useLongVideos();
 
   return (
