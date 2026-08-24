@@ -45,11 +45,9 @@ export async function setFollow(targetId: string, on: boolean) {
 }
 
 async function counts(userId: string): Promise<FollowCounts> {
-  const [{ count: followers }, { count: following }] = await Promise.all([
-    supabase.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
-    supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
-  ]);
-  return { followers: followers ?? 0, following: following ?? 0 };
+  const { data } = await supabase.rpc("get_follow_counts", { ids: [userId] });
+  const row = (data ?? [])[0];
+  return { followers: Number(row?.followers ?? 0), following: Number(row?.following ?? 0) };
 }
 
 /** Live follower / following counts for a user, kept fresh via realtime. */
@@ -86,15 +84,12 @@ export function useFollowList(userId: string | null, kind: "followers" | "follow
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const col = kind === "followers" ? "following_id" : "follower_id";
-      const pick = kind === "followers" ? "follower_id" : "following_id";
-      const { data: rows } = await supabase
-        .from("follows")
-        .select(`${pick}`)
-        .eq(col, userId)
-        .order("created_at", { ascending: false })
-        .limit(500);
-      const ids = (rows ?? []).map((r) => (r as Record<string, string>)[pick]).filter(Boolean);
+      const { data: rows } = await supabase.rpc("list_follows", {
+        _user_id: userId,
+        _kind: kind,
+        _limit: 500,
+      });
+      const ids = (rows ?? []).map((r) => r.id as string).filter(Boolean);
       if (!ids.length) {
         if (!cancelled) {
           setUsers([]);
