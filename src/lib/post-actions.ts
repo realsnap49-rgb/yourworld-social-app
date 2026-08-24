@@ -13,9 +13,9 @@ export async function registerPostView(postId: string) {
   if (viewed.has(postId)) return;
   viewed.add(postId);
   const { data } = await supabase.auth.getUser();
-  await supabase
-    .from("post_views")
-    .insert({ post_id: postId, viewer_id: data.user?.id ?? null });
+  const uid = data.user?.id;
+  if (!uid) return; // views are only logged for signed-in users
+  await supabase.from("post_views").insert({ post_id: postId, viewer_id: uid });
 }
 
 /** Permanently delete my own post. */

@@ -213,9 +213,9 @@ export function useLongVideos() {
   const countView = useCallback(async (id: string) => {
     setVideos((prev) => prev.map((v) => (v.id === id ? { ...v, views: v.views + 1 } : v)));
     const { data: sessionData } = await supabase.auth.getSession();
-    await supabase
-      .from("post_views")
-      .insert({ post_id: id, viewer_id: sessionData.session?.user.id ?? null });
+    const uid = sessionData.session?.user.id;
+    if (!uid) return; // views are only logged for signed-in users
+    await supabase.from("post_views").insert({ post_id: id, viewer_id: uid });
   }, []);
 
   const toggleLike = useCallback(
