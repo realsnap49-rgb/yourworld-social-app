@@ -40,7 +40,9 @@ function FeedPostCardBase({
   const [src, setSrc] = useState<string>(post.media_url);
   const [hidden, setHidden] = useState(false);
   const [views, setViews] = useState(post.views ?? 0);
+  const [commentCount, setCommentCount] = useState(post.commentCount);
   const cardRef = useRef<HTMLElement | null>(null);
+
 
   useEffect(() => {
     let alive = true;
@@ -228,11 +230,13 @@ function FeedPostCardBase({
                 className={post.likedByMe ? "fill-pink-500 text-pink-500" : "text-zinc-300"}
               />
             </button>
-            <CommentsSheet postId={post.id}>
-              <button aria-label="Comments" className="text-zinc-300 transition-transform active:scale-75">
+            <CommentsSheet postId={post.id} onCountChange={setCommentCount}>
+              <button aria-label="Comments" className="flex items-center gap-1 text-zinc-300 transition-transform active:scale-75">
                 <MessageCircle size={22} />
+                {commentCount > 0 && <span className="text-xs font-semibold">{formatCount(commentCount)}</span>}
               </button>
             </CommentsSheet>
+
             <ShareSheet title={post.caption} url={shareUrl} media={src} mediaKind={isVideo ? "video" : "photo"}>
               <button aria-label="Share" className="text-zinc-300 transition-transform active:scale-75">
                 <Send size={20} />
@@ -279,11 +283,12 @@ function FeedPostCardBase({
           </div>
         )}
         <div className="flex items-center gap-2 pt-0.5">
-          <CommentsSheet postId={post.id}>
+          <CommentsSheet postId={post.id} onCountChange={setCommentCount}>
             <button className="text-[11.5px] text-zinc-400 hover:text-white">
-              View all {post.commentCount} comments
+              {commentCount > 0 ? `View all ${commentCount} comments` : "Add a comment"}
             </button>
           </CommentsSheet>
+
           <span aria-hidden className="h-[3px] w-[3px] rounded-full bg-zinc-600" />
           <span className="text-[10px] uppercase tracking-widest text-zinc-500">
             {timeAgo(post.created_at)}

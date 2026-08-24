@@ -683,5 +683,17 @@ export function usePostComments(postId: string | null) {
     [postId, me, load],
   );
 
-  return { comments, loading, send };
+  /** Delete one of my own comments. */
+  const remove = useCallback(
+    async (id: string) => {
+      const snapshot = comments;
+      setComments((prev) => prev.filter((c) => c.id !== id));
+      const { error } = await supabase.from("post_comments").delete().eq("id", id);
+      if (error) setComments(snapshot);
+    },
+    [comments],
+  );
+
+  return { comments, loading, send, remove, me };
 }
+
