@@ -78,6 +78,7 @@ const fmtSec = (s: number) => {
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
+  const { startUpload } = useUploads();
   const [clips, setClips] = useState<ClipItem[]>([]);
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
