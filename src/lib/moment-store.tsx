@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadWithProgress } from "@/lib/storage-upload";
+import { getRegisteredBlob, unregisterBlob } from "@/lib/blob-registry";
 
 
 export type MomentKind = "photo" | "video" | "text";
@@ -213,9 +214,14 @@ function payloadOf(m: NewMoment) {
 /** Uploads a blob/data url to the private moments bucket; returns the storage path. */
 async function uploadMomentMedia(uid: string, src: string, mediaType?: string, prefix = "media") {
   if (!src || (!src.startsWith("blob:") && !src.startsWith("data:"))) return src;
-  const res = await fetch(src);
-  if (!res.ok) throw new Error("Media is no longer available on this device");
-  const blob = await res.blob();
+  // Prefer the retained Blob: the object URL may already be revoked by the
+  // editor screen that unmounted while this upload runs in the background.
+  let blob = getRegisteredBlob(src);
+  if (!blob) {
+    const res = await fetch(src);
+    if (!res.ok) throw new Error("Media is no longer available on this device");
+    blob = await res.blob();
+  }
   // Callers sometimes pass a short kind ("video"/"image") instead of a real
   // MIME type — storage rejects those with a 400, so normalise here.
   const hinted = mediaType && mediaType.includes("/") ? mediaType : "";
@@ -409,14 +415,18 @@ export function MomentProvider({ children }: { children: ReactNode }) {
             }
           }
           if (musicUrl?.startsWith("blob:") || musicUrl?.startsWith("data:")) {
+            const localMusic = musicUrl;
             try {
-              musicUrl = await uploadMomentMedia(uid, musicUrl, "audio", "music");
+              musicUrl = await uploadMomentMedia(uid, localMusic, "audio", "music");
             } catch (e) {
               toast.error(e instanceof Error ? e.message : "Couldn't upload the moment song");
-              setMoments((p) => p.filter((x) => x.id !== tempId));
-              return;
+              musicUrl = undefined;
             }
+            unregisterBlob(localMusic);
           }
+          // never persist a device-only url — it can't play for anyone else
+          if (musicUrl && /^(blob:|data:)/.test(musicUrl)) musicUrl = undefined;
+          if (m.media) unregisterBlob(m.media);
           if (m.kind !== "text" && !media) {
             toast.error("Couldn't upload this moment's media");
             setMoments((p) => p.filter((x) => x.id !== tempId));

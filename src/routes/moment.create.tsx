@@ -3,6 +3,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { registerBlob, unregisterBlob } from "@/lib/blob-registry";
 import {
   X,
   RefreshCw,
@@ -926,6 +927,7 @@ export function MomentCreatePage() {
         const url =
           URL.createObjectURL(blob);
 
+        registerBlob(url, blob);
         setMediaBlob(blob);
         setMediaUrl(url);
         setIsVideo(false);
@@ -1030,6 +1032,7 @@ export function MomentCreatePage() {
             blob
           );
 
+        registerBlob(url, blob);
         setMediaBlob(blob);
         setMediaUrl(url);
         setIsVideo(true);
@@ -1126,6 +1129,7 @@ export function MomentCreatePage() {
     const url =
       URL.createObjectURL(file);
 
+    registerBlob(url, file);
     setMediaBlob(file);
     setMediaUrl(url);
     setIsVideo(
@@ -1154,11 +1158,13 @@ export function MomentCreatePage() {
 
     const url =
       URL.createObjectURL(file);
+    registerBlob(url, file);
 
     if (audioUrl) {
       URL.revokeObjectURL(
         audioUrl
       );
+      unregisterBlob(audioUrl);
     }
 
     setAudioUrl(url);
