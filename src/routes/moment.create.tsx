@@ -927,6 +927,7 @@ export function MomentCreatePage() {
         const url =
           URL.createObjectURL(blob);
 
+        registerBlob(url, blob);
         setMediaBlob(blob);
         setMediaUrl(url);
         setIsVideo(false);
