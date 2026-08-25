@@ -1154,11 +1154,13 @@ export function MomentCreatePage() {
 
     const url =
       URL.createObjectURL(file);
+    registerBlob(url, file);
 
     if (audioUrl) {
       URL.revokeObjectURL(
         audioUrl
       );
+      unregisterBlob(audioUrl);
     }
 
     setAudioUrl(url);
