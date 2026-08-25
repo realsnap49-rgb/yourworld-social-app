@@ -4,6 +4,7 @@ import React, {
   useState,
 } from "react";
 import { registerBlob, unregisterBlob } from "@/lib/blob-registry";
+import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import {
   X,
   RefreshCw,
@@ -357,6 +358,8 @@ export function MomentCreatePage() {
   const [audioPlaying, setAudioPlaying] =
     useState(false);
 
+  const [showMusicLibrary, setShowMusicLibrary] =
+    useState(false);
   const [showMusicPanel, setShowMusicPanel] =
     useState(false);
 
@@ -1160,10 +1163,8 @@ export function MomentCreatePage() {
       URL.createObjectURL(file);
     registerBlob(url, file);
 
-    if (audioUrl) {
-      URL.revokeObjectURL(
-        audioUrl
-      );
+    if (audioUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(audioUrl);
       unregisterBlob(audioUrl);
     }
 
@@ -1201,8 +1202,10 @@ export function MomentCreatePage() {
   };
 
   const removeAudio = () => {
-    if (audioUrl)
+    if (audioUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(audioUrl);
+      unregisterBlob(audioUrl);
+    }
     setAudioUrl(null);
     setSelectedAudio(null);
     setAudioDuration(0);
@@ -2600,7 +2603,9 @@ export function MomentCreatePage() {
                   (v) => !v
                 );
               } else {
-                audioInputRef.current?.click();
+                setShowMusicLibrary(
+                  true
+                );
               }
             }}
           />
@@ -3097,6 +3102,63 @@ export function MomentCreatePage() {
           </button>
         )}
 
+        {/* MUSIC LIBRARY */}
+
+        {showMusicLibrary && (
+          <div className="absolute inset-0 z-[95] flex flex-col justify-end bg-black/60 backdrop-blur-sm">
+            <button
+              className="flex-1"
+              onClick={() => setShowMusicLibrary(false)}
+              aria-label="Close music library"
+            />
+            <div className="rounded-t-3xl border-t border-white/10 bg-neutral-950 p-4 pb-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-black uppercase tracking-wide">Add music</p>
+                <button
+                  onClick={() => {
+                    setShowMusicLibrary(false);
+                    audioInputRef.current?.click();
+                  }}
+                  className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase"
+                >
+                  From device
+                </button>
+              </div>
+              <div className="max-h-64 space-y-2 overflow-y-auto">
+                {NO_COPYRIGHT_MUSIC.map((track) => (
+                  <button
+                    key={track.id}
+                    onClick={() => {
+                      if (audioUrl?.startsWith("blob:")) {
+                        URL.revokeObjectURL(audioUrl);
+                        unregisterBlob(audioUrl);
+                      }
+                      setAudioUrl(track.url);
+                      setSelectedAudio(`${track.title} — ${track.artist}`);
+                      setAudioDuration(0);
+                      setAudioStart(0);
+                      setAudioEnd(0);
+                      setShowMusicLibrary(false);
+                      setShowMusicPanel(true);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-2xl bg-white/5 p-3 text-left active:scale-[0.98]"
+                  >
+                    <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-white/10">
+                      <Music size={16} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-bold">{track.title}</span>
+                      <span className="block truncate text-[10px] text-white/50">
+                        {track.artist} · {track.category} · {track.duration}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* MUSIC TRIM PANEL */}
 
         {showMusicPanel && audioUrl && (
@@ -3131,7 +3193,7 @@ export function MomentCreatePage() {
 
               <button
                 onClick={() =>
-                  audioInputRef.current?.click()
+                  setShowMusicLibrary(true)
                 }
                 className="px-3 py-1.5 rounded-full bg-white/10 text-[10px] font-black uppercase"
               >
