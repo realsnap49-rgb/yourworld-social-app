@@ -213,9 +213,14 @@ function payloadOf(m: NewMoment) {
 /** Uploads a blob/data url to the private moments bucket; returns the storage path. */
 async function uploadMomentMedia(uid: string, src: string, mediaType?: string, prefix = "media") {
   if (!src || (!src.startsWith("blob:") && !src.startsWith("data:"))) return src;
-  const res = await fetch(src);
-  if (!res.ok) throw new Error("Media is no longer available on this device");
-  const blob = await res.blob();
+  // Prefer the retained Blob: the object URL may already be revoked by the
+  // editor screen that unmounted while this upload runs in the background.
+  let blob = getRegisteredBlob(src);
+  if (!blob) {
+    const res = await fetch(src);
+    if (!res.ok) throw new Error("Media is no longer available on this device");
+    blob = await res.blob();
+  }
   // Callers sometimes pass a short kind ("video"/"image") instead of a real
   // MIME type — storage rejects those with a 400, so normalise here.
   const hinted = mediaType && mediaType.includes("/") ? mediaType : "";
