@@ -422,11 +422,9 @@ export function MomentProvider({ children }: { children: ReactNode }) {
               toast.error(e instanceof Error ? e.message : "Couldn't upload the moment song");
               musicUrl = undefined;
             }
-            unregisterBlob(localMusic);
           }
           // never persist a device-only url — it can't play for anyone else
           if (musicUrl && /^(blob:|data:)/.test(musicUrl)) musicUrl = undefined;
-          if (m.media) unregisterBlob(m.media);
           if (m.kind !== "text" && !media) {
             toast.error("Couldn't upload this moment's media");
             setMoments((p) => p.filter((x) => x.id !== tempId));
