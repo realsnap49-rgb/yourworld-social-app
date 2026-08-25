@@ -1032,6 +1032,7 @@ export function MomentCreatePage() {
             blob
           );
 
+        registerBlob(url, blob);
         setMediaBlob(blob);
         setMediaUrl(url);
         setIsVideo(true);
