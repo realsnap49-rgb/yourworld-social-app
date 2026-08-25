@@ -3,6 +3,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { registerBlob, unregisterBlob } from "@/lib/blob-registry";
 import {
   X,
   RefreshCw,
