@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadWithProgress } from "@/lib/storage-upload";
-import { getRegisteredBlob, unregisterBlob } from "@/lib/blob-registry";
+import { getRegisteredBlob } from "@/lib/blob-registry";
 
 
 export type MomentKind = "photo" | "video" | "text";
