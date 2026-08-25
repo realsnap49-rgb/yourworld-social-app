@@ -415,14 +415,18 @@ export function MomentProvider({ children }: { children: ReactNode }) {
             }
           }
           if (musicUrl?.startsWith("blob:") || musicUrl?.startsWith("data:")) {
+            const localMusic = musicUrl;
             try {
-              musicUrl = await uploadMomentMedia(uid, musicUrl, "audio", "music");
+              musicUrl = await uploadMomentMedia(uid, localMusic, "audio", "music");
             } catch (e) {
               toast.error(e instanceof Error ? e.message : "Couldn't upload the moment song");
-              setMoments((p) => p.filter((x) => x.id !== tempId));
-              return;
+              musicUrl = undefined;
             }
+            unregisterBlob(localMusic);
           }
+          // never persist a device-only url — it can't play for anyone else
+          if (musicUrl && /^(blob:|data:)/.test(musicUrl)) musicUrl = undefined;
+          if (m.media) unregisterBlob(m.media);
           if (m.kind !== "text" && !media) {
             toast.error("Couldn't upload this moment's media");
             setMoments((p) => p.filter((x) => x.id !== tempId));
