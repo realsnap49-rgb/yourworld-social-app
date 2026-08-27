@@ -212,7 +212,7 @@ function FeedPostCardBase({
         <PremiumVideoPlayer
           src={src}
           title={post.caption || `@${post.author.username}`}
-          portrait={reel ? true : true}
+          portrait
           className={reel ? "aspect-[9/16] rounded-2xl overflow-hidden" : "aspect-square"}
         />
       ) : (
