@@ -80,12 +80,6 @@ function HomePage() {
     reload,
   } = useSocialPosts("post");
   const { saved, toggleSave } = usePostSaves();
-  const {
-    posts: reelPosts,
-    currentUserId: reelUserId,
-    toggleLike: toggleReelLike,
-    reload: reloadReels,
-  } = useSocialPosts("reel");
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
 
