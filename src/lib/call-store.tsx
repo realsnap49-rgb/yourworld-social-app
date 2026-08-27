@@ -316,16 +316,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let ch: ReturnType<typeof supabase.channel> | null = null;
     let retry: ReturnType<typeof setTimeout> | null = null;
     let alive = true;
+    let connecting = false;
     const seen = new Set<string>();
 
     const listen = async () => {
-      if (!alive) return;
+      if (!alive || connecting || ch) return;
+      connecting = true;
       // Private channels are authorized against realtime.messages RLS.
       const { data } = await supabase.auth.getSession();
-      if (!alive) return;
+      if (!alive) {
+        connecting = false;
+        return;
+      }
       await supabase.realtime.setAuth(data.session?.access_token);
-      if (!alive) return;
-      ch = supabase
+      if (!alive) {
+        connecting = false;
+        return;
+      }
+      const nextChannel = supabase
         .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
         if (!payload?.callId || seen.has(payload.callId)) return;
@@ -358,17 +366,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
       })
         .subscribe((status) => {
           // Rejoin automatically so a dropped socket never silences incoming calls.
+          if (status === "SUBSCRIBED") connecting = false;
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            if (ch) void supabase.removeChannel(ch);
-            ch = null;
-            if (alive) retry = setTimeout(listen, 1500);
+            // Clear our reference before any cleanup. Calling removeChannel while
+            // handling CLOSED synchronously emits CLOSED again in some mobile
+            // browsers, which previously caused a recursive stack overflow.
+            if (ch === nextChannel) ch = null;
+            connecting = false;
+            if (status !== "CLOSED") {
+              window.setTimeout(() => void supabase.removeChannel(nextChannel), 0);
+            }
+            if (alive && !retry) {
+              retry = setTimeout(() => {
+                retry = null;
+                void listen();
+              }, 1500);
+            }
           }
         });
+      ch = nextChannel;
     };
     void listen();
 
     const wake = () => {
-      if (document.visibilityState === "visible" && !ch) void listen();
+      if (document.visibilityState === "visible" && !ch && !connecting) void listen();
     };
     document.addEventListener("visibilitychange", wake);
     window.addEventListener("online", wake);

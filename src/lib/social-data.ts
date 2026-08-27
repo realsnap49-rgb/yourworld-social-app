@@ -417,10 +417,21 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
         .subscribe((status) => {
           // Realtime sockets drop on sleep / network changes — rejoin and resync.
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            if (channel) void supabase.removeChannel(channel);
+            const failedChannel = channel;
             channel = null;
+            // Never remove synchronously from a CLOSED callback: Realtime emits
+            // CLOSED during removal, which can recurse until mobile Safari's
+            // call stack is exhausted.
+            if (failedChannel && status !== "CLOSED") {
+              window.setTimeout(() => void supabase.removeChannel(failedChannel), 0);
+            }
             if (!alive) return;
-            retry = setTimeout(subscribe, 1500);
+            if (!retry) {
+              retry = setTimeout(() => {
+                retry = null;
+                subscribe();
+              }, 1500);
+            }
           } else if (status === "SUBSCRIBED") {
             // Only catch up on a reconnect — never on the first join and never
             // on each new message. Realtime payloads drive live updates, so a

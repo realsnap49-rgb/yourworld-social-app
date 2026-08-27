@@ -285,6 +285,7 @@ export function MomentProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
   const uidRef = useRef<string | null>(null);
+  const archivingRef = useRef(new Set<string>());
 
   const load = useCallback(async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -364,14 +365,20 @@ export function MomentProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void load();
+    let reloadTimer: number | undefined;
+    const queueReload = () => {
+      window.clearTimeout(reloadTimer);
+      reloadTimer = window.setTimeout(() => void load(), 300);
+    };
     const channel = supabase
       .channel("moments-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "moments" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "moment_views" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "moment_replies" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "moments" }, queueReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "moment_views" }, queueReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "moment_replies" }, queueReload)
       .subscribe();
     const { data: sub } = supabase.auth.onAuthStateChange(() => void load());
     return () => {
+      window.clearTimeout(reloadTimer);
       void supabase.removeChannel(channel);
       sub.subscription.unsubscribe();
     };
@@ -386,14 +393,31 @@ export function MomentProvider({ children }: { children: ReactNode }) {
   // Auto-archive my own expired moments in the DB so they stop being served
   useEffect(() => {
     const expiredMine = moments.filter(
-      (m) => m.mine && !m.archived && m.expiresAt && m.expiresAt <= now && !m.id.startsWith("pending-"),
+      (m) =>
+        m.mine &&
+        !m.archived &&
+        m.expiresAt &&
+        m.expiresAt <= now &&
+        !m.id.startsWith("pending-") &&
+        !archivingRef.current.has(m.id),
     );
     if (!expiredMine.length) return;
+    const ids = expiredMine.map((m) => m.id);
+    ids.forEach((id) => archivingRef.current.add(id));
+    // Patch locally before writing so our own realtime event cannot schedule
+    // the same archive operation again while the database is catching up.
+    setMoments((current) =>
+      current.map((moment) => (ids.includes(moment.id) ? { ...moment, archived: true } : moment)),
+    );
     void supabase
       .from("moments")
       .update({ archived: true })
-      .in("id", expiredMine.map((m) => m.id));
-  }, [moments, now]);
+      .in("id", ids)
+      .then(({ error }) => {
+        ids.forEach((id) => archivingRef.current.delete(id));
+        if (error) void load();
+      });
+  }, [moments, now, load]);
 
   const patch = useCallback(
     (id: string, fn: (m: MyMoment) => MyMoment) =>
