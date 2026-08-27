@@ -180,8 +180,7 @@ export function useLongVideos() {
 
     const byId = new Map(((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]));
 
-    setVideos(
-      visible.map((p) => {
+    const next: LongVideo[] = visible.map((p) => {
         const prof = byId.get(p.user_id);
         const username = prof?.username ?? `user${p.user_id.slice(0, 4)}`;
         const name = prof?.display_name ?? username;
