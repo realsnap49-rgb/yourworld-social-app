@@ -212,17 +212,21 @@ function FeedPostCardBase({
         <PremiumVideoPlayer
           src={src}
           title={post.caption || `@${post.author.username}`}
-          portrait
-          className="aspect-square"
+          portrait={reel ? true : true}
+          className={reel ? "aspect-[9/16] rounded-2xl overflow-hidden" : "aspect-square"}
         />
       ) : (
         <LazyImage
           src={src}
           alt={post.caption || "Post"}
-          wrapperClassName="relative w-full aspect-square bg-zinc-900 rounded-2xl overflow-hidden"
+          wrapperClassName={cn(
+            "relative w-full bg-zinc-900 rounded-2xl overflow-hidden",
+            reel ? "aspect-[9/16]" : "aspect-square",
+          )}
           className="h-full w-full object-cover"
         />
       )}
+
 
       <div className="space-y-2 px-3 pb-3">
         <div className="flex items-center justify-between pt-1">
