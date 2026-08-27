@@ -51,6 +51,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "fit" | "captions" | "audio">(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [viewPortrait, setViewPortrait] = useState(!!portrait);
+  const [rotation, setRotation] = useState(0);
   const [captionTracks, setCaptionTracks] = useState<Array<{ index: number; label: string }>>([]);
   const [caption, setCaption] = useState("Off");
   const [audioTracks, setAudioTracks] = useState<Array<{ index: number; label: string }>>([]);
@@ -59,6 +60,17 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const hideTimer = useRef<number | null>(null);
   const gesture = useRef<{ x: number; y: number; mode: null | "seek" | "vol" | "bright"; t0: number } | null>(null);
   const lastTap = useRef(0);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const flash = useCallback((m: string) => {
     setToastMsg(m);
@@ -116,11 +128,17 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   };
 
   const rotate = () => {
-    const next = !viewPortrait;
-    setViewPortrait(next);
-    onOrientationChange?.(next);
+    const nextDeg = (rotation + 90) % 360;
+    setRotation(nextDeg);
+    const v = vidRef.current;
+    const vw = v?.videoWidth || 16;
+    const vh = v?.videoHeight || 9;
+    // after a 90/270° turn the dimensions swap
+    const effPortrait = nextDeg % 180 !== 0 ? vw > vh : vh >= vw;
+    setViewPortrait(effPortrait);
+    onOrientationChange?.(effPortrait);
     setMenu(null);
-    flash(next ? "Portrait" : "Landscape");
+    flash(`Rotate ${nextDeg}°`);
   };
 
   const readMediaTracks = useCallback(() => {
@@ -247,9 +265,19 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         autoPlay={autoPlay}
         playsInline
         preload="metadata"
-        style={{ filter: `brightness(${brightness})` }}
+        style={{
+          filter: `brightness(${brightness})`,
+          transform: rotation ? `translate(-50%, -50%) rotate(${rotation}deg)` : undefined,
+          ...(rotation % 180 !== 0 && box.w && box.h
+            ? { width: box.h, height: box.w }
+            : {}),
+        }}
         className={cn(
-          "h-full w-full",
+          rotation % 180 !== 0
+            ? "absolute left-1/2 top-1/2 max-w-none"
+            : rotation
+              ? "absolute left-1/2 top-1/2 h-full w-full"
+              : "h-full w-full",
           fit === "Fit" ? "object-contain" : fit === "Fill" ? "object-cover" : "object-fill",
         )}
         onPlay={() => { setPlaying(true); poke(); }}
