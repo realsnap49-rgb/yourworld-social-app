@@ -337,6 +337,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
         .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
         if (!payload?.callId || seen.has(payload.callId)) return;
+        // Only accept rings whose signalling topic we are actually a participant of.
+        if (!String(payload.callId).includes(me)) return;
         seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
@@ -430,7 +432,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const callId = uid();
+      // Embed both participant ids in the call id so the realtime RLS policy can
+      // verify the subscriber is actually part of this specific call.
+      const callId = `${[me, target].sort().join(".")}.${uid()}`;
       let myName = "Guest";
       if (!isGuest) {
         const { data: myProfile } = await supabase
