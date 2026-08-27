@@ -273,9 +273,11 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
             : {}),
         }}
         className={cn(
-          rotation
+          rotation % 180 !== 0
             ? "absolute left-1/2 top-1/2 max-w-none"
-            : "h-full w-full",
+            : rotation
+              ? "absolute left-1/2 top-1/2 h-full w-full"
+              : "h-full w-full",
           fit === "Fit" ? "object-contain" : fit === "Fill" ? "object-cover" : "object-fill",
         )}
         onPlay={() => { setPlaying(true); poke(); }}
