@@ -29,6 +29,7 @@ function FeedPostCardBase({
   isSaved = false,
   onToggleSave,
   onDeleted,
+  reel = false,
 }: {
   post: SocialPost;
   currentUserId: string | null;
@@ -36,6 +37,7 @@ function FeedPostCardBase({
   isSaved?: boolean;
   onToggleSave?: (id: string) => void | Promise<unknown>;
   onDeleted?: (id: string) => void;
+  reel?: boolean;
 }) {
   const { following, toggleFollow } = useYw();
   const [src, setSrc] = useState<string>(post.media_url);
