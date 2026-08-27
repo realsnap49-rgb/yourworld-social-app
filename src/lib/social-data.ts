@@ -671,18 +671,30 @@ export function usePostComments(postId: string | null) {
   useEffect(() => {
     void load();
     if (!postId) return;
-    const channel = supabase
-      .channel(`post-comments-${postId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "post_comments", filter: `post_id=eq.${postId}` },
-        () => void load(),
-      )
-      .subscribe();
+    // Unique channel name per hook instance: reusing the same topic across two
+    // mounted cards makes supabase-js hand back an already-subscribed channel,
+    // which throws "cannot add postgres_changes callbacks after subscribe()".
+    const topic = `post-comments-${postId}-${Math.random().toString(36).slice(2)}`;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(topic)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "post_comments", filter: `post_id=eq.${postId}` },
+          () => void load(),
+        )
+        .subscribe();
+    } catch (err) {
+      console.error("[usePostComments] realtime unavailable", err);
+    }
     return () => {
-      void supabase.removeChannel(channel);
+      const ch = channel;
+      channel = null;
+      if (ch) setTimeout(() => void supabase.removeChannel(ch), 0);
     };
   }, [postId, load]);
+
 
   const send = useCallback(
     async (body: string) => {
