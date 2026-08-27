@@ -101,8 +101,10 @@ export async function resolveMediaUrl(url: string, bucket = "reels"): Promise<st
 
 /** Live list of posts of a given kind, with author, like and comment counts. */
 export function useSocialPosts(kind: "post" | "reel") {
-  const [rows, setRows] = useState<SocialPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Paint instantly from the last known feed, then revalidate in the background.
+  const cached = useMemo(() => cacheGet<SocialPost[]>(`feed:${kind}`, 10 * 60_000), [kind]);
+  const [rows, setRows] = useState<SocialPost[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached?.length);
   const [me, setMe] = useState<string | null>(null);
   // While the user is interacting we keep the optimistic state and skip
   // realtime refetches so the UI never flickers back to the old value.
