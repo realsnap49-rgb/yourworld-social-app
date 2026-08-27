@@ -59,7 +59,7 @@ function WorldClassReelsPage() {
         <div className="absolute inset-0 z-0 bg-neutral-900 flex items-center justify-center">
           <video 
             className="h-full w-full object-cover" 
-            src="https://assets.mixkit.co/videos/preview/mixkit-vertical-shot-of-a-woman-with-a-laptop-42981-large.mp4" 
+             src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
             autoPlay 
             loop 
             muted={isMuted} 
