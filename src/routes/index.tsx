@@ -30,7 +30,7 @@ function HomePage() {
     currentUserId,
     toggleLike,
     reload,
-  } = useSocialPosts("post");
+  } = useSocialPosts("video");
   const { saved, toggleSave } = usePostSaves();
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
