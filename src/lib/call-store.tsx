@@ -258,8 +258,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   /* ---------- signalling channel for one call ---------- */
   const openSignalChannel = useCallback(
     (callId: string, mode: CallMode, isCaller: boolean) =>
-      new Promise<void>((resolve) => {
-        const ch = supabase.channel(`rtc-${callId}`, { config: { broadcast: { self: false } } });
+      new Promise<void>(async (resolve) => {
+        const { data: sess } = await supabase.auth.getSession();
+        await supabase.realtime.setAuth(sess.session?.access_token);
+        const ch = supabase.channel(`rtc-${callId}`, {
+          config: { broadcast: { self: false }, private: true },
+        });
         sigRef.current = ch;
         ch.on("broadcast", { event: "signal" }, async ({ payload }) => {
           const pc = pcRef.current;
@@ -314,19 +318,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let alive = true;
     const seen = new Set<string>();
 
-    const listen = () => {
+    const listen = async () => {
+      if (!alive) return;
+      // Private channels are authorized against realtime.messages RLS.
+      const { data } = await supabase.auth.getSession();
+      if (!alive) return;
+      await supabase.realtime.setAuth(data.session?.access_token);
       if (!alive) return;
       ch = supabase
-        .channel(`calls-user-${me}`, { config: { broadcast: { self: false } } })
+        .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
         if (!payload?.callId || seen.has(payload.callId)) return;
         seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
-          supabase.channel(`rtc-${payload.callId}`).subscribe((s) => {
+          supabase.channel(`rtc-${payload.callId}`, { config: { private: true } }).subscribe((s) => {
             if (s === "SUBSCRIBED") {
               void supabase
-                .channel(`rtc-${payload.callId}`)
+                .channel(`rtc-${payload.callId}`, { config: { private: true } })
                 .send({ type: "broadcast", event: "signal", payload: { type: "decline" } });
             }
           });
@@ -356,10 +365,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
           }
         });
     };
-    listen();
+    void listen();
 
     const wake = () => {
-      if (document.visibilityState === "visible" && !ch) listen();
+      if (document.visibilityState === "visible" && !ch) void listen();
     };
     document.addEventListener("visibilitychange", wake);
     window.addEventListener("online", wake);
@@ -424,7 +433,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await openSignalChannel(callId, mode, true);
 
       const ring = supabase.channel(`calls-user-${target}`, {
-        config: { broadcast: { self: false } },
+        config: { broadcast: { self: false }, private: true },
       });
       ring.subscribe((status) => {
         if (status !== "SUBSCRIBED") return;
@@ -467,7 +476,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
-      const ch = supabase.channel(`rtc-${call.callId}`);
+      const ch = supabase.channel(`rtc-${call.callId}`, { config: { private: true } });
       ch.subscribe((s) => {
         if (s === "SUBSCRIBED") {
           void ch
@@ -477,7 +486,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       });
     } else if (call) {
       signal({ type: "end" });
-      const cancel = supabase.channel(`calls-user-${call.peerId}`);
+      const cancel = supabase.channel(`calls-user-${call.peerId}`, {
+        config: { private: true },
+      });
       cancel.subscribe((s) => {
         if (s === "SUBSCRIBED") {
           void cancel
