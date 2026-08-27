@@ -205,7 +205,7 @@ function HomePage() {
       {/* 3. REELS + POST CARD FEED */}
       <div className="mx-auto w-full max-w-2xl space-y-4">
         {reelPosts.map((reel) => (
-          <div key={reel.id} className="px-3">
+          <div key={reel.id} className="mx-auto w-full max-w-md overflow-hidden bg-black sm:rounded-xl">
             <FeedPostCard
               post={reel}
               reel
