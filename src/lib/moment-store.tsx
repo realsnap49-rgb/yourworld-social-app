@@ -151,6 +151,7 @@ type DbMoment = {
   poll: MomentPoll | null;
   archived: boolean;
   created_at: string;
+  expires_at?: string | null;
 };
 
 function rowToMoment(
@@ -187,6 +188,9 @@ function rowToMoment(
     screenshotAlert: row.screenshot_alert,
     poll: row.poll,
     createdAt: new Date(row.created_at).getTime(),
+    expiresAt: row.expires_at
+      ? new Date(row.expires_at).getTime()
+      : new Date(row.created_at).getTime() + (row.duration === 12 ? 12 : 24) * 3600_000,
     archived: row.archived,
     viewers: views,
     replies,
