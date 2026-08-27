@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { rememberLocalMedia, timeAgo, type DbProfile } from "@/lib/social-data";
 import { uploadWithProgress } from "@/lib/storage-upload";
 
