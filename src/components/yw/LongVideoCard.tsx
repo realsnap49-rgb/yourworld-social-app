@@ -154,7 +154,7 @@ export function LongVideoCard({
             poster={video.thumbnailUrl}
             portrait={video.orientation === "portrait"}
             onOrientationChange={setPlayerPortrait}
-            
+            autoPlay
             className="rounded-none"
           />
         ) : (
