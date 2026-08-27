@@ -430,7 +430,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const callId = uid();
+      // Embed both participant ids in the call id so the realtime RLS policy can
+      // verify the subscriber is actually part of this specific call.
+      const callId = `${[me, target].sort().join(".")}.${uid()}`;
       let myName = "Guest";
       if (!isGuest) {
         const { data: myProfile } = await supabase
