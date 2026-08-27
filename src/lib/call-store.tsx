@@ -426,7 +426,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await openSignalChannel(callId, mode, true);
 
       const ring = supabase.channel(`calls-user-${target}`, {
-        config: { broadcast: { self: false } },
+        config: { broadcast: { self: false }, private: true },
       });
       ring.subscribe((status) => {
         if (status !== "SUBSCRIBED") return;
