@@ -533,7 +533,7 @@ export function MomentProvider({ children }: { children: ReactNode }) {
       },
       reload: load,
     }),
-    [moments, loading, patch, load],
+    [moments, loading, patch, load, now],
   );
 
   return <MomentContext.Provider value={value}>{children}</MomentContext.Provider>;
