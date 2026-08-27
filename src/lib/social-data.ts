@@ -101,10 +101,10 @@ export async function resolveMediaUrl(url: string, bucket = "reels"): Promise<st
 
 /** Live list of posts of a given kind, with author, like and comment counts. */
 export function useSocialPosts(kind: "post" | "reel") {
-  // Paint instantly from the last known feed, then revalidate in the background.
-  const cached = useMemo(() => cacheGet<SocialPost[]>(`feed:${kind}`, 10 * 60_000), [kind]);
-  const [rows, setRows] = useState<SocialPost[]>(cached ?? []);
-  const [loading, setLoading] = useState(!cached?.length);
+  // Keep the server and first client render identical, then hydrate the local
+  // cache after mount. Reading localStorage during render breaks mobile SSR.
+  const [rows, setRows] = useState<SocialPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<string | null>(null);
   // While the user is interacting we keep the optimistic state and skip
   // realtime refetches so the UI never flickers back to the old value.
@@ -155,6 +155,11 @@ export function useSocialPosts(kind: "post" | "reel") {
   }, [kind]);
 
   useEffect(() => {
+    const cached = cacheGet<SocialPost[]>(`feed:${kind}`, 10 * 60_000);
+    if (cached?.length) {
+      setRows(cached);
+      setLoading(false);
+    }
     void load();
     // Coalesce realtime bursts so a flood of likes never triggers a refetch storm.
     let timer: number | undefined;

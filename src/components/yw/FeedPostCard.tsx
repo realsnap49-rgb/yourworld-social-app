@@ -133,6 +133,90 @@ function FeedPostCardBase({
 
   if (hidden) return null;
 
+  if (reel) {
+    return (
+      <article
+        ref={cardRef}
+        className="relative h-[calc(100svh-4rem)] w-full snap-start overflow-hidden bg-black"
+      >
+        {isVideo ? (
+          <PremiumVideoPlayer
+            src={src}
+            title={post.caption || `@${post.author.username}`}
+            portrait
+            autoPlay
+            className="h-full rounded-none aspect-auto"
+          />
+        ) : (
+          <LazyImage
+            src={src}
+            alt={post.caption || "Reel"}
+            wrapperClassName="h-full w-full bg-black"
+            className="h-full w-full object-cover"
+          />
+        )}
+
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
+
+        <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-between px-4 pt-4">
+          <span className="text-lg font-extrabold text-white drop-shadow">Reels</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button aria-label="More options" className="grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur">
+                <MoreHorizontal size={21} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onClick={copyLink}><Link2 className="mr-2 h-4 w-4" /> Copy link</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSave}><Bookmark className="mr-2 h-4 w-4" /> {isSaved ? "Remove from saved" : "Save reel"}</DropdownMenuItem>
+              {post.allow_download && <DropdownMenuItem onClick={handleDownload}><Download className="mr-2 h-4 w-4" /> Download</DropdownMenuItem>}
+              {!isMine && <DropdownMenuItem onClick={() => setHidden(true)}><EyeOff className="mr-2 h-4 w-4" /> Not interested</DropdownMenuItem>}
+              {isMine && <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete reel</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="absolute bottom-6 left-4 right-20 z-30 space-y-2 text-white">
+          <div className="flex items-center gap-2.5">
+            <Link to="/u/$userId" params={{ userId: post.user_id }} className="grid h-9 w-9 place-items-center rounded-full border-2 border-white/90 text-sm font-bold" style={{ background: `hsl(${post.author.hue} 60% 40%)` }}>
+              {(post.author.name || post.author.username).charAt(0).toUpperCase()}
+            </Link>
+            <Link to="/u/$userId" params={{ userId: post.user_id }} className="max-w-36 truncate text-sm font-bold drop-shadow">@{post.author.username}</Link>
+            {!isMine && (
+              <button type="button" onClick={() => toggleFollow(post.user_id)} className="rounded-md border border-white/80 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                {isFollowing ? "Following" : "Follow"}
+              </button>
+            )}
+          </div>
+          {post.caption && <p className="line-clamp-2 text-sm leading-relaxed drop-shadow">{post.caption}</p>}
+          {post.audio && <p className="truncate text-xs font-medium text-white/90">♫ {post.audio}</p>}
+        </div>
+
+        <div className="absolute bottom-7 right-3 z-30 flex flex-col items-center gap-5 text-white">
+          <button onClick={() => onToggleLike(post.id)} aria-label="Like" className="flex w-12 flex-col items-center gap-1 drop-shadow active:scale-90">
+            <Heart size={28} strokeWidth={2.2} className={post.likedByMe ? "fill-pink-500 text-pink-500" : "text-white"} />
+            <span className="text-[11px] font-bold">{formatCount(post.likeCount)}</span>
+          </button>
+          <CommentsSheet postId={post.id} onCountChange={setCommentCount}>
+            <button aria-label="Comments" className="flex w-12 flex-col items-center gap-1 drop-shadow active:scale-90">
+              <MessageCircle size={27} strokeWidth={2.2} />
+              <span className="text-[11px] font-bold">{formatCount(commentCount)}</span>
+            </button>
+          </CommentsSheet>
+          <ShareSheet title={post.caption} url={shareUrl} media={src} mediaKind={isVideo ? "video" : "photo"}>
+            <button aria-label="Share" className="grid w-12 place-items-center drop-shadow active:scale-90"><Send size={26} strokeWidth={2.2} /></button>
+          </ShareSheet>
+          <button onClick={handleSave} aria-label="Save" className="grid w-12 place-items-center drop-shadow active:scale-90">
+            <Bookmark size={26} strokeWidth={2.2} className={isSaved ? "fill-white text-white" : "text-white"} />
+          </button>
+          {post.allow_download && (
+            <button onClick={handleDownload} aria-label="Download" className="grid w-12 place-items-center drop-shadow active:scale-90"><Download size={25} strokeWidth={2.2} /></button>
+          )}
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article
       ref={cardRef}
