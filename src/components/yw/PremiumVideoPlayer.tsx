@@ -67,6 +67,10 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     if (!el) return;
     const update = () => setBox({ w: el.clientWidth, h: el.clientHeight });
     update();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => window.removeEventListener("resize", update);
+    }
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
