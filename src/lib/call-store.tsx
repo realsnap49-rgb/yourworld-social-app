@@ -258,7 +258,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   /* ---------- signalling channel for one call ---------- */
   const openSignalChannel = useCallback(
     (callId: string, mode: CallMode, isCaller: boolean) =>
-      new Promise<void>((resolve) => {
+      new Promise<void>(async (resolve) => {
+        const { data: sess } = await supabase.auth.getSession();
+        await supabase.realtime.setAuth(sess.session?.access_token);
         const ch = supabase.channel(`rtc-${callId}`, {
           config: { broadcast: { self: false }, private: true },
         });
@@ -363,10 +365,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
           }
         });
     };
-    listen();
+    void listen();
 
     const wake = () => {
-      if (document.visibilityState === "visible" && !ch) listen();
+      if (document.visibilityState === "visible" && !ch) void listen();
     };
     document.addEventListener("visibilitychange", wake);
     window.addEventListener("online", wake);
