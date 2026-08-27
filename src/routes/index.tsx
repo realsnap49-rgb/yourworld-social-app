@@ -81,11 +81,11 @@ export function HomePage() {
   } = useSocialPosts("post");
   const { saved, toggleSave } = usePostSaves();
   const {
-    videos: longVideos,
-    countView,
-    toggleLike: likeVideo,
-    reload: reloadVideos,
-  } = useLongVideos();
+    posts: reelPosts,
+    currentUserId: reelUserId,
+    toggleLike: toggleReelLike,
+    reload: reloadReels,
+  } = useSocialPosts("reel");
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
 
@@ -202,19 +202,19 @@ export function HomePage() {
 
       </div>
 
-      {/* 3. LONG VIDEOS + POST CARD FEED */}
+      {/* 3. REELS + POST CARD FEED */}
       <div className="mx-auto w-full max-w-2xl space-y-4">
-        {longVideos.map((v) => (
-          <LongVideoCard
-            key={v.id}
-            video={v}
-            onView={countView}
-            onLike={likeVideo}
-            currentUserId={currentUserId}
-            isSaved={!!saved[v.id]}
-            onToggleSave={toggleSave}
-            onDeleted={() => void reloadVideos()}
-          />
+        {reelPosts.map((reel) => (
+          <div key={reel.id} className="px-3">
+            <FeedPostCard
+              post={reel}
+              currentUserId={reelUserId}
+              onToggleLike={toggleReelLike}
+              isSaved={!!saved[reel.id]}
+              onToggleSave={toggleSave}
+              onDeleted={() => void reloadReels()}
+            />
+          </div>
         ))}
         {posts.map((post) => (
           <div key={post.id} className="px-3">
@@ -229,7 +229,7 @@ export function HomePage() {
           </div>
         ))}
 
-        {!loading && posts.length === 0 && longVideos.length === 0 && (
+        {!loading && posts.length === 0 && reelPosts.length === 0 && (
           <button
             onClick={() => navigate({ to: "/post/create" })}
             className="mx-3 flex w-[calc(100%-1.5rem)] flex-col items-center gap-3 rounded-3xl border border-dashed border-zinc-800 bg-[#141418] px-6 py-14 text-center active:scale-[0.99]"
