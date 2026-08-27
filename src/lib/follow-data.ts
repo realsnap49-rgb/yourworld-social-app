@@ -62,14 +62,24 @@ export function useFollowCounts(userId: string | null) {
   useEffect(() => {
     void reload();
     if (!userId) return;
-    const ch = supabase
-      .channel(`follows:${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => void reload())
-      .subscribe();
+    // Unique topic per hook instance — a shared topic across two mounted
+    // components throws "cannot add postgres_changes callbacks after subscribe()".
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      ch = supabase
+        .channel(`follows:${userId}:${Math.random().toString(36).slice(2)}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => void reload())
+        .subscribe();
+    } catch (err) {
+      console.error("[useFollowCounts] realtime unavailable", err);
+    }
     return () => {
-      void supabase.removeChannel(ch);
+      const c = ch;
+      ch = null;
+      if (c) setTimeout(() => void supabase.removeChannel(c), 0);
     };
   }, [userId, reload]);
+
 
   return { ...data, reload };
 }
