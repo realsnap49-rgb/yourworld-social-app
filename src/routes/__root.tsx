@@ -3,7 +3,6 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
-  useRouter,
   useLocation,
   HeadContent,
   Scripts,
@@ -24,6 +23,7 @@ import { ChannelProvider } from "@/lib/channel-store";
 import { CallProvider } from "@/lib/call-store";
 import { UploadProvider } from "@/lib/upload-progress";
 import { Toaster } from "@/components/ui/sonner";
+import { SafeProvider } from "@/lib/safe-provider";
 
 function NotFoundComponent() {
   return (
@@ -48,8 +48,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
-  const router = useRouter();
+  console.error("[RootErrorBoundary]", error);
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
@@ -61,13 +60,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           This page didn't load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Something went wrong on our end. You can try refreshing or heading back home.
         </p>
+        {/* Show the actual error so we can diagnose mobile-only crashes */}
+        <pre className="mt-4 max-h-40 overflow-auto rounded-lg bg-zinc-900 p-3 text-left text-[11px] leading-tight text-red-300 whitespace-pre-wrap break-all">
+{String(error?.message ?? error)}
+        </pre>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              window.location.reload();
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
@@ -157,32 +159,63 @@ function RootComponent() {
     setCreateOpen(false);
   }, [pathname]);
 
+  // Catch unhandled errors / promise rejections so they don't silently
+  // crash the app on mobile devices.
+  useEffect(() => {
+    const onError = (e: ErrorEvent) => {
+      console.error("[globalError]", e.message, e.filename, e.lineno);
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      console.error("[unhandledRejection]", e.reason);
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <YwStoreProvider>
-          <NotificationsProvider>
-            <MomentProvider>
-              <SearchProvider>
-                <ChannelProvider>
-                <CallProvider>
-                <UploadProvider>
-                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                <AuthGate>
-                  <div className={cn("mx-auto min-h-screen w-full max-w-lg", hideNav ? "" : "pb-20")}>
-                    <Outlet />
-                  </div>
-                   {!hideNav && <BottomNav onOpenCreate={() => setCreateOpen(true)} />}
-                   <CreateSheet isOpen={createOpen} onClose={() => setCreateOpen(false)} />
-                </AuthGate>
-                <Toaster position="top-center" />
-                </UploadProvider>
-                </CallProvider>
-                </ChannelProvider>
-              </SearchProvider>
-            </MomentProvider>
-          </NotificationsProvider>
-        </YwStoreProvider>
+        <SafeProvider name="YwStore">
+          <YwStoreProvider>
+            <SafeProvider name="Notifications">
+              <NotificationsProvider>
+                <SafeProvider name="Moments">
+                  <MomentProvider>
+                    <SafeProvider name="Search">
+                      <SearchProvider>
+                        <SafeProvider name="Channel">
+                          <ChannelProvider>
+                            <SafeProvider name="Call">
+                              <CallProvider>
+                                <SafeProvider name="Upload">
+                                  <UploadProvider>
+                                    {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                                    <AuthGate>
+                                      <div className={cn("mx-auto min-h-screen w-full max-w-lg", hideNav ? "" : "pb-20")}>
+                                        <Outlet />
+                                      </div>
+                                      {!hideNav && <BottomNav onOpenCreate={() => setCreateOpen(true)} />}
+                                      <CreateSheet isOpen={createOpen} onClose={() => setCreateOpen(false)} />
+                                    </AuthGate>
+                                    <Toaster position="top-center" />
+                                  </UploadProvider>
+                                </SafeProvider>
+                              </CallProvider>
+                            </SafeProvider>
+                          </ChannelProvider>
+                        </SafeProvider>
+                      </SearchProvider>
+                    </SafeProvider>
+                  </MomentProvider>
+                </SafeProvider>
+              </NotificationsProvider>
+            </SafeProvider>
+          </YwStoreProvider>
+        </SafeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
