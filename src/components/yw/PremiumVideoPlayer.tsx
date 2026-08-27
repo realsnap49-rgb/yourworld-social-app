@@ -265,9 +265,17 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         autoPlay={autoPlay}
         playsInline
         preload="metadata"
-        style={{ filter: `brightness(${brightness})` }}
+        style={{
+          filter: `brightness(${brightness})`,
+          transform: rotation ? `translate(-50%, -50%) rotate(${rotation}deg)` : undefined,
+          ...(rotation % 180 !== 0 && box.w && box.h
+            ? { width: box.h, height: box.w }
+            : {}),
+        }}
         className={cn(
-          "h-full w-full",
+          rotation
+            ? "absolute left-1/2 top-1/2 max-w-none"
+            : "h-full w-full",
           fit === "Fit" ? "object-contain" : fit === "Fill" ? "object-cover" : "object-fill",
         )}
         onPlay={() => { setPlaying(true); poke(); }}
