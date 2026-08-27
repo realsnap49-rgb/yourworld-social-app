@@ -142,28 +142,40 @@ export function useSocialPosts(kind: "post" | "reel") {
       ((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]),
     );
 
-    setRows(
-      posts.map((p) => ({
-        ...(p as DbPost),
-        author: toUser(profileById.get(p.user_id), p.user_id),
-        likeCount: (likes ?? []).filter((l) => l.post_id === p.id).length,
-        commentCount: (comments ?? []).filter((c) => c.post_id === p.id).length,
-        likedByMe: !!uid && (likes ?? []).some((l) => l.post_id === p.id && l.user_id === uid),
-      })),
-    );
+    const next: SocialPost[] = posts.map((p) => ({
+      ...(p as DbPost),
+      author: toUser(profileById.get(p.user_id), p.user_id),
+      likeCount: (likes ?? []).filter((l) => l.post_id === p.id).length,
+      commentCount: (comments ?? []).filter((c) => c.post_id === p.id).length,
+      likedByMe: !!uid && (likes ?? []).some((l) => l.post_id === p.id && l.user_id === uid),
+    }));
+    setRows(next);
+    cacheSet(`feed:${kind}`, next.slice(0, 20));
     setLoading(false);
   }, [kind]);
 
   useEffect(() => {
     void load();
-    const channel = supabase
-      .channel(`social-${kind}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, () => void load())
-      .subscribe();
+    // Coalesce realtime bursts so a flood of likes never triggers a refetch storm.
+    let timer: number | undefined;
+    const queue = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void load(), 500);
+    };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    // Subscribe after first paint so the socket handshake doesn't delay render.
+    const boot = window.setTimeout(() => {
+      channel = supabase
+        .channel(`social-${kind}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, queue)
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, queue)
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, queue)
+        .subscribe();
+    }, 300);
     return () => {
-      void supabase.removeChannel(channel);
+      window.clearTimeout(boot);
+      window.clearTimeout(timer);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [kind, load]);
 
