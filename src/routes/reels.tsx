@@ -14,11 +14,7 @@ import {
   Sparkles 
 } from "lucide-react";
 
-export const Route = createFileRoute("/reels")({
-  meta: () => [
-    { title: "Reels - YourWorld" },
-    { name: "description", content: "Watch world-class trending reels on YourWorld." },
-  ],
+export const Route = createFileRoute("/_authenticated/reels")({
   component: WorldClassReelsPage,
 });
 
@@ -29,18 +25,12 @@ function WorldClassReelsPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikeCount(prev => (isLiked ? prev - 1 : prev + 1));
-  };
-
   return (
-    <div className="relative h-screen w-full bg-black text-white overflow-hidden flex justify-center items-center font-sans select-none">
-      {/* Edge-to-Edge Container */}
+    <div className="relative h-screen w-full bg-black text-white overflow-hidden flex justify-center items-center select-none">
       <div className="relative h-full w-full max-w-md bg-black overflow-hidden flex flex-col justify-between shadow-2xl">
         
         {/* Top Header Overlay */}
-        <div className="absolute top-4 left-4 right-4 z-30 flex justify-between items-center text-white font-bold drop-shadow-md">
+        <div className="absolute top-4 left-4 right-4 z-30 flex justify-between items-center text-white font-bold">
           <div className="flex items-center gap-2">
             <span className="text-2xl font-black tracking-wider bg-gradient-to-r from-pink-500 to-purple-400 bg-clip-text text-transparent">
               YourWorld
@@ -48,18 +38,19 @@ function WorldClassReelsPage() {
             <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
           </div>
           <button 
+            type="button"
             onClick={() => setIsMuted(!isMuted)} 
-            className="p-2.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 active:scale-95 transition"
+            className="p-2.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10"
           >
             {isMuted ? <VolumeX className="w-5 h-5 text-white/80" /> : <Volume2 className="w-5 h-5 text-white" />}
           </button>
         </div>
 
-        {/* Premium Full-Screen Video Frame */}
+        {/* Video Player Frame */}
         <div className="absolute inset-0 z-0 bg-neutral-900 flex items-center justify-center">
           <video 
             className="h-full w-full object-cover" 
-             src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+            src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" 
             autoPlay 
             loop 
             muted={isMuted} 
@@ -67,115 +58,96 @@ function WorldClassReelsPage() {
           />
         </div>
 
-        {/* Right Floating Action Sidebar */}
-        <div className="absolute right-3 bottom-20 z-30 flex flex-col items-center gap-5 text-white">
-          
-          {/* Like */}
-          <button onClick={handleLike} className="flex flex-col items-center gap-1 group">
-            <div className={`p-3 rounded-full backdrop-blur-md border border-white/10 transition-all duration-300 group-active:scale-125 ${
-              isLiked ? "bg-pink-600/30 border-pink-500/50" : "bg-black/40"
-            }`}>
-              <Heart className={`w-7 h-7 transition-colors ${isLiked ? "fill-pink-500 text-pink-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]" : "text-white"}`} />
+        {/* Right Floating Sidebar */}
+        <div className="absolute right-3 bottom-24 z-30 flex flex-col items-center gap-5 text-white">
+          <button 
+            type="button"
+            onClick={() => { setIsLiked(!isLiked); setLikeCount(prev => isLiked ? prev - 1 : prev + 1); }} 
+            className="flex flex-col items-center gap-1"
+          >
+            <div className={`p-3 rounded-full backdrop-blur-md border border-white/10 ${isLiked ? "bg-pink-600/30 border-pink-500/50" : "bg-black/40"}`}>
+              <Heart className={`w-7 h-7 ${isLiked ? "fill-pink-500 text-pink-500" : "text-white"}`} />
             </div>
-            <span className="text-xs font-bold tracking-wide drop-shadow-md">{(likeCount / 1000).toFixed(1)}k</span>
+            <span className="text-xs font-bold">{(likeCount / 1000).toFixed(1)}k</span>
           </button>
 
-          {/* Comment */}
-          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+          <button type="button" className="flex flex-col items-center gap-1">
             <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
               <MessageCircle className="w-7 h-7 text-white" />
             </div>
-            <span className="text-xs font-bold tracking-wide drop-shadow-md">842</span>
+            <span className="text-xs font-bold">842</span>
           </button>
 
-          {/* Share */}
-          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+          <button type="button" className="flex flex-col items-center gap-1">
             <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
               <Share2 className="w-7 h-7 text-white" />
             </div>
-            <span className="text-xs font-bold tracking-wide drop-shadow-md">Share</span>
+            <span className="text-xs font-bold">Share</span>
           </button>
 
-          {/* Bookmark / Save */}
-          <button onClick={() => setIsBookmarked(!isBookmarked)} className="flex flex-col items-center gap-1 group active:scale-95 transition">
-            <div className={`p-3 rounded-full backdrop-blur-md border border-white/10 ${
-              isBookmarked ? "bg-yellow-500/30 border-yellow-400/50" : "bg-black/40"
-            }`}>
-              <Bookmark className={`w-7 h-7 ${isBookmarked ? "fill-yellow-400 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]" : "text-white"}`} />
+          <button 
+            type="button"
+            onClick={() => setIsBookmarked(!isBookmarked)} 
+            className="flex flex-col items-center gap-1"
+          >
+            <div className={`p-3 rounded-full backdrop-blur-md border border-white/10 ${isBookmarked ? "bg-yellow-500/30" : "bg-black/40"}`}>
+              <Bookmark className={`w-7 h-7 ${isBookmarked ? "fill-yellow-400 text-yellow-400" : "text-white"}`} />
             </div>
-            <span className="text-xs font-bold tracking-wide drop-shadow-md">Save</span>
+            <span className="text-xs font-bold">Save</span>
           </button>
 
-          {/* Download */}
-          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+          <button type="button" className="flex flex-col items-center gap-1">
             <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
               <Download className="w-7 h-7 text-white" />
             </div>
-            <span className="text-xs font-bold tracking-wide drop-shadow-md">Save HD</span>
+            <span className="text-xs font-bold">Save HD</span>
           </button>
 
-          {/* 3-Dot More Options */}
-          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+          <button type="button" className="flex flex-col items-center gap-1">
             <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
               <MoreVertical className="w-7 h-7 text-white" />
             </div>
           </button>
 
-          {/* Rotating Audio Disc */}
-          <div className="w-10 h-10 rounded-full border-2 border-white/80 overflow-hidden animate-[spin_4s_linear_infinite] mt-1 shadow-lg">
-            <div className="w-full h-full bg-gradient-to-tr from-pink-500 via-purple-600 to-blue-500 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full border-2 border-white/80 overflow-hidden animate-spin mt-1">
+            <div className="w-full h-full bg-gradient-to-tr from-pink-500 to-blue-500 flex items-center justify-center">
               <Music className="w-4 h-4 text-white" />
             </div>
           </div>
         </div>
 
-        {/* Bottom Left Creator Info & Audio Tag */}
-        <div className="absolute bottom-6 left-4 right-20 z-30 flex flex-col gap-3 text-white drop-shadow-xl">
-          
-          {/* Creator Profile */}
+        {/* Bottom Creator Info */}
+        <div className="absolute bottom-6 left-4 right-20 z-30 flex flex-col gap-3 text-white">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <img 
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" 
-                alt="profile" 
-                className="w-11 h-11 rounded-full border-2 border-pink-500 object-cover p-0.5"
-              />
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" alt="profile" className="w-11 h-11 rounded-full border-2 border-pink-500 object-cover" />
               {!isFollowing && (
                 <button 
-                  onClick={() => setIsFollowing(true)}
-                  className="absolute -bottom-1 -right-1 bg-pink-600 hover:bg-pink-500 rounded-full p-1 shadow-md transition"
+                  type="button"
+                  onClick={() => setIsFollowing(true)} 
+                  className="absolute -bottom-1 -right-1 bg-pink-600 rounded-full p-1"
                 >
                   <Plus className="w-3 h-3 text-white" />
                 </button>
               )}
             </div>
-            
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm tracking-wide">@priya_official</span>
-                <button 
-                  onClick={() => setIsFollowing(!isFollowing)}
-                  className={`text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border transition-all ${
-                    isFollowing 
-                      ? "bg-white/20 border-white/30 text-white" 
-                      : "bg-pink-600 border-pink-500 text-white shadow-md shadow-pink-600/40"
-                  }`}
-                >
-                  {isFollowing ? "Following" : "Follow"}
-                </button>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm">@priya_official</span>
+              <button 
+                type="button"
+                onClick={() => setIsFollowing(!isFollowing)} 
+                className={`text-xs font-bold px-3 py-1 rounded-full border ${isFollowing ? "bg-white/20" : "bg-pink-600 border-pink-500"}`}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </button>
             </div>
           </div>
-
-          {/* Reel Caption */}
-          <p className="text-sm line-clamp-2 pr-2 font-normal text-gray-100 leading-snug drop-shadow">
-            Experience the future with <span className="font-bold text-pink-400">#YourWorld</span>! World class vibes only 🔥 ✨ #Reels #Trending #Viral
+          <p className="text-sm line-clamp-2 text-gray-100">
+            World class vibes only 🔥 ✨ <span className="font-bold text-pink-400">#YourWorld</span> #Reels
           </p>
-
-          {/* Scrolling Sound Bar */}
           <div className="flex items-center gap-2 text-xs text-gray-200 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10">
             <Music className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
-            <span className="truncate max-w-[180px] font-medium">Original Audio - Priya • Trending Hits</span>
+            <span className="truncate max-w-[180px]">Original Audio - Priya</span>
           </div>
         </div>
 
