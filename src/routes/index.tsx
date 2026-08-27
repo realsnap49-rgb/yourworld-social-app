@@ -70,7 +70,7 @@ const StoryCircle = memo(function StoryCircle({ story }: { story: StoryRing }) {
 });
 
 
-export function HomePage() {
+function HomePage() {
   const navigate = useNavigate();
   const {
     posts,
