@@ -316,7 +316,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let alive = true;
     const seen = new Set<string>();
 
-    const listen = () => {
+    const listen = async () => {
+      if (!alive) return;
+      // Private channels are authorized against realtime.messages RLS.
+      const { data } = await supabase.auth.getSession();
+      if (!alive) return;
+      await supabase.realtime.setAuth(data.session?.access_token);
       if (!alive) return;
       ch = supabase
         .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
