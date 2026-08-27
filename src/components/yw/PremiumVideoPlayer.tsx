@@ -51,6 +51,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "fit" | "captions" | "audio">(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [viewPortrait, setViewPortrait] = useState(!!portrait);
+  const [rotation, setRotation] = useState(0);
   const [captionTracks, setCaptionTracks] = useState<Array<{ index: number; label: string }>>([]);
   const [caption, setCaption] = useState("Off");
   const [audioTracks, setAudioTracks] = useState<Array<{ index: number; label: string }>>([]);
@@ -116,11 +117,13 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   };
 
   const rotate = () => {
-    const next = !viewPortrait;
-    setViewPortrait(next);
-    onOrientationChange?.(next);
+    const nextDeg = (rotation + 90) % 360;
+    setRotation(nextDeg);
+    const nextPortrait = nextDeg % 180 !== 0 ? sourceHeight === 0 ? true : !viewPortrait : !viewPortrait;
+    setViewPortrait(nextPortrait);
+    onOrientationChange?.(nextPortrait);
     setMenu(null);
-    flash(next ? "Portrait" : "Landscape");
+    flash(`Rotate ${nextDeg}°`);
   };
 
   const readMediaTracks = useCallback(() => {
