@@ -101,8 +101,10 @@ export async function resolveMediaUrl(url: string, bucket = "reels"): Promise<st
 
 /** Live list of posts of a given kind, with author, like and comment counts. */
 export function useSocialPosts(kind: "post" | "reel") {
-  const [rows, setRows] = useState<SocialPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Paint instantly from the last known feed, then revalidate in the background.
+  const cached = useMemo(() => cacheGet<SocialPost[]>(`feed:${kind}`, 10 * 60_000), [kind]);
+  const [rows, setRows] = useState<SocialPost[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached?.length);
   const [me, setMe] = useState<string | null>(null);
   // While the user is interacting we keep the optimistic state and skip
   // realtime refetches so the UI never flickers back to the old value.
@@ -140,28 +142,40 @@ export function useSocialPosts(kind: "post" | "reel") {
       ((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]),
     );
 
-    setRows(
-      posts.map((p) => ({
-        ...(p as DbPost),
-        author: toUser(profileById.get(p.user_id), p.user_id),
-        likeCount: (likes ?? []).filter((l) => l.post_id === p.id).length,
-        commentCount: (comments ?? []).filter((c) => c.post_id === p.id).length,
-        likedByMe: !!uid && (likes ?? []).some((l) => l.post_id === p.id && l.user_id === uid),
-      })),
-    );
+    const next: SocialPost[] = posts.map((p) => ({
+      ...(p as DbPost),
+      author: toUser(profileById.get(p.user_id), p.user_id),
+      likeCount: (likes ?? []).filter((l) => l.post_id === p.id).length,
+      commentCount: (comments ?? []).filter((c) => c.post_id === p.id).length,
+      likedByMe: !!uid && (likes ?? []).some((l) => l.post_id === p.id && l.user_id === uid),
+    }));
+    setRows(next);
+    cacheSet(`feed:${kind}`, next.slice(0, 20));
     setLoading(false);
   }, [kind]);
 
   useEffect(() => {
     void load();
-    const channel = supabase
-      .channel(`social-${kind}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, () => void load())
-      .subscribe();
+    // Coalesce realtime bursts so a flood of likes never triggers a refetch storm.
+    let timer: number | undefined;
+    const queue = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void load(), 500);
+    };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    // Subscribe after first paint so the socket handshake doesn't delay render.
+    const boot = window.setTimeout(() => {
+      channel = supabase
+        .channel(`social-${kind}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, queue)
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, queue)
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, queue)
+        .subscribe();
+    }, 300);
     return () => {
-      void supabase.removeChannel(channel);
+      window.clearTimeout(boot);
+      window.clearTimeout(timer);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [kind, load]);
 

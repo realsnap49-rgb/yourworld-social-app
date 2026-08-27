@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { rememberLocalMedia, timeAgo, type DbProfile } from "@/lib/social-data";
 import { uploadWithProgress } from "@/lib/storage-upload";
 
@@ -137,8 +138,9 @@ export async function publishLongVideo(opts: {
 
 /** Live list of published long videos (scheduled ones appear at their release time). */
 export function useLongVideos() {
-  const [videos, setVideos] = useState<LongVideo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = useMemo(() => cacheGet<LongVideo[]>("long-videos", 10 * 60_000), []);
+  const [videos, setVideos] = useState<LongVideo[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached?.length);
   const [me, setMe] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -178,8 +180,7 @@ export function useLongVideos() {
 
     const byId = new Map(((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]));
 
-    setVideos(
-      visible.map((p) => {
+    const next: LongVideo[] = visible.map((p) => {
         const prof = byId.get(p.user_id);
         const username = prof?.username ?? `user${p.user_id.slice(0, 4)}`;
         const name = prof?.display_name ?? username;
@@ -201,19 +202,30 @@ export function useLongVideos() {
           commentCount: (comments ?? []).filter((c) => c.post_id === p.id).length,
           likedByMe: !!uid && (likes ?? []).some((l) => l.post_id === p.id && l.user_id === uid),
         } satisfies LongVideo;
-      }),
-    );
+    });
+    setVideos(next);
+    cacheSet("long-videos", next.slice(0, 15));
     setLoading(false);
   }, []);
 
   useEffect(() => {
     void load();
-    const channel = supabase
-      .channel("long-videos")
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => void load())
-      .subscribe();
+    let timer: number | undefined;
+    const queue = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void load(), 500);
+    };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const boot = window.setTimeout(() => {
+      channel = supabase
+        .channel("long-videos")
+        .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, queue)
+        .subscribe();
+    }, 300);
     return () => {
-      void supabase.removeChannel(channel);
+      window.clearTimeout(boot);
+      window.clearTimeout(timer);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [load]);
 
