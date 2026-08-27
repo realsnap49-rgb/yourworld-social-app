@@ -220,7 +220,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const createPeer = useCallback(
     (stream: MediaStream) => {
-      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      // Pre-gather ICE candidates so the call connects near-instantly.
+      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 });
       pcRef.current = pc;
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
       pc.onicecandidate = (e) => {
