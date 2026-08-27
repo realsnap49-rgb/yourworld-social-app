@@ -86,6 +86,8 @@ export type MyMoment = {
   screenshotAlert: boolean;
   poll: MomentPoll | null;
   createdAt: number;
+  /** epoch ms when this moment expires (12h / 24h) */
+  expiresAt?: number;
   archived: boolean;
   viewers: MomentViewer[];
   replies: MomentReply[];
