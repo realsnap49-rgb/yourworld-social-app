@@ -1,63 +1,185 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Film } from "lucide-react";
-import { useLongVideos } from "@/lib/video-data";
-import { usePostSaves } from "@/lib/post-actions";
-import { LongVideoCard } from "@/components/yw/LongVideoCard";
+import { useState } from "react";
+import { 
+  Heart, 
+  MessageCircle, 
+  Share2, 
+  Bookmark, 
+  Download, 
+  MoreVertical, 
+  Music, 
+  Plus, 
+  Volume2, 
+  VolumeX, 
+  Sparkles 
+} from "lucide-react";
 
 export const Route = createFileRoute("/reels")({
-  head: () => ({
-    meta: [
-      { title: "Video — YourWorld" },
-      {
-        name: "description",
-        content:
-          "Watch long-form videos from creators on YourWorld — full player, likes, comments and downloads.",
-      },
-      { property: "og:title", content: "Video — YourWorld" },
-      {
-        property: "og:description",
-        content: "Watch long-form videos from creators on YourWorld.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: VideoPage,
+  meta: () => [
+    { title: "Reels - YourWorld" },
+    { name: "description", content: "Watch world-class trending reels on YourWorld." },
+  ],
+  component: WorldClassReelsPage,
 });
 
-function VideoPage() {
-  const { videos, loading, currentUserId, countView, toggleLike, reload } = useLongVideos();
-  const { saved, toggleSave } = usePostSaves();
+function WorldClassReelsPage() {
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(15200);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+    setLikeCount(prev => (isLiked ? prev - 1 : prev + 1));
+  };
 
   return (
-    <main className="min-h-screen bg-[#0d0d0f] text-white pb-28">
-      <div className="sticky top-0 z-40 flex items-center gap-2 border-b border-zinc-900/50 bg-[#0d0d0f]/90 px-4 py-3 backdrop-blur-md">
-        <Film className="h-5 w-5 text-pink-500" />
-        <h1 className="text-xl font-extrabold tracking-wide">Video</h1>
-      </div>
-
-      <div className="mx-auto w-full max-w-2xl space-y-4 py-4">
-        {videos.map((v) => (
-          <LongVideoCard
-            key={v.id}
-            video={v}
-            onView={countView}
-            onLike={toggleLike}
-            currentUserId={currentUserId}
-            isSaved={!!saved[v.id]}
-            onToggleSave={toggleSave}
-            onDeleted={() => void reload()}
-          />
-        ))}
-
-        {!loading && videos.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-20 text-center">
-            <Film className="h-10 w-10 text-zinc-700" />
-            <p className="text-sm text-zinc-400">No videos yet</p>
-            <p className="text-xs text-zinc-500">Long videos from creators will show up here.</p>
+    <div className="relative h-screen w-full bg-black text-white overflow-hidden flex justify-center items-center font-sans select-none">
+      {/* Edge-to-Edge Container */}
+      <div className="relative h-full w-full max-w-md bg-black overflow-hidden flex flex-col justify-between shadow-2xl">
+        
+        {/* Top Header Overlay */}
+        <div className="absolute top-4 left-4 right-4 z-30 flex justify-between items-center text-white font-bold drop-shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black tracking-wider bg-gradient-to-r from-pink-500 to-purple-400 bg-clip-text text-transparent">
+              YourWorld
+            </span>
+            <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
           </div>
-        )}
+          <button 
+            onClick={() => setIsMuted(!isMuted)} 
+            className="p-2.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10 active:scale-95 transition"
+          >
+            {isMuted ? <VolumeX className="w-5 h-5 text-white/80" /> : <Volume2 className="w-5 h-5 text-white" />}
+          </button>
+        </div>
+
+        {/* Premium Full-Screen Video Frame */}
+        <div className="absolute inset-0 z-0 bg-neutral-900 flex items-center justify-center">
+          <video 
+            className="h-full w-full object-cover" 
+            src="https://assets.mixkit.co/videos/preview/mixkit-vertical-shot-of-a-woman-with-a-laptop-42981-large.mp4" 
+            autoPlay 
+            loop 
+            muted={isMuted} 
+            playsInline
+          />
+        </div>
+
+        {/* Right Floating Action Sidebar */}
+        <div className="absolute right-3 bottom-20 z-30 flex flex-col items-center gap-5 text-white">
+          
+          {/* Like */}
+          <button onClick={handleLike} className="flex flex-col items-center gap-1 group">
+            <div className={`p-3 rounded-full backdrop-blur-md border border-white/10 transition-all duration-300 group-active:scale-125 ${
+              isLiked ? "bg-pink-600/30 border-pink-500/50" : "bg-black/40"
+            }`}>
+              <Heart className={`w-7 h-7 transition-colors ${isLiked ? "fill-pink-500 text-pink-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]" : "text-white"}`} />
+            </div>
+            <span className="text-xs font-bold tracking-wide drop-shadow-md">{(likeCount / 1000).toFixed(1)}k</span>
+          </button>
+
+          {/* Comment */}
+          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+            <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+              <MessageCircle className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-xs font-bold tracking-wide drop-shadow-md">842</span>
+          </button>
+
+          {/* Share */}
+          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+            <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+              <Share2 className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-xs font-bold tracking-wide drop-shadow-md">Share</span>
+          </button>
+
+          {/* Bookmark / Save */}
+          <button onClick={() => setIsBookmarked(!isBookmarked)} className="flex flex-col items-center gap-1 group active:scale-95 transition">
+            <div className={`p-3 rounded-full backdrop-blur-md border border-white/10 ${
+              isBookmarked ? "bg-yellow-500/30 border-yellow-400/50" : "bg-black/40"
+            }`}>
+              <Bookmark className={`w-7 h-7 ${isBookmarked ? "fill-yellow-400 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]" : "text-white"}`} />
+            </div>
+            <span className="text-xs font-bold tracking-wide drop-shadow-md">Save</span>
+          </button>
+
+          {/* Download */}
+          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+            <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+              <Download className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-xs font-bold tracking-wide drop-shadow-md">Save HD</span>
+          </button>
+
+          {/* 3-Dot More Options */}
+          <button className="flex flex-col items-center gap-1 group active:scale-95 transition">
+            <div className="p-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+              <MoreVertical className="w-7 h-7 text-white" />
+            </div>
+          </button>
+
+          {/* Rotating Audio Disc */}
+          <div className="w-10 h-10 rounded-full border-2 border-white/80 overflow-hidden animate-[spin_4s_linear_infinite] mt-1 shadow-lg">
+            <div className="w-full h-full bg-gradient-to-tr from-pink-500 via-purple-600 to-blue-500 flex items-center justify-center">
+              <Music className="w-4 h-4 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Left Creator Info & Audio Tag */}
+        <div className="absolute bottom-6 left-4 right-20 z-30 flex flex-col gap-3 text-white drop-shadow-xl">
+          
+          {/* Creator Profile */}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <img 
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" 
+                alt="profile" 
+                className="w-11 h-11 rounded-full border-2 border-pink-500 object-cover p-0.5"
+              />
+              {!isFollowing && (
+                <button 
+                  onClick={() => setIsFollowing(true)}
+                  className="absolute -bottom-1 -right-1 bg-pink-600 hover:bg-pink-500 rounded-full p-1 shadow-md transition"
+                >
+                  <Plus className="w-3 h-3 text-white" />
+                </button>
+              )}
+            </div>
+            
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm tracking-wide">@priya_official</span>
+                <button 
+                  onClick={() => setIsFollowing(!isFollowing)}
+                  className={`text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border transition-all ${
+                    isFollowing 
+                      ? "bg-white/20 border-white/30 text-white" 
+                      : "bg-pink-600 border-pink-500 text-white shadow-md shadow-pink-600/40"
+                  }`}
+                >
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Reel Caption */}
+          <p className="text-sm line-clamp-2 pr-2 font-normal text-gray-100 leading-snug drop-shadow">
+            Experience the future with <span className="font-bold text-pink-400">#YourWorld</span>! World class vibes only 🔥 ✨ #Reels #Trending #Viral
+          </p>
+
+          {/* Scrolling Sound Bar */}
+          <div className="flex items-center gap-2 text-xs text-gray-200 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10">
+            <Music className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
+            <span className="truncate max-w-[180px] font-medium">Original Audio - Priya • Trending Hits</span>
+          </div>
+        </div>
+
       </div>
-    </main>
+    </div>
   );
 }
