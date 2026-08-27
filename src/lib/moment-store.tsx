@@ -283,6 +283,7 @@ async function signMomentMedia(list: MyMoment[]) {
 export function MomentProvider({ children }: { children: ReactNode }) {
   const [moments, setMoments] = useState<MyMoment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => Date.now());
   const uidRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
@@ -376,6 +377,24 @@ export function MomentProvider({ children }: { children: ReactNode }) {
     };
   }, [load]);
 
+  // Expiry clock: re-evaluate every 30s so 12h/24h moments disappear on time
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Auto-archive my own expired moments in the DB so they stop being served
+  useEffect(() => {
+    const expiredMine = moments.filter(
+      (m) => m.mine && !m.archived && m.expiresAt && m.expiresAt <= now && !m.id.startsWith("pending-"),
+    );
+    if (!expiredMine.length) return;
+    void supabase
+      .from("moments")
+      .update({ archived: true })
+      .in("id", expiredMine.map((m) => m.id));
+  }, [moments, now]);
+
   const patch = useCallback(
     (id: string, fn: (m: MyMoment) => MyMoment) =>
       setMoments((p) => p.map((m) => (m.id === id ? fn(m) : m))),
@@ -384,8 +403,10 @@ export function MomentProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Store>(
     () => ({
-      moments: moments.filter((m) => !m.archived),
-      archive: moments.filter((m) => m.archived),
+      moments: moments.filter(
+        (m) => !m.archived && !(m.expiresAt && m.expiresAt <= now),
+      ),
+      archive: moments.filter((m) => m.archived || (m.expiresAt ? m.expiresAt <= now : false)),
       loading,
       addMoment: (m) => {
         const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
