@@ -479,7 +479,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       });
     } else if (call) {
       signal({ type: "end" });
-      const cancel = supabase.channel(`calls-user-${call.peerId}`);
+      const cancel = supabase.channel(`calls-user-${call.peerId}`, {
+        config: { private: true },
+      });
       cancel.subscribe((s) => {
         if (s === "SUBSCRIBED") {
           void cancel
