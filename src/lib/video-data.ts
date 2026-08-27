@@ -202,19 +202,30 @@ export function useLongVideos() {
           commentCount: (comments ?? []).filter((c) => c.post_id === p.id).length,
           likedByMe: !!uid && (likes ?? []).some((l) => l.post_id === p.id && l.user_id === uid),
         } satisfies LongVideo;
-      }),
-    );
+    });
+    setVideos(next);
+    cacheSet("long-videos", next.slice(0, 15));
     setLoading(false);
   }, []);
 
   useEffect(() => {
     void load();
-    const channel = supabase
-      .channel("long-videos")
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => void load())
-      .subscribe();
+    let timer: number | undefined;
+    const queue = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void load(), 500);
+    };
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const boot = window.setTimeout(() => {
+      channel = supabase
+        .channel("long-videos")
+        .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, queue)
+        .subscribe();
+    }, 300);
     return () => {
-      void supabase.removeChannel(channel);
+      window.clearTimeout(boot);
+      window.clearTimeout(timer);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [load]);
 
