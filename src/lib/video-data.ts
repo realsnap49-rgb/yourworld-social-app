@@ -137,8 +137,9 @@ export async function publishLongVideo(opts: {
 
 /** Live list of published long videos (scheduled ones appear at their release time). */
 export function useLongVideos() {
-  const [videos, setVideos] = useState<LongVideo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = useMemo(() => cacheGet<LongVideo[]>("long-videos", 10 * 60_000), []);
+  const [videos, setVideos] = useState<LongVideo[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached?.length);
   const [me, setMe] = useState<string | null>(null);
 
   const load = useCallback(async () => {
