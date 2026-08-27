@@ -417,7 +417,7 @@ export function MomentProvider({ children }: { children: ReactNode }) {
         ids.forEach((id) => archivingRef.current.delete(id));
         if (error) void load();
       });
-  }, [moments, now]);
+  }, [moments, now, load]);
 
   const patch = useCallback(
     (id: string, fn: (m: MyMoment) => MyMoment) =>
