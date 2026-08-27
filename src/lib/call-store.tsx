@@ -259,7 +259,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const openSignalChannel = useCallback(
     (callId: string, mode: CallMode, isCaller: boolean) =>
       new Promise<void>((resolve) => {
-        const ch = supabase.channel(`rtc-${callId}`, { config: { broadcast: { self: false } } });
+        const ch = supabase.channel(`rtc-${callId}`, {
+          config: { broadcast: { self: false }, private: true },
+        });
         sigRef.current = ch;
         ch.on("broadcast", { event: "signal" }, async ({ payload }) => {
           const pc = pcRef.current;
@@ -317,16 +319,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const listen = () => {
       if (!alive) return;
       ch = supabase
-        .channel(`calls-user-${me}`, { config: { broadcast: { self: false } } })
+        .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
         if (!payload?.callId || seen.has(payload.callId)) return;
         seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
-          supabase.channel(`rtc-${payload.callId}`).subscribe((s) => {
+          supabase.channel(`rtc-${payload.callId}`, { config: { private: true } }).subscribe((s) => {
             if (s === "SUBSCRIBED") {
               void supabase
-                .channel(`rtc-${payload.callId}`)
+                .channel(`rtc-${payload.callId}`, { config: { private: true } })
                 .send({ type: "broadcast", event: "signal", payload: { type: "decline" } });
             }
           });
@@ -467,7 +469,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
-      const ch = supabase.channel(`rtc-${call.callId}`);
+      const ch = supabase.channel(`rtc-${call.callId}`, { config: { private: true } });
       ch.subscribe((s) => {
         if (s === "SUBSCRIBED") {
           void ch
