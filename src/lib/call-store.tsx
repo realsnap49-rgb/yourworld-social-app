@@ -337,6 +337,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
         .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
         if (!payload?.callId || seen.has(payload.callId)) return;
+        // Only accept rings whose signalling topic we are actually a participant of.
+        if (!String(payload.callId).includes(me)) return;
         seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
