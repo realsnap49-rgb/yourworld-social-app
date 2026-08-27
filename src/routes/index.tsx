@@ -3,8 +3,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSocialPosts } from "@/lib/social-data";
 import { usePostSaves } from "@/lib/post-actions";
 import { FeedPostCard } from "@/components/yw/FeedPostCard";
-import { useLongVideos } from "@/lib/video-data";
-import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { Search, Heart, Plus, ImagePlus } from "lucide-react";
 import { useMoments } from "@/lib/moment-store";
 import { useAlertsCount } from "@/lib/alerts-count";
