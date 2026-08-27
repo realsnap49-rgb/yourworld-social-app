@@ -208,6 +208,7 @@ function HomePage() {
           <div key={reel.id} className="px-3">
             <FeedPostCard
               post={reel}
+              reel
               currentUserId={reelUserId}
               onToggleLike={toggleReelLike}
               isSaved={!!saved[reel.id]}
@@ -216,6 +217,7 @@ function HomePage() {
             />
           </div>
         ))}
+
         {posts.map((post) => (
           <div key={post.id} className="px-3">
             <FeedPostCard
