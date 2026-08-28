@@ -12,6 +12,7 @@ const LS_KEY = "yw.chat.names";
 
 let cache: Record<string, string> | null = null;
 const listeners = new Set<() => void>();
+let localRevision = 0;
 
 function readLocal(): Record<string, string> {
   try {
@@ -49,35 +50,41 @@ export function chatDisplayName(peerId: string | null | undefined, fallback: str
 
 /** Update locally (instant) — the caller persists to the database. */
 export function setChatNameLocal(peerId: string, name: string | null) {
+  if (!peerId) return;
   const map = { ...getChatNames() };
   if (name && name.trim()) map[peerId] = name.trim();
   else delete map[peerId];
   cache = map;
+  localRevision += 1;
   writeLocal(map);
   emit();
 }
 
 /** Persist a custom display name for a contact, forever, until changed again. */
 export async function saveChatDisplayName(peerId: string, name: string | null) {
+  if (!peerId) return false;
   setChatNameLocal(peerId, name);
   const { data } = await supabase.auth.getUser();
   const me = data.user?.id;
-  if (!me) return;
-  await supabase.from("orbit_chat_settings").upsert(
+  if (!me) return false;
+  const { error } = await supabase.from("orbit_chat_settings").upsert(
     { user_id: me, peer_id: peerId, display_name: name?.trim() || null } as never,
     { onConflict: "user_id,peer_id" },
   );
+  return !error;
 }
 
 /** Pull every saved custom name for the signed-in user into the local map. */
 export async function refreshChatNames() {
+  const revisionAtStart = localRevision;
   const { data: auth } = await supabase.auth.getUser();
   const me = auth.user?.id;
   if (!me) return;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("orbit_chat_settings")
     .select("peer_id,display_name")
     .eq("user_id", me);
+  if (error || revisionAtStart !== localRevision) return;
   const rows = (data ?? []) as { peer_id: string; display_name: string | null }[];
   const map: Record<string, string> = {};
   rows.forEach((r) => {
@@ -104,6 +111,6 @@ export function useChatNames() {
   return {
     names,
     nameFor: (peerId: string | null | undefined, fallback: string) =>
-      peerId && names[peerId] ? names[peerId]! : fallback,
+      (peerId ? names[peerId] : undefined) || fallback,
   };
 }

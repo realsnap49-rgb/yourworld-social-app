@@ -401,12 +401,12 @@ function ChatListPage() {
                     />
                   ) : (
                     <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 text-base font-bold">
-                      {(p.display_name || p.username || "?").charAt(0).toUpperCase()}
+                      {nameFor(p.id, p.display_name || p.username || "?").charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">
-                      {p.display_name || p.username || `User ${p.id.slice(0, 6)}`}
+                      {nameFor(p.id, p.display_name || p.username || `User ${p.id.slice(0, 6)}`)}
                     </p>
                     {p.username ? (
                       <p className="truncate text-xs text-gray-400">@{p.username}</p>
