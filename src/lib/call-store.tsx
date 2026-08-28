@@ -429,7 +429,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", wake);
       if (ch) void supabase.removeChannel(ch);
     };
-  }, [me, teardown]);
+  }, [me, teardown, httpBroadcast]);
 
   const phaseRef = useRef<Phase>("idle");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
