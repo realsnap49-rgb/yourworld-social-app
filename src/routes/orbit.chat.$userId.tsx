@@ -622,7 +622,7 @@ function OrbitChatPage() {
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-[70]" onClick={() => setMenuOpen(false)} />
-            <div className="absolute right-3 top-14 z-[80] w-64 rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
+            <div className="absolute right-2 top-full z-[80] mt-1 max-h-[70vh] w-64 overflow-y-auto rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
               <MenuItem
                 icon={<Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
                 label="Change Display Name"
