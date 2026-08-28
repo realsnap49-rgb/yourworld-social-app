@@ -112,8 +112,8 @@ function HomePage() {
             className="relative w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center"
           >
             <div className="w-full h-full rounded-full bg-neutral-900 border-2 border-black overflow-hidden flex items-center justify-center">
-              {myLatest?.mediaUrl ? (
-                <img src={myLatest.mediaUrl} alt="My moment" className="w-full h-full object-cover" />
+              {myLatest?.media ? (
+                <img src={myLatest.media} alt="My moment" className="w-full h-full object-cover" />
               ) : (
                 <Plus className="w-6 h-6 text-pink-500" />
               )}
