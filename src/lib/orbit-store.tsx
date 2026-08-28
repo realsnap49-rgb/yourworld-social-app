@@ -404,15 +404,17 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
         return ok;
       },
       disableOrbitLock: () =>
-        setState((s) => ({
-          ...s,
-          privacy: { ...s.privacy, lockEnabled: false, pinSalt: null, pinHash: null },
-        })),
+        setState((s) => {
+          const privacy = { ...s.privacy, lockEnabled: false, pinSalt: null, pinHash: null };
+          void saveOrbitPrivacyRemote(privacy);
+          return { ...s, privacy };
+        }),
       toggleHiddenFrom: (id) =>
-        setState((s) => ({
-          ...s,
-          privacy: { ...s.privacy, hiddenFrom: toggleIn(s.privacy.hiddenFrom, id) },
-        })),
+        setState((s) => {
+          const privacy = { ...s.privacy, hiddenFrom: toggleIn(s.privacy.hiddenFrom, id) };
+          void saveOrbitPrivacyRemote(privacy);
+          return { ...s, privacy };
+        }),
       toggleBlocked: (id) =>
         setState((s) => {
           const privacy = { ...s.privacy, blocked: toggleIn(s.privacy.blocked, id) };
