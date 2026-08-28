@@ -501,8 +501,11 @@ export function ChatThreadPage() {
         </div>
       )}
 
-      <div className="relative flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
+      <div ref={scrollRef} onScroll={onScrollMessages} className="relative flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
         <UserWatermark username={currentUser.username} className="fixed text-white" />
+        {loadingMore ? (
+          <p className="py-1 text-center text-[11px] text-zinc-500">Loading older messages…</p>
+        ) : null}
         {messagesLoading && messages.length === 0 && (
           <div className="space-y-3.5" aria-hidden>
             {[0, 1, 2, 3, 4, 5].map((i) => (
