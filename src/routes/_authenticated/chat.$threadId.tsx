@@ -18,6 +18,7 @@ import { currentUser } from "@/lib/yw-data";
 import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
 import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
+import { useChatSettings } from "@/lib/chat-settings";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ChatThreadPage,
