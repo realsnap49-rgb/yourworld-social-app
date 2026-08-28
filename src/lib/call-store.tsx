@@ -252,12 +252,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (e.candidate) signal({ type: "ice", candidate: e.candidate.toJSON() });
       };
       pc.ontrack = (e) => {
-        const [s] = e.streams;
-        if (s) {
-          remoteStream.current = s;
-          attachStreams();
-        }
+        // Some browsers deliver tracks without a stream — build one ourselves so
+        // both the audio and video tracks always reach the <audio>/<video> tags.
+        let s = e.streams[0] ?? remoteStream.current;
+        if (!s) s = new MediaStream();
+        if (!e.streams[0] && !s.getTracks().includes(e.track)) s.addTrack(e.track);
+        remoteStream.current = s;
+        attachStreams();
       };
+
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") setPhase("active");
         if (pc.connectionState === "failed") {
