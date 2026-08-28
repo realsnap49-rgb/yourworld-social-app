@@ -191,6 +191,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
     sigRef.current?.send({ type: "broadcast", event: "signal", payload });
   }, []);
 
+  /**
+   * Sends a broadcast over REST instead of joining the topic.
+   * Realtime RLS only lets you *read* your own `calls-user-<id>` topic, so a
+   * caller can never subscribe to the callee's ring topic — but it may write
+   * to it. REST delivery uses only that write permission, which makes rings,
+   * cancels and declines arrive instantly in both Social and Orbit chats.
+   */
+  const httpBroadcast = useCallback(
+    async (topic: string, event: string, payload: Record<string, unknown>) => {
+      const ch = supabase.channel(topic, { config: { private: true } });
+      try {
+        const { data } = await supabase.auth.getSession();
+        await supabase.realtime.setAuth(data.session?.access_token);
+        await ch.httpSend(event, payload);
+      } catch (err) {
+        console.error("[call] broadcast failed", topic, event, err);
+      } finally {
+        void supabase.removeChannel(ch);
+      }
+    },
+    [],
+  );
+
+
   const attachStreams = useCallback(() => {
     if (localVideo.current && localStream.current) {
       localVideo.current.srcObject = localStream.current;
