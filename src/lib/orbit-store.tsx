@@ -392,7 +392,11 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
       setOrbitPin: async (pin: string) => {
         const salt = randomSalt();
         const pinHash = await digestPin(salt, pin);
-        setState((s) => ({ ...s, privacy: { ...s.privacy, lockEnabled: true, pinSalt: salt, pinHash } }));
+        setState((s) => {
+          const privacy = { ...s.privacy, lockEnabled: true, pinSalt: salt, pinHash };
+          void saveOrbitPrivacyRemote(privacy);
+          return { ...s, privacy };
+        });
         markUnlockedForSession();
       },
       verifyOrbitPin: async (pin: string) => {
