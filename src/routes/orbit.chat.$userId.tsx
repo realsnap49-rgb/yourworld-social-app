@@ -222,11 +222,16 @@ function OrbitChatPage() {
     let cancelled = false;
     const loadSettings = async () => {
       try {
-      const { data } = await supabase
-        .from("orbit_chat_settings")
-        .select("display_name,secret_lock_enabled,secret_pin_salt,secret_pin_hash,view_once_mode,auto_delete_seconds,screenshot_alert,recording_alert,muted,cleared_before")
-        .eq("peer_id", userId)
-        .maybeSingle();
+      const { data: authData } = await supabase.auth.getUser();
+      const me = authData.user?.id ?? null;
+      const { data } = me
+        ? await supabase
+            .from("orbit_chat_settings")
+            .select("display_name,secret_lock_enabled,secret_pin_salt,secret_pin_hash,view_once_mode,auto_delete_seconds,screenshot_alert,recording_alert,muted,cleared_before")
+            .eq("user_id", me)
+            .eq("peer_id", userId)
+            .maybeSingle()
+        : { data: null };
       const raw = window.localStorage.getItem(prefsKey);
       const local = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
       const row = data as null | Record<string, unknown>;

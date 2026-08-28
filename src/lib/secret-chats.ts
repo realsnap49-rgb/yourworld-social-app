@@ -46,11 +46,28 @@ export function useSecretChats(query: string) {
 
   useEffect(() => {
     let alive = true;
-    void fetchLocked().then((rows) => {
-      if (alive) setLocked(rows);
-    });
+    const refresh = () => {
+      void fetchLocked().then((rows) => {
+        if (alive) setLocked(rows);
+      });
+    };
+    refresh();
+    // Keep the hidden set fresh when a lock is toggled elsewhere.
+    const channel = supabase
+      .channel("secret-chats")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orbit_chat_settings" },
+        refresh,
+      )
+      .subscribe();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
     return () => {
       alive = false;
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      void supabase.removeChannel(channel);
     };
   }, []);
 
