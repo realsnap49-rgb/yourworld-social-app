@@ -677,14 +677,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                className="absolute inset-0 z-0 h-full w-full object-cover"
+                onClick={swapped ? () => setSwapped(false) : undefined}
+                className={
+                  swapped
+                    ? "absolute right-4 top-28 z-20 h-40 w-28 cursor-pointer rounded-2xl border border-white/20 object-cover shadow-2xl transition-all active:scale-95"
+                    : "absolute inset-0 z-0 h-full w-full object-cover"
+                }
               />
               <video
                 ref={localVideo}
                 autoPlay
                 playsInline
                 muted
-                className="absolute right-4 top-28 z-10 h-40 w-28 rounded-2xl border border-white/20 object-cover"
+                onClick={swapped ? undefined : () => setSwapped(true)}
+                className={
+                  swapped
+                    ? "absolute inset-0 z-0 h-full w-full object-cover"
+                    : "absolute right-4 top-28 z-20 h-40 w-28 cursor-pointer rounded-2xl border border-white/20 object-cover shadow-2xl transition-all active:scale-95"
+                }
               />
               {phase !== "incoming" && (
                 <div className="absolute right-4 top-4 z-[9999] flex gap-3">
@@ -706,6 +716,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
               )}
             </>
           )}
+
           <audio ref={remoteAudio} autoPlay className="hidden" />
 
           <div className="relative z-10 mt-12 flex flex-col gap-1 px-2">
