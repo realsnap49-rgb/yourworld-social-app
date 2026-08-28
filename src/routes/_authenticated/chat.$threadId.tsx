@@ -18,6 +18,7 @@ import { currentUser } from "@/lib/yw-data";
 import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
 import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
+import { useChatNames, saveChatDisplayName } from "@/lib/chat-names";
 import { useChatSettings } from "@/lib/chat-settings";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
@@ -187,8 +188,14 @@ export function ChatThreadPage() {
 
   // Chat options persisted per conversation in the backend.
   const { settings, patch } = useChatSettings(peer.peerId);
-  const displayName = settings.displayName ?? peer.peerName ?? "";
-  const setDisplayName = (n: string) => patch({ displayName: n });
+  const { nameFor } = useChatNames();
+  const displayName = nameFor(peer.peerId, settings.displayName ?? peer.peerName ?? "");
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const setDisplayName = (n: string) => {
+    patch({ displayName: n });
+    void saveChatDisplayName(peer.peerId ?? "", n);
+  };
 
   const secretLock = settings.secretLock;
   const viewOnce = settings.viewOnce;
@@ -440,8 +447,8 @@ export function ChatThreadPage() {
             <div className="fixed inset-0 z-[75]" onClick={() => setShowOptionsMenu(false)} />
             <div className="absolute right-4 top-14 w-64 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-[80] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
               <MenuItem icon={<Pencil size={16} className="text-zinc-400" />} label="Change Display Name" onClick={() => {
-                const name = window.prompt("Enter new display name:", displayName);
-                if (name?.trim()) { setDisplayName(name.trim()); pushSystem(`Display name changed to ${name.trim()}`); }
+                setNameDraft(displayName);
+                setNameDialogOpen(true);
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<Lock size={16} className="text-zinc-400" />} label="Secret Lock Chat" state={secretLock} onClick={() => {
@@ -1007,6 +1014,33 @@ export function ChatThreadPage() {
           className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg active:scale-95 transition-all"
         >
           <Send size={20} className="ml-0.5" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{nameDialogOpen && (
+  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-6" onClick={() => setNameDialogOpen(false)}>
+    <div className="w-full max-w-xs rounded-2xl border border-zinc-800 bg-zinc-900 p-4" onClick={(e) => e.stopPropagation()}>
+      <p className="mb-3 text-sm font-semibold text-white">Change Display Name</p>
+      <input
+        autoFocus
+        value={nameDraft}
+        onChange={(e) => setNameDraft(e.target.value)}
+        placeholder="Display name"
+        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none"
+      />
+      <div className="mt-4 flex justify-end gap-2">
+        <button className="rounded-xl px-3 py-2 text-sm text-zinc-400" onClick={() => setNameDialogOpen(false)}>Cancel</button>
+        <button
+          className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white"
+          onClick={() => {
+            const next = nameDraft.trim();
+            if (next) { setDisplayName(next); pushSystem(`Display name changed to ${next}`); }
+            setNameDialogOpen(false);
+          }}
+        >
+          Save
         </button>
       </div>
     </div>

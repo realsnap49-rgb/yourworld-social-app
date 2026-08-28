@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveThreadPeer } from "@/lib/social-data";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { deleteDirectThreads, hiddenThreadIds } from "@/lib/chat-delete";
+import { useChatNames } from "@/lib/chat-names";
 
 export const Route = createFileRoute("/_authenticated/chat/")({
   component: ChatListPage,
@@ -44,6 +45,7 @@ function ChatListPage() {
   const [deleting, setDeleting] = useState(false);
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
+  const { nameFor } = useChatNames();
 
   const toggleSelect = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -290,10 +292,10 @@ function ChatListPage() {
                     </span>
                   ) : null}
                   <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg">
-                    {chat.name.charAt(0)}
+                    {nameFor(chat.peerId, chat.name).charAt(0)}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-sm">{chat.name}</h4>
+                    <h4 className="font-semibold text-sm">{nameFor(chat.peerId, chat.name)}</h4>
                     <p className="text-xs text-gray-400 line-clamp-1">{chat.lastMessage}</p>
                   </div>
                 </div>

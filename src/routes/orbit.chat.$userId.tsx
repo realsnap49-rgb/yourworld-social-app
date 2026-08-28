@@ -46,6 +46,7 @@ import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { supabase } from "@/integrations/supabase/client";
+import { setChatNameLocal } from "@/lib/chat-names";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -230,7 +231,10 @@ function OrbitChatPage() {
       const row = data as null | Record<string, unknown>;
       const v = row ?? local;
       setDisplayName((v['displayName'] as string | null) ?? null);
-      if (row) setDisplayName((row['display_name'] as string | null) ?? null);
+      if (row) {
+        setDisplayName((row['display_name'] as string | null) ?? null);
+        setChatNameLocal(userId, (row['display_name'] as string | null) ?? null);
+      }
       const locked = row ? !!row['secret_lock_enabled'] : !!v['secretLock'];
       setSecretLock(locked);
       setSecretPinSalt((row?.['secret_pin_salt'] as string | null) ?? null);
@@ -748,6 +752,7 @@ function OrbitChatPage() {
               e.preventDefault();
               const next = nameDraft.trim();
               setDisplayName(next || null);
+              setChatNameLocal(userId, next || null);
               pushSystem(next ? `Display name changed to ${next}` : "Display name reset");
               setNameDialogOpen(false);
             }}
