@@ -46,7 +46,7 @@ import { UserWatermark } from "@/components/yw/UserWatermark";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { supabase } from "@/integrations/supabase/client";
-import { setChatNameLocal } from "@/lib/chat-names";
+import { saveChatDisplayName, setChatNameLocal, useChatNames } from "@/lib/chat-names";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -178,6 +178,7 @@ function OrbitChatPage() {
   const navigate = useNavigate();
   const orbit = useOrbit();
   const { profile: p } = useOrbitProfile(userId);
+  const { nameFor } = useChatNames();
   const [text, setText] = useState("");
   const seq = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -553,7 +554,7 @@ function OrbitChatPage() {
   };
 
   const blocked = orbit.privacy.blocked.includes(userId);
-  const name = displayName ?? p.name;
+  const name = nameFor(userId, displayName ?? p.name);
 
   const inputDisabled =
     incomingPending || declined || blocked || (!accepted && textsLeft <= 0) || selectMode;
@@ -753,6 +754,7 @@ function OrbitChatPage() {
               const next = nameDraft.trim();
               setDisplayName(next || null);
               setChatNameLocal(userId, next || null);
+              void saveChatDisplayName(userId, next || null);
               pushSystem(next ? `Display name changed to ${next}` : "Display name reset");
               setNameDialogOpen(false);
             }}

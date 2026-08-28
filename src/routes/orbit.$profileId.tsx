@@ -16,7 +16,7 @@ import { useOrbit } from "@/lib/orbit-store";
 import { sendOrbitMatch, useOrbitMatches } from "@/lib/orbit-match";
 import { moodById } from "@/lib/orbit-mood";
 import { OrbitCallActions } from "@/components/yw/OrbitCallActions";
-import { chatDisplayName } from "@/lib/chat-names";
+import { useChatNames } from "@/lib/chat-names";
 
 export const Route = createFileRoute("/orbit/$profileId")({
   head: () => ({
@@ -43,6 +43,7 @@ function OrbitProfilePage() {
   const { profileId } = Route.useParams();
   const navigate = useNavigate();
   const orbit = useOrbit();
+  const { nameFor } = useChatNames();
   const { profile: p } = useOrbitProfile(profileId);
   const { mutual, likedByMe, likesMe, refresh: refreshMatches } = useOrbitMatches();
   const iMatched = likedByMe.includes(profileId);
@@ -98,7 +99,7 @@ function OrbitProfilePage() {
         >
           <ChevronLeft className="h-5 w-5" strokeWidth={1.8} />
         </button>
-        <h1 className="font-display text-lg font-bold">{chatDisplayName(p.id, p.name)}</h1>
+        <h1 className="font-display text-lg font-bold">{nameFor(p.id, p.name)}</h1>
       </header>
 
       <div className="relative aspect-[4/5] w-full overflow-hidden">
@@ -116,7 +117,7 @@ function OrbitProfilePage() {
         <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(to_top,oklch(0.12_0.02_290/0.92),transparent)] p-5 pt-20">
           <div className="flex items-center gap-1.5">
             <h2 className="font-display text-2xl font-bold">
-              {p.name}, {p.age}
+              {nameFor(p.id, p.name)}, {p.age}
             </h2>
             {p.verified && (
               <BadgeCheck

@@ -10,7 +10,7 @@ import { FollowListDialog } from "@/components/yw/FollowListDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCount } from "@/lib/yw-data";
 import { cn } from "@/lib/utils";
-import { chatDisplayName } from "@/lib/chat-names";
+import { useChatNames } from "@/lib/chat-names";
 
 export const Route = createFileRoute("/u/$userId")({
   head: () => ({
@@ -44,6 +44,7 @@ type PublicProfile = {
 function PublicProfilePage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
+  const { nameFor } = useChatNames();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const [posts, setPosts] = useState<DbPost[]>([]);
@@ -195,7 +196,7 @@ function PublicProfilePage() {
         </div>
 
         <div className="pt-3">
-          <p className="text-sm font-semibold">{chatDisplayName(userId, profile?.display_name ?? "")}</p>
+          <p className="text-sm font-semibold">{nameFor(userId, profile?.display_name ?? "")}</p>
           {profile?.bio && (
             <p className="whitespace-pre-line pt-1 text-xs leading-relaxed text-zinc-300">
               {profile.bio}
