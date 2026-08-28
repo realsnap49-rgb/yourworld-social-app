@@ -163,10 +163,10 @@ function HomePage() {
               key={post.id}
               post={post}
               currentUserId={currentUserId}
-              onToggleLike={() => toggleLike(post.id)}
-              isSaved={saved.has(post.id)}
-              onToggleSave={() => toggleSave(post.id)}
-              onDelete={reload}
+              onToggleLike={toggleLike}
+              isSaved={!!saved[post.id]}
+              onToggleSave={toggleSave}
+              onDeleted={() => reload()}
             />
           ))
         )}
