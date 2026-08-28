@@ -150,21 +150,23 @@ function HomePage() {
       <main className="max-w-lg mx-auto px-2 sm:px-4 py-4 space-y-4">
         {loading ? (
           <div className="text-center py-12 text-neutral-500 text-sm">Loading feed...</div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12 text-neutral-500 text-sm">No posts yet. Be the first to share!</div>
+        ) : videos.length === 0 ? (
+          <div className="text-center py-12 text-neutral-500 text-sm">No videos yet. Be the first to share!</div>
         ) : (
-          posts.map((post) => (
-            <FeedPostCard
-              key={post.id}
-              post={post}
+          videos.map((video) => (
+            <LongVideoCard
+              key={video.id}
+              video={video}
               currentUserId={currentUserId}
-              onToggleLike={toggleLike}
-              isSaved={!!saved[post.id]}
+              onView={countView}
+              onLike={toggleLike}
+              isSaved={!!saved[video.id]}
               onToggleSave={toggleSave}
               onDeleted={() => reload()}
             />
           ))
         )}
+
       </main>
     </div>
   );
