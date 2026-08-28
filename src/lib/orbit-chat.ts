@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadOrbitMedia } from "@/lib/orbit-live";
+import { loadCachedThread, saveCachedThread, PAGE_SIZE } from "@/lib/chat-db";
 
 export type OrbitMsgKind = "text" | "photo" | "video" | "audio" | "system";
 
