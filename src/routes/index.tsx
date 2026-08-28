@@ -25,11 +25,13 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const navigate = useNavigate();
+  const [hydrated, setHydrated] = React.useState(false);
   const { videos, loading, currentUserId, countView, toggleLike, reload } = useLongVideos();
   const { saved, toggleSave } = usePostSaves();
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
 
+  React.useEffect(() => setHydrated(true), []);
 
   // Keep the fullscreen swipe queue in sync with the feed.
   React.useEffect(() => {
@@ -159,7 +161,7 @@ function HomePage() {
 
       {/* Main Long Video Feed */}
       <main className="max-w-lg mx-auto px-2 sm:px-4 py-4 space-y-4">
-        {loading ? (
+        {!hydrated || loading ? (
           <div className="text-center py-12 text-neutral-500 text-sm">Loading feed...</div>
         ) : videos.length === 0 ? (
           <div className="text-center py-12 text-neutral-500 text-sm">No videos yet. Be the first to share!</div>

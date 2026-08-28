@@ -559,7 +559,7 @@ function OrbitChatPage() {
 
   return (
     <main className="flex h-[100dvh] flex-col overflow-hidden">
-      <header className="relative flex shrink-0 items-center gap-2 border-b border-border glass px-3 py-2.5">
+      <header className="relative z-[100] flex shrink-0 items-center gap-2 border-b border-border glass px-3 py-2.5">
         <button
           type="button"
           onClick={() => navigate({ to: "/orbit/messages" })}
@@ -621,8 +621,8 @@ function OrbitChatPage() {
         </div>
         {menuOpen && (
           <>
-            <div className="fixed inset-0 z-[70]" onClick={() => setMenuOpen(false)} />
-            <div className="absolute right-2 top-full z-[80] mt-1 max-h-[70vh] w-64 overflow-y-auto rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
+            <div className="fixed inset-0 z-[101]" onClick={() => setMenuOpen(false)} />
+            <div className="fixed right-2 top-14 z-[102] max-h-[calc(100dvh-4rem)] w-64 overflow-y-auto rounded-2xl border border-border bg-popover/95 p-2 shadow-2xl backdrop-blur-md">
               <MenuItem
                 icon={<Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
                 label="Change Display Name"
