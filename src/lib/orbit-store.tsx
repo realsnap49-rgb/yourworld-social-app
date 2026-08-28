@@ -392,7 +392,11 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
       setOrbitPin: async (pin: string) => {
         const salt = randomSalt();
         const pinHash = await digestPin(salt, pin);
-        setState((s) => ({ ...s, privacy: { ...s.privacy, lockEnabled: true, pinSalt: salt, pinHash } }));
+        setState((s) => {
+          const privacy = { ...s.privacy, lockEnabled: true, pinSalt: salt, pinHash };
+          void saveOrbitPrivacyRemote(privacy);
+          return { ...s, privacy };
+        });
         markUnlockedForSession();
       },
       verifyOrbitPin: async (pin: string) => {
@@ -404,15 +408,17 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
         return ok;
       },
       disableOrbitLock: () =>
-        setState((s) => ({
-          ...s,
-          privacy: { ...s.privacy, lockEnabled: false, pinSalt: null, pinHash: null },
-        })),
+        setState((s) => {
+          const privacy = { ...s.privacy, lockEnabled: false, pinSalt: null, pinHash: null };
+          void saveOrbitPrivacyRemote(privacy);
+          return { ...s, privacy };
+        }),
       toggleHiddenFrom: (id) =>
-        setState((s) => ({
-          ...s,
-          privacy: { ...s.privacy, hiddenFrom: toggleIn(s.privacy.hiddenFrom, id) },
-        })),
+        setState((s) => {
+          const privacy = { ...s.privacy, hiddenFrom: toggleIn(s.privacy.hiddenFrom, id) };
+          void saveOrbitPrivacyRemote(privacy);
+          return { ...s, privacy };
+        }),
       toggleBlocked: (id) =>
         setState((s) => {
           const privacy = { ...s.privacy, blocked: toggleIn(s.privacy.blocked, id) };
