@@ -360,15 +360,33 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
   const [loading, setLoading] = useState(
     () => (cacheGet<DbMessage[]>(`thread:${threadId}`) ?? []).length === 0,
   );
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const messagesRef = useRef<DbMessage[]>([]);
   useEffect(() => {
     messagesRef.current = messages;
     // Persist a small tail of the thread for the next instant open.
-    cacheSet(
-      `thread:${threadId}`,
-      messages.filter((m) => !m.id.startsWith("tmp-")).slice(-40),
-    );
+    const persistable = messages.filter((m) => !m.id.startsWith("tmp-"));
+    cacheSet(`thread:${threadId}`, persistable.slice(-40));
+    saveCachedThread(`dm:${threadId}`, persistable);
   }, [messages, threadId]);
+
+  // Deeper offline history lives in IndexedDB — merge it in as soon as it reads.
+  useEffect(() => {
+    let alive = true;
+    void loadCachedThread<DbMessage>(`dm:${threadId}`).then((rows) => {
+      if (!alive || !rows?.length) return;
+      setMessages((prev) => {
+        const map = new Map(rows.map((r) => [r.id, r]));
+        for (const m of prev) map.set(m.id, m);
+        return [...map.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+      });
+      setLoading(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [threadId]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -376,12 +394,46 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
       .select("id,thread_id,sender_id,content,media_url,media_type,is_read,created_at")
       .eq("thread_id", threadId)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(PAGE_SIZE);
     const rows = ((data ?? []) as DbMessage[]).slice().reverse();
-    // Keep any still-pending optimistic messages on screen.
-    setMessages((prev) => [...rows, ...prev.filter((m) => m.id.startsWith("tmp-"))]);
+    setHasMore(rows.length >= PAGE_SIZE);
+    // Keep any still-pending optimistic messages plus older pages already loaded.
+    setMessages((prev) => {
+      const map = new Map(prev.filter((m) => !m.id.startsWith("tmp-")).map((m) => [m.id, m]));
+      const oldest = rows[0]?.created_at;
+      // Drop stale cached rows that the server no longer returns in this window.
+      if (oldest) for (const [id, m] of map) if (m.created_at >= oldest) map.delete(id);
+      for (const r of rows) map.set(r.id, r);
+      const merged = [...map.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+      return [...merged, ...prev.filter((m) => m.id.startsWith("tmp-"))];
+    });
     setLoading(false);
   }, [threadId]);
+
+  /** Infinite scroll: pull the previous page of older messages. */
+  const loadOlder = useCallback(async () => {
+    const oldest = messagesRef.current.find((m) => !m.id.startsWith("tmp-"))?.created_at;
+    if (!oldest || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const { data } = await supabase
+      .from("direct_messages")
+      .select("id,thread_id,sender_id,content,media_url,media_type,is_read,created_at")
+      .eq("thread_id", threadId)
+      .lt("created_at", oldest)
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
+    const rows = ((data ?? []) as DbMessage[]).slice().reverse();
+    setHasMore(rows.length >= PAGE_SIZE);
+    if (rows.length) {
+      setMessages((prev) => {
+        const map = new Map(rows.map((r) => [r.id, r] as const));
+        for (const m of prev) map.set(m.id, m);
+        return [...map.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+      });
+    }
+    setLoadingMore(false);
+  }, [threadId, loadingMore, hasMore]);
+
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null));
