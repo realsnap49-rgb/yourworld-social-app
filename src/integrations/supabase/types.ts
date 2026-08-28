@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      calls: {
+        Row: {
+          call_id: string
+          callee_id: string
+          caller_id: string
+          caller_name: string | null
+          created_at: string
+          id: string
+          mode: string
+          status: string
+          thread_id: string | null
+        }
+        Insert: {
+          call_id: string
+          callee_id: string
+          caller_id: string
+          caller_name?: string | null
+          created_at?: string
+          id?: string
+          mode?: string
+          status?: string
+          thread_id?: string | null
+        }
+        Update: {
+          call_id?: string
+          callee_id?: string
+          caller_id?: string
+          caller_name?: string | null
+          created_at?: string
+          id?: string
+          mode?: string
+          status?: string
+          thread_id?: string | null
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           content: string

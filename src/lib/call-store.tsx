@@ -160,6 +160,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteVideo = useRef<HTMLVideoElement | null>(null);
   const remoteAudio = useRef<HTMLAudioElement | null>(null);
   const remoteStream = useRef<MediaStream | null>(null);
+  /** Call ids we've already reacted to (broadcast + database ring paths). */
+  const seenCalls = useRef<Set<string>>(new Set());
+
 
   useRingtone(
     phase === "incoming" ? "incoming" : phase === "outgoing" ? "ringback" : null,
@@ -420,7 +423,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let retry: ReturnType<typeof setTimeout> | null = null;
     let alive = true;
     let connecting = false;
-    const seen = new Set<string>();
 
     const listen = async () => {
       if (!alive || connecting || ch) return;
@@ -439,10 +441,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const nextChannel = supabase
         .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
-        if (!payload?.callId || seen.has(payload.callId)) return;
+        if (!payload?.callId || seenCalls.current.has(payload.callId)) return;
         // Only accept rings whose signalling topic we are actually a participant of.
         if (!String(payload.callId).includes(me)) return;
-        seen.add(payload.callId);
+        seenCalls.current.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
           void httpBroadcast(`rtc-${payload.callId}`, "signal", { type: "decline" });
@@ -509,6 +511,65 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const phaseRef = useRef<Phase>("idle");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  const callRef = useRef<CallState | null>(null);
+  useEffect(() => { callRef.current = call; }, [call]);
+
+  /* ---------- durable ring listener (database, works app-wide) ---------- */
+  useEffect(() => {
+    if (!authId) return;
+    const me2 = authId;
+    const ch = supabase
+      .channel(`calls-db-${me2}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "calls", filter: `callee_id=eq.${me2}` },
+        ({ new: row }: { new: Record<string, unknown> }) => {
+          const callId = String(row.call_id ?? "");
+          if (!callId || seenCalls.current.has(callId)) return;
+          if (row.status !== "ringing") return;
+          // Ignore stale rows (e.g. replayed after a reconnect).
+          const age = Date.now() - new Date(String(row.created_at)).getTime();
+          if (age > 60_000) return;
+          seenCalls.current.add(callId);
+          if (pcRef.current || phaseRef.current !== "idle") {
+            void supabase.from("calls").update({ status: "declined" }).eq("call_id", callId);
+            void httpBroadcast(`rtc-${callId}`, "signal", { type: "decline" });
+            return;
+          }
+          const mode = (row.mode === "video" ? "video" : "audio") as CallMode;
+          setCall({
+            callId,
+            mode,
+            peerId: String(row.caller_id),
+            peerName: (row.caller_name as string) || "Incoming call",
+            incoming: true,
+          });
+          setPhase("incoming");
+          toast.message(`Incoming ${mode === "video" ? "video" : "voice"} call`, {
+            description: (row.caller_name as string) || "Someone is calling you",
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "calls", filter: `callee_id=eq.${me2}` },
+        ({ new: row }: { new: Record<string, unknown> }) => {
+          const callId = String(row.call_id ?? "");
+          const status = String(row.status ?? "");
+          if (phaseRef.current !== "incoming") return;
+          if (callId !== callRef.current?.callId) return;
+          if (status === "ended" || status === "cancelled") {
+            toast.message("Missed call");
+            teardown();
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [authId, teardown, httpBroadcast]);
+
 
   /* ---------- start an outgoing call ---------- */
   const startCall = useCallback<Ctx["startCall"]>(
@@ -560,7 +621,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await openSignalChannel(callId, mode, true);
 
       const ringPayload = { callId, mode, fromId: me, fromName: myName, threadId };
+      seenCalls.current.add(callId);
+      // Durable ring: a row the callee's realtime subscription always receives,
+      // so the incoming-call screen pops app-wide (WhatsApp / Instagram style).
+      if (!isGuest) {
+        void supabase.from("calls").insert({
+          call_id: callId,
+          caller_id: me,
+          callee_id: target,
+          caller_name: myName,
+          mode,
+          thread_id: threadId ?? null,
+          status: "ringing",
+        });
+      }
       void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
+
       // Re-send a few times: the receiver may still be re-joining its channel.
       let sent = 1;
       const timer = window.setInterval(() => {
@@ -594,13 +670,19 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
       void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "decline" });
+      void supabase
+        .from("calls")
+        .update({ status: "declined" })
+        .eq("call_id", call.callId);
     } else if (call) {
       signal({ type: "end" });
       void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "end" });
       void httpBroadcast(`calls-user-${call.peerId}`, "cancel", { callId: call.callId });
+      void supabase.from("calls").update({ status: "ended" }).eq("call_id", call.callId);
     }
     teardown();
   }, [call, phase, signal, teardown, httpBroadcast]);
+
 
 
   const toggleMic = () => {
