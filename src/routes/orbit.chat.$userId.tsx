@@ -161,6 +161,16 @@ function MenuItem({
   );
 }
 
+const AUTO_DELETE_OPTIONS = [
+  { value: 0, label: "Off" },
+  { value: 3600, label: "1 hour" },
+  { value: 86400, label: "24 hours" },
+  { value: 604800, label: "7 days" },
+] as const;
+
+function autoDeleteLabel(seconds: number) {
+  return AUTO_DELETE_OPTIONS.find((o) => o.value === seconds)?.label ?? `${Math.round(seconds / 60)}m`;
+}
 
 function OrbitChatPage() {
   const { userId } = Route.useParams();
