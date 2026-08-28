@@ -513,6 +513,63 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const phaseRef = useRef<Phase>("idle");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
+  /* ---------- durable ring listener (database, works app-wide) ---------- */
+  useEffect(() => {
+    if (!authId) return;
+    const me2 = authId;
+    const ch = supabase
+      .channel(`calls-db-${me2}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "calls", filter: `callee_id=eq.${me2}` },
+        ({ new: row }: { new: Record<string, unknown> }) => {
+          const callId = String(row.call_id ?? "");
+          if (!callId || seenCalls.current.has(callId)) return;
+          if (row.status !== "ringing") return;
+          // Ignore stale rows (e.g. replayed after a reconnect).
+          const age = Date.now() - new Date(String(row.created_at)).getTime();
+          if (age > 60_000) return;
+          seenCalls.current.add(callId);
+          if (pcRef.current || phaseRef.current !== "idle") {
+            void supabase.from("calls").update({ status: "declined" }).eq("call_id", callId);
+            void httpBroadcast(`rtc-${callId}`, "signal", { type: "decline" });
+            return;
+          }
+          const mode = (row.mode === "video" ? "video" : "audio") as CallMode;
+          setCall({
+            callId,
+            mode,
+            peerId: String(row.caller_id),
+            peerName: (row.caller_name as string) || "Incoming call",
+            incoming: true,
+          });
+          setPhase("incoming");
+          toast.message(`Incoming ${mode === "video" ? "video" : "voice"} call`, {
+            description: (row.caller_name as string) || "Someone is calling you",
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "calls", filter: `callee_id=eq.${me2}` },
+        ({ new: row }: { new: Record<string, unknown> }) => {
+          const callId = String(row.call_id ?? "");
+          const status = String(row.status ?? "");
+          if (phaseRef.current !== "incoming") return;
+          if (callId !== callRef.current?.callId) return;
+          if (status === "ended" || status === "cancelled") {
+            toast.message("Missed call");
+            teardown();
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [authId, teardown, httpBroadcast]);
+
+
   /* ---------- start an outgoing call ---------- */
   const startCall = useCallback<Ctx["startCall"]>(
     async ({ threadId, peerId, peerName, mode }) => {
