@@ -323,6 +323,7 @@ function OrbitChatPage() {
 
   // Real, database-backed Orbit conversation (live for both users).
   const chat = useOrbitChat(userId, accepted, clearedBefore);
+  const msgScrollRef = useRef<HTMLElement>(null);
   // Local-only notes (settings changes, capture alerts) stay on this device.
   const [notes, setNotes] = useState<Msg[]>([]);
 
