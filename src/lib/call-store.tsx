@@ -176,7 +176,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return () => {
       if (hideTimer.current) window.clearTimeout(hideTimer.current);
     };
-  }, [call?.id, phase]);
+  }, [call?.callId, phase]);
 
   const pokeControls = useCallback(() => {
     setControlsVisible((v) => {
