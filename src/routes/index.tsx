@@ -1,8 +1,8 @@
-import React, { memo } from "react";
+import React from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSocialPosts } from "@/lib/social-data";
 import { usePostSaves } from "@/lib/post-actions";
-import { FeedPostCard } from "@/components/yw/FeedPostCard";
+import { LongVideoCard } from "@/components/yw/LongVideoCard";
+import { useLongVideos } from "@/lib/video-data";
 import { Search, Heart, Plus, ImagePlus } from "lucide-react";
 import { useMoments } from "@/lib/moment-store";
 import { useAlertsCount } from "@/lib/alerts-count";
@@ -24,16 +24,11 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const navigate = useNavigate();
-  const {
-    posts,
-    loading,
-    currentUserId,
-    toggleLike,
-    reload,
-  } = useSocialPosts("post");
+  const { videos, loading, currentUserId, countView, toggleLike, reload } = useLongVideos();
   const { saved, toggleSave } = usePostSaves();
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
+
 
   const myLatest = React.useMemo(
     () => moments.find((m) => m.mine),
