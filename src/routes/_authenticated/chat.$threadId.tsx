@@ -240,6 +240,12 @@ export function ChatThreadPage() {
 
   const didFirstScroll = useRef(false);
   useEffect(() => {
+    // Older pages prepend above — keep the reader anchored instead of jumping down.
+    if (keepScrollRef.current !== null && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight - keepScrollRef.current;
+      keepScrollRef.current = null;
+      return;
+    }
     const id = requestAnimationFrame(() => {
       messagesEndRef.current?.scrollIntoView({
         behavior: didFirstScroll.current ? "smooth" : "auto",
@@ -249,6 +255,14 @@ export function ChatThreadPage() {
     });
     return () => cancelAnimationFrame(id);
   }, [messages, isRecording]);
+
+  const onScrollMessages = () => {
+    const el = scrollRef.current;
+    if (!el || el.scrollTop > 80 || loadingMore || !hasMore) return;
+    keepScrollRef.current = el.scrollHeight;
+    void loadOlder();
+  };
+
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
   useCaptureDetect(true, (kind) => {
