@@ -369,13 +369,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
-          supabase.channel(`rtc-${payload.callId}`, { config: { private: true } }).subscribe((s) => {
-            if (s === "SUBSCRIBED") {
-              void supabase
-                .channel(`rtc-${payload.callId}`, { config: { private: true } })
-                .send({ type: "broadcast", event: "signal", payload: { type: "decline" } });
-            }
-          });
+          void httpBroadcast(`rtc-${payload.callId}`, "signal", { type: "decline" });
           return;
         }
         setCall({
@@ -386,6 +380,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
           incoming: true,
         });
         setPhase("incoming");
+        toast.message(
+          `Incoming ${payload.mode === "video" ? "video" : "voice"} call`,
+          { description: payload.fromName ?? "Someone is calling you" },
+        );
+
       })
         .on("broadcast", { event: "cancel" }, () => {
         if (phaseRef.current === "incoming") {
