@@ -161,6 +161,7 @@ function OrbitMessagesPage() {
       .sort((a, b) => Number(b.mutual) - Number(a.mutual) || Number(b.theyLiked) - Number(a.theyLiked));
   }, [visible, mutual, likesMe, likedByMe]);
 
+  const { nameFor } = useChatNames();
   const term = q.trim().toLowerCase();
   const chatList = term ? chats.filter((p) => p.name.toLowerCase().includes(term)) : chats;
   const matchList = term ? matches.filter((m) => m.p.name.toLowerCase().includes(term)) : matches;
@@ -304,7 +305,7 @@ function OrbitMessagesPage() {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline gap-2">
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                          {p.name}
+                          {nameFor(p.id, p.name)}
                         </span>
                         {prev && (
                           <span className="shrink-0 text-[11px] text-muted-foreground">
@@ -384,7 +385,7 @@ function OrbitMessagesPage() {
                   <div className="flex items-center gap-3">
                     <Avatar p={p} size={44} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{p.name}</p>
+                      <p className="truncate text-sm font-semibold">{nameFor(p.id, p.name)}</p>
                       <p className="truncate text-xs text-muted-foreground">
                         {r.direction === "incoming" ? "Wants to chat" : "Request sent"}
                         {r.intro ? ` · ${r.intro}` : ""}
@@ -446,7 +447,7 @@ function OrbitMessagesPage() {
                     <Avatar p={p} size={44} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">
-                        {p.name}, {p.age}
+                        {nameFor(p.id, p.name)}, {p.age}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {isMutual
