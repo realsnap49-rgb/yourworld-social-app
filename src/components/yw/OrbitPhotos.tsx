@@ -1,7 +1,5 @@
-import { useRef, useState } from "react";
-import { toast } from "sonner";
-import { uploadOrbitMedia, isLocalObjectUrl } from "@/lib/orbit-live";
-import { Plus, X, Lock, Camera, Sparkles, Wand2, Video } from "lucide-react";
+import { useRef } from "react";
+import { Plus, X, Lock, Camera, Sparkles, Wand2 } from "lucide-react";
 import {
   ORBIT_PHOTO_MAX,
   type OrbitPhoto,
@@ -52,35 +50,18 @@ export function OrbitPhotos({
   onPrivacyChange: (p: OrbitPhotoPrivacy) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const videoInput = useRef<HTMLInputElement>(null);
   const full = photos.length >= ORBIT_PHOTO_MAX;
-  const visible = photos.filter((p) => !isLocalObjectUrl(p.url));
 
-  const add = async (files: FileList | null, kind: "photo" | "video" = "photo") => {
+  const add = (files: FileList | null) => {
     if (!files?.length) return;
     const room = ORBIT_PHOTO_MAX - photos.length;
-    const picked = Array.from(files).slice(0, room);
-    if (!picked.length) return;
-    setBusy(true);
-    const toastId = toast.loading(kind === "video" ? "Uploading video…" : "Uploading…");
-    const next: OrbitPhoto[] = [];
-    for (const f of picked) {
-      const url = await uploadOrbitMedia(f);
-      if (!url) continue;
-      next.push({
+    const next = Array.from(files)
+      .slice(0, room)
+      .map((f) => ({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        url,
+        url: URL.createObjectURL(f),
         style: "real" as OrbitPhotoStyle,
-        kind,
-      });
-    }
-    setBusy(false);
-    if (!next.length) {
-      toast.error("Upload failed. Please try again.", { id: toastId });
-      return;
-    }
-    toast.success(kind === "video" ? "Video added" : "Uploaded", { id: toastId });
+      }));
     onChange([...photos, ...next]);
   };
 
@@ -91,63 +72,44 @@ export function OrbitPhotos({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-2.5">
-        {visible.map((p, i) => {
+        {photos.map((p, i) => {
           const Icon = STYLE_ICON[p.style];
-          const isVideo = p.kind === "video";
           return (
             <div
               key={p.id}
               className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-secondary"
             >
-              {isVideo ? (
-                <video
-                  src={p.url}
-                  muted
-                  playsInline
-                  loop
-                  controls={false}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <img src={p.url} alt="" className="h-full w-full object-cover" />
-              )}
-              {i === 0 && !isVideo && (
+              <img src={p.url} alt="" className="h-full w-full object-cover" />
+              {i === 0 && (
                 <span className="absolute left-1.5 top-1.5 rounded-full bg-background/75 px-2 py-0.5 text-[10px] font-medium backdrop-blur">
                   Main
-                </span>
-              )}
-              {isVideo && (
-                <span className="absolute left-1.5 top-1.5 rounded-full bg-background/75 px-2 py-0.5 text-[10px] font-medium backdrop-blur">
-                  Video
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => remove(p.id)}
-                aria-label={isVideo ? "Remove video" : "Remove photo"}
+                aria-label="Remove photo"
                 className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-background/75 backdrop-blur transition-transform active:scale-90"
               >
                 <X className="h-3.5 w-3.5" strokeWidth={1.9} />
               </button>
-              {!isVideo && (
-                <div className="absolute inset-x-1.5 bottom-1.5 flex items-center gap-1 rounded-full bg-background/70 px-1.5 py-1 backdrop-blur">
-                  <Icon className="h-3 w-3 shrink-0 text-muted-foreground" strokeWidth={1.8} />
-                  {STYLES.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      aria-label={s.label}
-                      aria-pressed={p.style === s.id}
-                      onClick={() => setStyle(p.id, s.id)}
-                      className={`grid h-5 flex-1 place-items-center rounded-full text-[11px] transition-all active:scale-90 ${
-                        p.style === s.id ? "bg-foreground/90" : "opacity-45"
-                      }`}
-                    >
-                      <span aria-hidden>{s.emoji}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="absolute inset-x-1.5 bottom-1.5 flex items-center gap-1 rounded-full bg-background/70 px-1.5 py-1 backdrop-blur">
+                <Icon className="h-3 w-3 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                {STYLES.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    aria-label={s.label}
+                    aria-pressed={p.style === s.id}
+                    onClick={() => setStyle(p.id, s.id)}
+                    className={`grid h-5 flex-1 place-items-center rounded-full text-[11px] transition-all active:scale-90 ${
+                      p.style === s.id ? "bg-foreground/90" : "opacity-45"
+                    }`}
+                  >
+                    <span aria-hidden>{s.emoji}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           );
         })}
@@ -155,25 +117,12 @@ export function OrbitPhotos({
         {!full && (
           <button
             type="button"
-            onClick={() => !busy && input.current?.click()}
+            onClick={() => input.current?.click()}
             className="grid aspect-[3/4] place-items-center rounded-2xl border border-dashed border-border bg-secondary/40 text-muted-foreground transition-transform active:scale-95"
           >
             <span className="flex flex-col items-center gap-1">
               <Plus className="h-5 w-5" strokeWidth={1.8} />
-              <span className="text-[11px]">{busy ? "Uploading…" : "Add photo"}</span>
-            </span>
-          </button>
-        )}
-
-        {!full && (
-          <button
-            type="button"
-            onClick={() => !busy && videoInput.current?.click()}
-            className="grid aspect-[3/4] place-items-center rounded-2xl border border-dashed border-border bg-secondary/40 text-muted-foreground transition-transform active:scale-95"
-          >
-            <span className="flex flex-col items-center gap-1">
-              <Video className="h-5 w-5" strokeWidth={1.8} />
-              <span className="text-[11px]">Add video</span>
+              <span className="text-[11px]">Add photo</span>
             </span>
           </button>
         )}
@@ -186,26 +135,15 @@ export function OrbitPhotos({
         multiple
         hidden
         onChange={(e) => {
-          void add(e.target.files, "photo");
-          e.target.value = "";
-        }}
-      />
-      <input
-        ref={videoInput}
-        type="file"
-        accept="video/*"
-        hidden
-        onChange={(e) => {
-          void add(e.target.files, "video");
+          add(e.target.files);
           e.target.value = "";
         }}
       />
 
       <p className="text-[11px] text-muted-foreground">
-        At least 1 photo is required · {visible.length}/{ORBIT_PHOTO_MAX} added. You can also add a
-        short intro video. Tap the icons on a photo to set its style.
+        At least 1 photo is required · {photos.length}/{ORBIT_PHOTO_MAX} added. Tap the icons on a
+        photo to set its style.
       </p>
-
 
       <div className="rounded-2xl bg-secondary/50 p-3.5">
         <p className="flex items-center gap-1.5 text-xs font-semibold">

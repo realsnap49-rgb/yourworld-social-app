@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -47,468 +47,6 @@ export type Database = {
           sender_id?: string
           thread_id?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      follows: {
-        Row: {
-          created_at: string
-          follower_id: string
-          following_id: string
-          id: string
-        }
-        Insert: {
-          created_at?: string
-          follower_id: string
-          following_id: string
-          id?: string
-        }
-        Update: {
-          created_at?: string
-          follower_id?: string
-          following_id?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      moment_replies: {
-        Row: {
-          created_at: string
-          id: string
-          moment_id: string
-          text: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          moment_id: string
-          text: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          moment_id?: string
-          text?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "moment_replies_moment_id_fkey"
-            columns: ["moment_id"]
-            isOneToOne: false
-            referencedRelation: "moments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      moment_views: {
-        Row: {
-          created_at: string
-          liked: boolean
-          moment_id: string
-          screenshot: boolean
-          viewer_id: string
-        }
-        Insert: {
-          created_at?: string
-          liked?: boolean
-          moment_id: string
-          screenshot?: boolean
-          viewer_id: string
-        }
-        Update: {
-          created_at?: string
-          liked?: boolean
-          moment_id?: string
-          screenshot?: boolean
-          viewer_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "moment_views_moment_id_fkey"
-            columns: ["moment_id"]
-            isOneToOne: false
-            referencedRelation: "moments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      moments: {
-        Row: {
-          allow_download: boolean
-          archived: boolean
-          created_at: string
-          duration: number
-          expires_at: string
-          id: string
-          kind: string
-          media_type: string | null
-          media_url: string | null
-          payload: Json
-          poll: Json | null
-          privacy: string
-          screenshot_alert: boolean
-          text: string
-          text_bg: string
-          user_id: string
-        }
-        Insert: {
-          allow_download?: boolean
-          archived?: boolean
-          created_at?: string
-          duration?: number
-          expires_at?: string
-          id?: string
-          kind?: string
-          media_type?: string | null
-          media_url?: string | null
-          payload?: Json
-          poll?: Json | null
-          privacy?: string
-          screenshot_alert?: boolean
-          text?: string
-          text_bg?: string
-          user_id: string
-        }
-        Update: {
-          allow_download?: boolean
-          archived?: boolean
-          created_at?: string
-          duration?: number
-          expires_at?: string
-          id?: string
-          kind?: string
-          media_type?: string | null
-          media_url?: string | null
-          payload?: Json
-          poll?: Json | null
-          privacy?: string
-          screenshot_alert?: boolean
-          text?: string
-          text_bg?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      orbit_chat_requests: {
-        Row: {
-          addressee_id: string
-          created_at: string
-          id: string
-          intro: string | null
-          requester_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          addressee_id: string
-          created_at?: string
-          id?: string
-          intro?: string | null
-          requester_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          addressee_id?: string
-          created_at?: string
-          id?: string
-          intro?: string | null
-          requester_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      orbit_chat_settings: {
-        Row: {
-          auto_delete_seconds: number
-          cleared_before: string | null
-          created_at: string
-          display_name: string | null
-          id: string
-          muted: boolean
-          peer_id: string
-          recording_alert: boolean
-          screenshot_alert: boolean
-          secret_lock_enabled: boolean
-          secret_pin_hash: string | null
-          secret_pin_salt: string | null
-          updated_at: string
-          user_id: string
-          view_once_mode: boolean
-        }
-        Insert: {
-          auto_delete_seconds?: number
-          cleared_before?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          muted?: boolean
-          peer_id: string
-          recording_alert?: boolean
-          screenshot_alert?: boolean
-          secret_lock_enabled?: boolean
-          secret_pin_hash?: string | null
-          secret_pin_salt?: string | null
-          updated_at?: string
-          user_id: string
-          view_once_mode?: boolean
-        }
-        Update: {
-          auto_delete_seconds?: number
-          cleared_before?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          muted?: boolean
-          peer_id?: string
-          recording_alert?: boolean
-          screenshot_alert?: boolean
-          secret_lock_enabled?: boolean
-          secret_pin_hash?: string | null
-          secret_pin_salt?: string | null
-          updated_at?: string
-          user_id?: string
-          view_once_mode?: boolean
-        }
-        Relationships: []
-      }
-      orbit_connections: {
-        Row: {
-          addressee_id: string
-          created_at: string
-          id: string
-          requester_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          addressee_id: string
-          created_at?: string
-          id?: string
-          requester_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          addressee_id?: string
-          created_at?: string
-          id?: string
-          requester_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      orbit_likes: {
-        Row: {
-          created_at: string
-          id: string
-          target_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          target_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          target_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      orbit_messages: {
-        Row: {
-          created_at: string
-          expires_at: string | null
-          id: string
-          kind: string
-          recipient_id: string
-          sender_id: string
-          text: string | null
-          updated_at: string
-          url: string | null
-          view_once: boolean
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          kind?: string
-          recipient_id: string
-          sender_id: string
-          text?: string | null
-          updated_at?: string
-          url?: string | null
-          view_once?: boolean
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          kind?: string
-          recipient_id?: string
-          sender_id?: string
-          text?: string | null
-          updated_at?: string
-          url?: string | null
-          view_once?: boolean
-        }
-        Relationships: []
-      }
-      orbit_profiles: {
-        Row: {
-          about: string
-          age: number
-          city: string
-          country: string
-          created_at: string
-          gender: string
-          hobbies: string[]
-          looking_for: string
-          mood: string | null
-          name: string
-          orbit_enabled: boolean
-          original_photo_privacy: string
-          photos: Json
-          state: string
-          updated_at: string
-          user_id: string
-          visible: boolean
-        }
-        Insert: {
-          about?: string
-          age: number
-          city?: string
-          country?: string
-          created_at?: string
-          gender?: string
-          hobbies?: string[]
-          looking_for?: string
-          mood?: string | null
-          name: string
-          orbit_enabled?: boolean
-          original_photo_privacy?: string
-          photos?: Json
-          state?: string
-          updated_at?: string
-          user_id: string
-          visible?: boolean
-        }
-        Update: {
-          about?: string
-          age?: number
-          city?: string
-          country?: string
-          created_at?: string
-          gender?: string
-          hobbies?: string[]
-          looking_for?: string
-          mood?: string | null
-          name?: string
-          orbit_enabled?: boolean
-          original_photo_privacy?: string
-          photos?: Json
-          state?: string
-          updated_at?: string
-          user_id?: string
-          visible?: boolean
-        }
-        Relationships: []
-      }
-      orbit_reports: {
-        Row: {
-          created_at: string
-          id: string
-          reason: string
-          reported_user_id: string
-          reporter_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          reason: string
-          reported_user_id: string
-          reporter_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          reason?: string
-          reported_user_id?: string
-          reporter_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      orbit_request_messages: {
-        Row: {
-          created_at: string
-          id: string
-          kind: string
-          request_id: string
-          sender_id: string
-          text: string | null
-          url: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          kind?: string
-          request_id: string
-          sender_id: string
-          text?: string | null
-          url?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          kind?: string
-          request_id?: string
-          sender_id?: string
-          text?: string | null
-          url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orbit_request_messages_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "orbit_chat_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      orbit_settings: {
-        Row: {
-          created_at: string
-          privacy: Json
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          privacy?: Json
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          privacy?: Json
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -576,136 +114,48 @@ export type Database = {
           },
         ]
       }
-      post_saves: {
-        Row: {
-          created_at: string
-          id: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_saves_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      post_views: {
-        Row: {
-          created_at: string
-          id: string
-          post_id: string
-          viewer_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          post_id: string
-          viewer_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          post_id?: string
-          viewer_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_views_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       posts: {
         Row: {
           allow_download: boolean
-          audience: string
           audio: string | null
           caption: string
           created_at: string
-          duration_seconds: number | null
           hashtags: string[]
           id: string
           kind: string
-          link: string | null
           location: string | null
           media_type: string
           media_url: string
-          orientation: string
-          scheduled_at: string | null
-          tagged_user_ids: string[]
-          thumbnail_url: string | null
-          title: string
           updated_at: string
           user_id: string
-          viewer_user_ids: string[]
-          views: number
         }
         Insert: {
           allow_download?: boolean
-          audience?: string
           audio?: string | null
           caption?: string
           created_at?: string
-          duration_seconds?: number | null
           hashtags?: string[]
           id?: string
           kind?: string
-          link?: string | null
           location?: string | null
           media_type?: string
           media_url?: string
-          orientation?: string
-          scheduled_at?: string | null
-          tagged_user_ids?: string[]
-          thumbnail_url?: string | null
-          title?: string
           updated_at?: string
           user_id: string
-          viewer_user_ids?: string[]
-          views?: number
         }
         Update: {
           allow_download?: boolean
-          audience?: string
           audio?: string | null
           caption?: string
           created_at?: string
-          duration_seconds?: number | null
           hashtags?: string[]
           id?: string
           kind?: string
-          link?: string | null
           location?: string | null
           media_type?: string
           media_url?: string
-          orientation?: string
-          scheduled_at?: string | null
-          tagged_user_ids?: string[]
-          thumbnail_url?: string | null
-          title?: string
           updated_at?: string
           user_id?: string
-          viewer_user_ids?: string[]
-          views?: number
         }
         Relationships: []
       }
@@ -713,44 +163,32 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
-          category: string | null
-          cover_url: string | null
           created_at: string
           display_name: string | null
           gender: string | null
           id: string
-          location: string | null
           updated_at: string
           username: string | null
-          website: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
-          category?: string | null
-          cover_url?: string | null
           created_at?: string
           display_name?: string | null
           gender?: string | null
           id: string
-          location?: string | null
           updated_at?: string
           username?: string | null
-          website?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
-          category?: string | null
-          cover_url?: string | null
           created_at?: string
           display_name?: string | null
           gender?: string | null
           id?: string
-          location?: string | null
           updated_at?: string
           username?: string | null
-          website?: string | null
         }
         Relationships: []
       }
@@ -775,98 +213,12 @@ export type Database = {
         }
         Relationships: []
       }
-      wallets: {
-        Row: {
-          balance: number
-          created_at: string
-          currency: string
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          balance?: number
-          created_at?: string
-          currency?: string
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          balance?: number
-          created_at?: string
-          currency?: string
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      burn_view_once: { Args: { _msg_id: string }; Returns: undefined }
-      can_view_moment: {
-        Args: { _moment_id: string; _viewer: string }
-        Returns: boolean
-      }
-      can_view_post: { Args: { _post_id: string }; Returns: boolean }
-      delete_expired_orbit_messages: { Args: never; Returns: number }
-      discover_orbit_profiles: {
-        Args: { ids?: string[] }
-        Returns: {
-          about: string
-          age: number
-          city: string
-          country: string
-          gender: string
-          hobbies: string[]
-          looking_for: string
-          mood: string
-          name: string
-          orbit_enabled: boolean
-          original_photo_privacy: string
-          photos: Json
-          state: string
-          updated_at: string
-          user_id: string
-          visible: boolean
-        }[]
-      }
-      get_follow_counts: {
-        Args: { ids: string[] }
-        Returns: {
-          followers: number
-          following: number
-          user_id: string
-        }[]
-      }
-      get_public_profiles: {
-        Args: { ids: string[] }
-        Returns: {
-          avatar_url: string
-          display_name: string
-          id: string
-          username: string
-        }[]
-      }
-      list_follows: {
-        Args: { _kind: string; _limit?: number; _user_id: string }
-        Returns: {
-          id: string
-        }[]
-      }
-      search_profiles: {
-        Args: { search?: string }
-        Returns: {
-          avatar_url: string
-          display_name: string
-          id: string
-          username: string
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

@@ -8,7 +8,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { Mic, MicOff, PhoneOff, Phone, Video, VideoOff, SwitchCamera, Zap, ZapOff } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Phone, Video, VideoOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -61,75 +61,52 @@ function getGuestCallId(): string {
   }
 }
 
-/** Builds a looping ring tone as a WAV data URL playable by an HTML5 <audio> element. */
-function buildRingToneUrl(freqs: number[], onSec: number, cycleSec: number): string {
-  const rate = 22050;
-  const total = Math.floor(rate * cycleSec);
-  const bytes = 44 + total * 2;
-  const buf = new ArrayBuffer(bytes);
-  const view = new DataView(buf);
-  const str = (off: number, s: string) => {
-    for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
-  };
-  str(0, "RIFF"); view.setUint32(4, bytes - 8, true); str(8, "WAVEfmt ");
-  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-  view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true);
-  view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-  str(36, "data"); view.setUint32(40, total * 2, true);
-  for (let i = 0; i < total; i++) {
-    const t = i / rate;
-    let v = 0;
-    if (t < onSec) {
-      for (const f of freqs) v += Math.sin(2 * Math.PI * f * t);
-      v /= freqs.length;
-      // short fades to avoid clicks
-      const fade = Math.min(1, t / 0.02, (onSec - t) / 0.02);
-      v *= Math.max(0, fade) * 0.35;
-    }
-    view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, v)) * 32767, true);
-  }
-  let bin = "";
-  const u8 = new Uint8Array(buf);
-  for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
-  return `data:audio/wav;base64,${btoa(bin)}`;
-}
-
-let incomingUrl: string | null = null;
-let ringbackUrl: string | null = null;
-
-/** HTML5 <audio> ringtone: incoming ring, or ringback while our outgoing call connects. */
-function useRingtone(kind: "incoming" | "ringback" | null) {
+/** Simple WebAudio ringtone so incoming calls actually ring on the device. */
+function useRingtone(active: boolean) {
   useEffect(() => {
-    if (!kind || typeof window === "undefined") return;
-    let audio: HTMLAudioElement | null = null;
+    if (!active || typeof window === "undefined") return;
+    let stopped = false;
+    let ctx: AudioContext | null = null;
+    let timer: ReturnType<typeof setInterval> | null = null;
     try {
-      if (kind === "incoming") {
-        incomingUrl ??= buildRingToneUrl([440, 480], 1.2, 3);
-      } else {
-        ringbackUrl ??= buildRingToneUrl([440, 480], 1, 4);
-      }
-      audio = new Audio(kind === "incoming" ? incomingUrl! : ringbackUrl!);
-      audio.loop = true;
-      audio.volume = kind === "incoming" ? 1 : 0.6;
-      void audio.play().catch(() => {});
+      const AC = window.AudioContext ?? (window as any).webkitAudioContext;
+      ctx = new AC();
+      const beep = () => {
+        if (!ctx || stopped) return;
+        const now = ctx.currentTime;
+        [0, 0.4].forEach((offset) => {
+          const osc = ctx!.createOscillator();
+          const gain = ctx!.createGain();
+          osc.type = "sine";
+          osc.frequency.value = 440;
+          gain.gain.setValueAtTime(0.0001, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.25, now + offset + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.32);
+          osc.connect(gain).connect(ctx!.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.35);
+        });
+      };
+      void ctx.resume();
+      beep();
+      timer = setInterval(beep, 2000);
     } catch {
-      /* audio blocked — UI still shows the call */
+      /* audio blocked — UI still shows the incoming call */
     }
-    if (kind === "incoming" && navigator.vibrate) {
+    if (navigator.vibrate) {
       try {
         navigator.vibrate([400, 300, 400, 300, 400]);
       } catch { /* ignore */ }
     }
     return () => {
-      if (audio) {
-        audio.pause();
-        audio.src = "";
-      }
+      stopped = true;
+      if (timer) clearInterval(timer);
+      void ctx?.close();
       if (navigator.vibrate) {
         try { navigator.vibrate(0); } catch { /* ignore */ }
       }
     };
-  }, [kind]);
+  }, [active]);
 }
 
 export function CallProvider({ children }: { children: ReactNode }) {
@@ -141,8 +118,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
-  const [flashOn, setFlashOn] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
@@ -153,9 +128,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteAudio = useRef<HTMLAudioElement | null>(null);
   const remoteStream = useRef<MediaStream | null>(null);
 
-  useRingtone(
-    phase === "incoming" ? "incoming" : phase === "outgoing" ? "ringback" : null,
-  );
+  useRingtone(phase === "incoming");
 
   /* ---------- identity ---------- */
   useEffect(() => {
@@ -183,8 +156,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setCall(null);
     setMicOn(true);
     setCamOn(true);
-    setFacingMode("user");
-    setFlashOn(false);
   }, []);
 
   const signal = useCallback((payload: Record<string, unknown>) => {
@@ -211,17 +182,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const getMedia = useCallback(async (mode: CallMode) => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: mode === "video" ? { facingMode, width: { ideal: 1280 } } : false,
+      video: mode === "video" ? { facingMode: "user", width: { ideal: 1280 } } : false,
     });
     localStream.current = stream;
     attachStreams();
     return stream;
-  }, [attachStreams, facingMode]);
+  }, [attachStreams]);
 
   const createPeer = useCallback(
     (stream: MediaStream) => {
-      // Pre-gather ICE candidates so the call connects near-instantly.
-      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, iceCandidatePoolSize: 4 });
+      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       pcRef.current = pc;
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
       pc.onicecandidate = (e) => {
@@ -258,12 +228,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   /* ---------- signalling channel for one call ---------- */
   const openSignalChannel = useCallback(
     (callId: string, mode: CallMode, isCaller: boolean) =>
-      new Promise<void>(async (resolve) => {
-        const { data: sess } = await supabase.auth.getSession();
-        await supabase.realtime.setAuth(sess.session?.access_token);
-        const ch = supabase.channel(`rtc-${callId}`, {
-          config: { broadcast: { self: false }, private: true },
-        });
+      new Promise<void>((resolve) => {
+        const ch = supabase.channel(`rtc-${callId}`, { config: { broadcast: { self: false } } });
         sigRef.current = ch;
         ch.on("broadcast", { event: "signal" }, async ({ payload }) => {
           const pc = pcRef.current;
@@ -316,36 +282,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let ch: ReturnType<typeof supabase.channel> | null = null;
     let retry: ReturnType<typeof setTimeout> | null = null;
     let alive = true;
-    let connecting = false;
     const seen = new Set<string>();
 
-    const listen = async () => {
-      if (!alive || connecting || ch) return;
-      connecting = true;
-      // Private channels are authorized against realtime.messages RLS.
-      const { data } = await supabase.auth.getSession();
-      if (!alive) {
-        connecting = false;
-        return;
-      }
-      await supabase.realtime.setAuth(data.session?.access_token);
-      if (!alive) {
-        connecting = false;
-        return;
-      }
-      const nextChannel = supabase
-        .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
+    const listen = () => {
+      if (!alive) return;
+      ch = supabase
+        .channel(`calls-user-${me}`, { config: { broadcast: { self: false } } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
         if (!payload?.callId || seen.has(payload.callId)) return;
-        // Only accept rings whose signalling topic we are actually a participant of.
-        if (!String(payload.callId).includes(me)) return;
         seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
-          supabase.channel(`rtc-${payload.callId}`, { config: { private: true } }).subscribe((s) => {
+          supabase.channel(`rtc-${payload.callId}`).subscribe((s) => {
             if (s === "SUBSCRIBED") {
               void supabase
-                .channel(`rtc-${payload.callId}`, { config: { private: true } })
+                .channel(`rtc-${payload.callId}`)
                 .send({ type: "broadcast", event: "signal", payload: { type: "decline" } });
             }
           });
@@ -368,30 +319,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
       })
         .subscribe((status) => {
           // Rejoin automatically so a dropped socket never silences incoming calls.
-          if (status === "SUBSCRIBED") connecting = false;
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            // Clear our reference before any cleanup. Calling removeChannel while
-            // handling CLOSED synchronously emits CLOSED again in some mobile
-            // browsers, which previously caused a recursive stack overflow.
-            if (ch === nextChannel) ch = null;
-            connecting = false;
-            if (status !== "CLOSED") {
-              window.setTimeout(() => void supabase.removeChannel(nextChannel), 0);
-            }
-            if (alive && !retry) {
-              retry = setTimeout(() => {
-                retry = null;
-                void listen();
-              }, 1500);
-            }
+            if (ch) void supabase.removeChannel(ch);
+            ch = null;
+            if (alive) retry = setTimeout(listen, 1500);
           }
         });
-      ch = nextChannel;
     };
-    void listen();
+    listen();
 
     const wake = () => {
-      if (document.visibilityState === "visible" && !ch && !connecting) void listen();
+      if (document.visibilityState === "visible" && !ch) listen();
     };
     document.addEventListener("visibilitychange", wake);
     window.addEventListener("online", wake);
@@ -432,9 +370,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Embed both participant ids in the call id so the realtime RLS policy can
-      // verify the subscriber is actually part of this specific call.
-      const callId = `${[me, target].sort().join(".")}.${uid()}`;
+      const callId = uid();
       let myName = "Guest";
       if (!isGuest) {
         const { data: myProfile } = await supabase
@@ -458,7 +394,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await openSignalChannel(callId, mode, true);
 
       const ring = supabase.channel(`calls-user-${target}`, {
-        config: { broadcast: { self: false }, private: true },
+        config: { broadcast: { self: false } },
       });
       ring.subscribe((status) => {
         if (status !== "SUBSCRIBED") return;
@@ -501,7 +437,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
-      const ch = supabase.channel(`rtc-${call.callId}`, { config: { private: true } });
+      const ch = supabase.channel(`rtc-${call.callId}`);
       ch.subscribe((s) => {
         if (s === "SUBSCRIBED") {
           void ch
@@ -511,9 +447,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       });
     } else if (call) {
       signal({ type: "end" });
-      const cancel = supabase.channel(`calls-user-${call.peerId}`, {
-        config: { private: true },
-      });
+      const cancel = supabase.channel(`calls-user-${call.peerId}`);
       cancel.subscribe((s) => {
         if (s === "SUBSCRIBED") {
           void cancel
@@ -539,62 +473,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
       setCamOn(track.enabled);
     }
   };
-
-  const toggleFlash = useCallback(async () => {
-    const track = localStream.current?.getVideoTracks()[0];
-    if (!track) return;
-    try {
-      await track.applyConstraints({
-        advanced: [{ torch: !flashOn } as MediaTrackConstraintSet],
-      } as MediaTrackConstraints);
-      setFlashOn(!flashOn);
-    } catch {
-      toast.error("Flashlight not supported on this device");
-    }
-  }, [flashOn]);
-
-  const flipCamera = useCallback(async () => {
-    const next = facingMode === "user" ? "environment" : "user";
-    const oldTrack = localStream.current?.getVideoTracks()[0] ?? null;
-    // Most phones can't open both cameras at once — release the old one first.
-    if (oldTrack) {
-      oldTrack.stop();
-      localStream.current?.removeTrack(oldTrack);
-    }
-    setFlashOn(false);
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { facingMode: { ideal: next }, width: { ideal: 1280 } },
-      });
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      const sender = pcRef.current
-        ?.getSenders()
-        .find((s) => s.track?.kind === "video");
-      if (sender && newVideoTrack) {
-        await sender.replaceTrack(newVideoTrack);
-      }
-      if (localStream.current && newVideoTrack) {
-        localStream.current.addTrack(newVideoTrack);
-      }
-      setFacingMode(next);
-      attachStreams();
-    } catch {
-      toast.error("Couldn't switch camera");
-      // try to restore the previous camera so the call keeps video
-      try {
-        const back = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 } },
-        });
-        const t = back.getVideoTracks()[0];
-        const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === "video");
-        if (sender && t) await sender.replaceTrack(t);
-        if (localStream.current && t) localStream.current.addTrack(t);
-        attachStreams();
-      } catch { /* ignore */ }
-    }
-  }, [facingMode, attachStreams]);
 
   useEffect(() => () => teardown(), [teardown]);
 
@@ -630,33 +508,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                className="absolute right-4 top-28 z-10 h-40 w-28 rounded-2xl border border-white/20 object-cover"
+                className="absolute right-4 top-4 z-10 h-40 w-28 rounded-2xl border border-white/20 object-cover"
               />
-              {phase !== "incoming" && (
-                <div className="absolute right-4 top-4 z-[9999] flex gap-3">
-                  <button
-                    onClick={() => void toggleFlash()}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
-                    aria-label="Toggle flashlight"
-                  >
-                    {flashOn ? <Zap size={22} className="text-yellow-400" /> : <ZapOff size={22} />}
-                  </button>
-                  <button
-                    onClick={() => void flipCamera()}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
-                    aria-label="Flip camera"
-                  >
-                    <SwitchCamera size={22} />
-                  </button>
-                </div>
-              )}
             </>
           )}
           <audio ref={remoteAudio} autoPlay className="hidden" />
 
-          <div className="relative z-10 mt-12 flex flex-col gap-1 px-2">
-            <h2 className="text-lg font-bold drop-shadow-lg">{call.peerName}</h2>
-            <span className="animate-pulse text-xs font-bold text-emerald-400 drop-shadow-lg">{statusText}</span>
+          <div className="relative z-10 mt-12 flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 text-3xl font-bold">
+              {(call.peerName || "U").charAt(0).toUpperCase()}
+            </div>
+            <h2 className="text-xl font-bold">{call.peerName}</h2>
+            <span className="animate-pulse text-xs font-bold text-emerald-400">{statusText}</span>
           </div>
 
           <div className="relative z-10 mb-10 flex items-center justify-center gap-6">

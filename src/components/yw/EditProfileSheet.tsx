@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, BadgeCheck, X } from "lucide-react";
+import { Camera, Image as ImageIcon, BadgeCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,8 @@ export type ProfileEdit = {
   username: string;
   category: string;
   bio: string;
-  location?: string;
-  website?: string;
   avatarUrl?: string;
   coverUrl?: string;
-  avatarFile?: File;
-  coverFile?: File;
 };
 
 const CATEGORIES = ["Creator", "Athlete", "Business", "Gamer", "Artist", "Musician", "Photographer"];
@@ -35,11 +31,11 @@ export function EditProfileSheet({
   onOpenChange: (o: boolean) => void;
   user: User;
   value: ProfileEdit;
-  onSave: (v: ProfileEdit) => void | Promise<void>;
+  onSave: (v: ProfileEdit) => void;
 }) {
   const [draft, setDraft] = useState<ProfileEdit>(value);
-  const [saving, setSaving] = useState(false);
   const avatarInput = useRef<HTMLInputElement>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) setDraft(value);
@@ -50,11 +46,7 @@ export function EditProfileSheet({
 
   const pick = (file: File | undefined, key: "avatarUrl" | "coverUrl") => {
     if (!file) return;
-    setDraft((d) => ({
-      ...d,
-      [key]: URL.createObjectURL(file),
-      [key === "avatarUrl" ? "avatarFile" : "coverFile"]: file,
-    }));
+    set(key, URL.createObjectURL(file));
   };
 
   return (
@@ -78,6 +70,22 @@ export function EditProfileSheet({
 
         <div className="px-4 pb-8 pt-4">
           <div className="relative overflow-hidden rounded-3xl bg-secondary/60">
+            <div className="relative h-28 w-full">
+              {draft.coverUrl ? (
+                <img src={draft.coverUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-[linear-gradient(120deg,oklch(0.30_0.08_300),oklch(0.24_0.06_250))]" />
+              )}
+              <button
+                type="button"
+                onClick={() => coverInput.current?.click()}
+                className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-full bg-background/70 px-3 py-1.5 text-xs font-medium backdrop-blur transition-transform active:scale-95"
+              >
+                <ImageIcon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                Change cover
+              </button>
+            </div>
+
             <div className="flex items-center gap-4 p-4">
               <button
                 type="button"
@@ -99,7 +107,7 @@ export function EditProfileSheet({
                 </span>
               </button>
               <p className="text-sm text-muted-foreground">
-                Tap the photo to update your profile picture.
+                Tap the photos to update your profile picture and cover.
               </p>
             </div>
           </div>
@@ -111,7 +119,13 @@ export function EditProfileSheet({
             hidden
             onChange={(e) => pick(e.target.files?.[0], "avatarUrl")}
           />
-
+          <input
+            ref={coverInput}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => pick(e.target.files?.[0], "coverUrl")}
+          />
 
           <div className="space-y-4 pt-5">
             <Field label="Display Name">
@@ -200,21 +214,13 @@ export function EditProfileSheet({
             </Button>
             <Button
               className="h-11 rounded-full"
-              disabled={saving}
-              onClick={async () => {
-                setSaving(true);
-                try {
-                  await onSave(draft);
-                  onOpenChange(false);
-                  toast.success("Profile updated");
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Could not save profile");
-                } finally {
-                  setSaving(false);
-                }
+              onClick={() => {
+                onSave(draft);
+                onOpenChange(false);
+                toast.success("Profile updated");
               }}
             >
-              {saving ? "Saving…" : "Save Changes"}
+              Save Changes
             </Button>
           </div>
         </div>

@@ -32,8 +32,9 @@ export function PlacePickerSheet({
       try {
         const res = await run({ data: { query: q, region } });
         setPlaces(res.places);
-        if (res.places.length === 0)
-          setNote("No places matched — try adding a city, e.g. “cafes in Mumbai”.");
+        if (res.source === "none")
+          setNote("Nearby search isn't connected yet — ask the app owner to link Google Maps.");
+        else if (res.places.length === 0) setNote("No places matched that search.");
       } catch {
         setPlaces([]);
         setNote("Couldn't load places right now. Try another search.");

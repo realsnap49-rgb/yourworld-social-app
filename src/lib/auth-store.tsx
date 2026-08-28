@@ -75,9 +75,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
     // Auth redirect disabled — app opens directly on home feed
   }, [loading]);
 
-  // Never block the first paint on the session lookup — screens render instantly
-  // and re-render once the session resolves.
-  void publicRoute;
-  void navigate;
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />
+      </div>
+    );
+  }
   return <>{children}</>;
 }

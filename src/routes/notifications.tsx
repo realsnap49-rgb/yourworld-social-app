@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { markAlertsSeen } from "@/lib/alerts-count";
+import { useMemo, useState } from "react";
 import { CheckCheck, ChevronLeft, Radio, Settings2, X } from "lucide-react";
 import {
   NOTIFICATION_KINDS,
@@ -34,10 +33,6 @@ export const Route = createFileRoute("/notifications")({
 type Filter = "all" | "unread" | NotificationKind;
 
 function NotificationsPage() {
-  useEffect(() => {
-    markAlertsSeen();
-  }, []);
-
   const {
     items: allItems,
     unreadHome: unread,

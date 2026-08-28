@@ -21,22 +21,19 @@ import { Route as CreateRouteImport } from './routes/create'
 import { Route as ChannelRouteImport } from './routes/channel'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AccountRouteImport } from './routes/account'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrbitIndexRouteImport } from './routes/orbit.index'
 import { Route as MomentIndexRouteImport } from './routes/moment.index'
+import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChannelIndexRouteImport } from './routes/channel.index'
-import { Route as VideoUploadRouteImport } from './routes/video.upload'
-import { Route as UUserIdRouteImport } from './routes/u.$userId'
-import { Route as PostCreateRouteImport } from './routes/post.create'
 import { Route as OrbitPrivacyRouteImport } from './routes/orbit.privacy'
 import { Route as OrbitNotificationsRouteImport } from './routes/orbit.notifications'
 import { Route as OrbitMessagesRouteImport } from './routes/orbit.messages'
-import { Route as OrbitMeRouteImport } from './routes/orbit.me'
 import { Route as OrbitCreateRouteImport } from './routes/orbit.create'
 import { Route as OrbitProfileIdRouteImport } from './routes/orbit.$profileId'
 import { Route as MomentCreateRouteImport } from './routes/moment.create'
 import { Route as MomentMomentIdRouteImport } from './routes/moment.$momentId'
+import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 import { Route as ChannelVideosRouteImport } from './routes/channel.videos'
 import { Route as ChannelSubscribersRouteImport } from './routes/channel.subscribers'
 import { Route as ChannelReelsRouteImport } from './routes/channel.reels'
@@ -44,9 +41,7 @@ import { Route as ChannelPostsRouteImport } from './routes/channel.posts'
 import { Route as ChannelMonetizationRouteImport } from './routes/channel.monetization'
 import { Route as ChannelCreateRouteImport } from './routes/channel.create'
 import { Route as ChannelAnalyticsRouteImport } from './routes/channel.analytics'
-import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
 import { Route as OrbitChatUserIdRouteImport } from './routes/orbit.chat.$userId'
-import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -108,10 +103,6 @@ const AccountRoute = AccountRouteImport.update({
   path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -127,25 +118,15 @@ const MomentIndexRoute = MomentIndexRouteImport.update({
   path: '/moment/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/chat/',
+  path: '/chat/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChannelIndexRoute = ChannelIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ChannelRoute,
-} as any)
-const VideoUploadRoute = VideoUploadRouteImport.update({
-  id: '/video/upload',
-  path: '/video/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UUserIdRoute = UUserIdRouteImport.update({
-  id: '/u/$userId',
-  path: '/u/$userId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PostCreateRoute = PostCreateRouteImport.update({
-  id: '/post/create',
-  path: '/post/create',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const OrbitPrivacyRoute = OrbitPrivacyRouteImport.update({
   id: '/privacy',
@@ -160,11 +141,6 @@ const OrbitNotificationsRoute = OrbitNotificationsRouteImport.update({
 const OrbitMessagesRoute = OrbitMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
-  getParentRoute: () => OrbitRoute,
-} as any)
-const OrbitMeRoute = OrbitMeRouteImport.update({
-  id: '/me',
-  path: '/me',
   getParentRoute: () => OrbitRoute,
 } as any)
 const OrbitCreateRoute = OrbitCreateRouteImport.update({
@@ -185,6 +161,11 @@ const MomentCreateRoute = MomentCreateRouteImport.update({
 const MomentMomentIdRoute = MomentMomentIdRouteImport.update({
   id: '/moment/$momentId',
   path: '/moment/$momentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
+  id: '/chat/$threadId',
+  path: '/chat/$threadId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelVideosRoute = ChannelVideosRouteImport.update({
@@ -222,22 +203,11 @@ const ChannelAnalyticsRoute = ChannelAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => ChannelRoute,
 } as any)
-const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
-  id: '/chat/',
-  path: '/chat/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const OrbitChatUserIdRoute = OrbitChatUserIdRouteImport.update({
   id: '/chat/$userId',
   path: '/chat/$userId',
   getParentRoute: () => OrbitRoute,
 } as any)
-const AuthenticatedChatThreadIdRoute =
-  AuthenticatedChatThreadIdRouteImport.update({
-    id: '/chat/$threadId',
-    path: '/chat/$threadId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -260,23 +230,19 @@ export interface FileRoutesByFullPath {
   '/channel/reels': typeof ChannelReelsRoute
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
+  '/chat/$threadId': typeof ChatThreadIdRoute
   '/moment/$momentId': typeof MomentMomentIdRoute
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
-  '/orbit/me': typeof OrbitMeRoute
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
-  '/post/create': typeof PostCreateRoute
-  '/u/$userId': typeof UUserIdRoute
-  '/video/upload': typeof VideoUploadRoute
   '/channel/': typeof ChannelIndexRoute
+  '/chat/': typeof ChatIndexRoute
   '/moment/': typeof MomentIndexRoute
   '/orbit/': typeof OrbitIndexRoute
-  '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
   '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
-  '/chat/': typeof AuthenticatedChatIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -297,28 +263,23 @@ export interface FileRoutesByTo {
   '/channel/reels': typeof ChannelReelsRoute
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
+  '/chat/$threadId': typeof ChatThreadIdRoute
   '/moment/$momentId': typeof MomentMomentIdRoute
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
-  '/orbit/me': typeof OrbitMeRoute
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
-  '/post/create': typeof PostCreateRoute
-  '/u/$userId': typeof UUserIdRoute
-  '/video/upload': typeof VideoUploadRoute
   '/channel': typeof ChannelIndexRoute
+  '/chat': typeof ChatIndexRoute
   '/moment': typeof MomentIndexRoute
   '/orbit': typeof OrbitIndexRoute
-  '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
   '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
-  '/chat': typeof AuthenticatedChatIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/account': typeof AccountRoute
   '/auth': typeof AuthRoute
   '/channel': typeof ChannelRouteWithChildren
@@ -338,23 +299,19 @@ export interface FileRoutesById {
   '/channel/reels': typeof ChannelReelsRoute
   '/channel/subscribers': typeof ChannelSubscribersRoute
   '/channel/videos': typeof ChannelVideosRoute
+  '/chat/$threadId': typeof ChatThreadIdRoute
   '/moment/$momentId': typeof MomentMomentIdRoute
   '/moment/create': typeof MomentCreateRoute
   '/orbit/$profileId': typeof OrbitProfileIdRoute
   '/orbit/create': typeof OrbitCreateRoute
-  '/orbit/me': typeof OrbitMeRoute
   '/orbit/messages': typeof OrbitMessagesRoute
   '/orbit/notifications': typeof OrbitNotificationsRoute
   '/orbit/privacy': typeof OrbitPrivacyRoute
-  '/post/create': typeof PostCreateRoute
-  '/u/$userId': typeof UUserIdRoute
-  '/video/upload': typeof VideoUploadRoute
   '/channel/': typeof ChannelIndexRoute
+  '/chat/': typeof ChatIndexRoute
   '/moment/': typeof MomentIndexRoute
   '/orbit/': typeof OrbitIndexRoute
-  '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
   '/orbit/chat/$userId': typeof OrbitChatUserIdRoute
-  '/_authenticated/chat/': typeof AuthenticatedChatIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -379,23 +336,19 @@ export interface FileRouteTypes {
     | '/channel/reels'
     | '/channel/subscribers'
     | '/channel/videos'
+    | '/chat/$threadId'
     | '/moment/$momentId'
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
-    | '/orbit/me'
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
-    | '/post/create'
-    | '/u/$userId'
-    | '/video/upload'
     | '/channel/'
+    | '/chat/'
     | '/moment/'
     | '/orbit/'
-    | '/chat/$threadId'
     | '/orbit/chat/$userId'
-    | '/chat/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -416,27 +369,22 @@ export interface FileRouteTypes {
     | '/channel/reels'
     | '/channel/subscribers'
     | '/channel/videos'
+    | '/chat/$threadId'
     | '/moment/$momentId'
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
-    | '/orbit/me'
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
-    | '/post/create'
-    | '/u/$userId'
-    | '/video/upload'
     | '/channel'
+    | '/chat'
     | '/moment'
     | '/orbit'
-    | '/chat/$threadId'
     | '/orbit/chat/$userId'
-    | '/chat'
   id:
     | '__root__'
     | '/'
-    | '/_authenticated'
     | '/account'
     | '/auth'
     | '/channel'
@@ -456,28 +404,23 @@ export interface FileRouteTypes {
     | '/channel/reels'
     | '/channel/subscribers'
     | '/channel/videos'
+    | '/chat/$threadId'
     | '/moment/$momentId'
     | '/moment/create'
     | '/orbit/$profileId'
     | '/orbit/create'
-    | '/orbit/me'
     | '/orbit/messages'
     | '/orbit/notifications'
     | '/orbit/privacy'
-    | '/post/create'
-    | '/u/$userId'
-    | '/video/upload'
     | '/channel/'
+    | '/chat/'
     | '/moment/'
     | '/orbit/'
-    | '/_authenticated/chat/$threadId'
     | '/orbit/chat/$userId'
-    | '/_authenticated/chat/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AccountRoute: typeof AccountRoute
   AuthRoute: typeof AuthRoute
   ChannelRoute: typeof ChannelRouteWithChildren
@@ -490,11 +433,10 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ChatThreadIdRoute: typeof ChatThreadIdRoute
   MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
-  PostCreateRoute: typeof PostCreateRoute
-  UUserIdRoute: typeof UUserIdRoute
-  VideoUploadRoute: typeof VideoUploadRoute
+  ChatIndexRoute: typeof ChatIndexRoute
   MomentIndexRoute: typeof MomentIndexRoute
 }
 
@@ -584,13 +526,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -612,33 +547,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MomentIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/': {
+      id: '/chat/'
+      path: '/chat'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/channel/': {
       id: '/channel/'
       path: '/'
       fullPath: '/channel/'
       preLoaderRoute: typeof ChannelIndexRouteImport
       parentRoute: typeof ChannelRoute
-    }
-    '/video/upload': {
-      id: '/video/upload'
-      path: '/video/upload'
-      fullPath: '/video/upload'
-      preLoaderRoute: typeof VideoUploadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/u/$userId': {
-      id: '/u/$userId'
-      path: '/u/$userId'
-      fullPath: '/u/$userId'
-      preLoaderRoute: typeof UUserIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/post/create': {
-      id: '/post/create'
-      path: '/post/create'
-      fullPath: '/post/create'
-      preLoaderRoute: typeof PostCreateRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/orbit/privacy': {
       id: '/orbit/privacy'
@@ -659,13 +580,6 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/orbit/messages'
       preLoaderRoute: typeof OrbitMessagesRouteImport
-      parentRoute: typeof OrbitRoute
-    }
-    '/orbit/me': {
-      id: '/orbit/me'
-      path: '/me'
-      fullPath: '/orbit/me'
-      preLoaderRoute: typeof OrbitMeRouteImport
       parentRoute: typeof OrbitRoute
     }
     '/orbit/create': {
@@ -694,6 +608,13 @@ declare module '@tanstack/react-router' {
       path: '/moment/$momentId'
       fullPath: '/moment/$momentId'
       preLoaderRoute: typeof MomentMomentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat/$threadId': {
+      id: '/chat/$threadId'
+      path: '/chat/$threadId'
+      fullPath: '/chat/$threadId'
+      preLoaderRoute: typeof ChatThreadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channel/videos': {
@@ -745,13 +666,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelAnalyticsRouteImport
       parentRoute: typeof ChannelRoute
     }
-    '/_authenticated/chat/': {
-      id: '/_authenticated/chat/'
-      path: '/chat'
-      fullPath: '/chat/'
-      preLoaderRoute: typeof AuthenticatedChatIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/orbit/chat/$userId': {
       id: '/orbit/chat/$userId'
       path: '/chat/$userId'
@@ -759,28 +673,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrbitChatUserIdRouteImport
       parentRoute: typeof OrbitRoute
     }
-    '/_authenticated/chat/$threadId': {
-      id: '/_authenticated/chat/$threadId'
-      path: '/chat/$threadId'
-      fullPath: '/chat/$threadId'
-      preLoaderRoute: typeof AuthenticatedChatThreadIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
   }
 }
-
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedChatThreadIdRoute: typeof AuthenticatedChatThreadIdRoute
-  AuthenticatedChatIndexRoute: typeof AuthenticatedChatIndexRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedChatThreadIdRoute: AuthenticatedChatThreadIdRoute,
-  AuthenticatedChatIndexRoute: AuthenticatedChatIndexRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface ChannelRouteChildren {
   ChannelAnalyticsRoute: typeof ChannelAnalyticsRoute
@@ -810,7 +704,6 @@ const ChannelRouteWithChildren =
 interface OrbitRouteChildren {
   OrbitProfileIdRoute: typeof OrbitProfileIdRoute
   OrbitCreateRoute: typeof OrbitCreateRoute
-  OrbitMeRoute: typeof OrbitMeRoute
   OrbitMessagesRoute: typeof OrbitMessagesRoute
   OrbitNotificationsRoute: typeof OrbitNotificationsRoute
   OrbitPrivacyRoute: typeof OrbitPrivacyRoute
@@ -821,7 +714,6 @@ interface OrbitRouteChildren {
 const OrbitRouteChildren: OrbitRouteChildren = {
   OrbitProfileIdRoute: OrbitProfileIdRoute,
   OrbitCreateRoute: OrbitCreateRoute,
-  OrbitMeRoute: OrbitMeRoute,
   OrbitMessagesRoute: OrbitMessagesRoute,
   OrbitNotificationsRoute: OrbitNotificationsRoute,
   OrbitPrivacyRoute: OrbitPrivacyRoute,
@@ -833,7 +725,6 @@ const OrbitRouteWithChildren = OrbitRoute._addFileChildren(OrbitRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AccountRoute: AccountRoute,
   AuthRoute: AuthRoute,
   ChannelRoute: ChannelRouteWithChildren,
@@ -846,11 +737,10 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ChatThreadIdRoute: ChatThreadIdRoute,
   MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
-  PostCreateRoute: PostCreateRoute,
-  UUserIdRoute: UUserIdRoute,
-  VideoUploadRoute: VideoUploadRoute,
+  ChatIndexRoute: ChatIndexRoute,
   MomentIndexRoute: MomentIndexRoute,
 }
 export const routeTree = rootRouteImport

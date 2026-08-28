@@ -226,7 +226,7 @@ export function SettingsPage() {
           <Row label="Help center" hint="Guides and troubleshooting" />
           <Row label="Report a problem" hint="Tell us what went wrong" />
           <Row label="Community guidelines" />
-          <Row label="Contact support" hint="Yourworld2029@gmail.com" />
+          <Row label="Contact support" hint="support@yourworld.app" />
         </Panel>
       )}
 

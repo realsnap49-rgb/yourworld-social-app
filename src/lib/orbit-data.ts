@@ -165,12 +165,4 @@ export const orbitProfiles: OrbitProfile[] = [
   },
 ];
 
-/** Real Orbit profiles loaded from the database, keyed by user id. */
-const liveRegistry = new Map<string, OrbitProfile>();
-
-export function registerOrbitProfiles(list: OrbitProfile[]) {
-  for (const p of list) liveRegistry.set(p.id, p);
-}
-
-export const orbitById = (id: string) =>
-  liveRegistry.get(id) ?? orbitProfiles.find((p) => p.id === id);
+export const orbitById = (id: string) => orbitProfiles.find((p) => p.id === id);

@@ -10,10 +10,8 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { approxDistance } from "@/lib/orbit-data";
-import { useOrbitProfile } from "@/lib/orbit-live";
+import { orbitById, approxDistance } from "@/lib/orbit-data";
 import { useOrbit } from "@/lib/orbit-store";
-import { sendOrbitMatch, useOrbitMatches } from "@/lib/orbit-match";
 import { moodById } from "@/lib/orbit-mood";
 import { OrbitCallActions } from "@/components/yw/OrbitCallActions";
 
@@ -42,24 +40,7 @@ function OrbitProfilePage() {
   const { profileId } = Route.useParams();
   const navigate = useNavigate();
   const orbit = useOrbit();
-  const { profile: p } = useOrbitProfile(profileId);
-  const { mutual, likedByMe, likesMe, refresh: refreshMatches } = useOrbitMatches();
-  const iMatched = likedByMe.includes(profileId);
-  const isMatch = mutual.includes(profileId);
-  const theyMatched = likesMe.includes(profileId);
-
-  const onMatch = async (name: string) => {
-    const next = !iMatched;
-    const res = await sendOrbitMatch(profileId, next);
-    refreshMatches();
-    if (!res.ok) {
-      toast.error("Couldn't send that match — try again.");
-      return;
-    }
-    if (!next) toast.success("Match withdrawn");
-    else if (res.mutual) toast.success(`It's a match with ${name}! Chat unlocked.`);
-    else toast.success(`Match sent to ${name}`);
-  };
+  const p = orbitById(profileId);
 
   if (!p) {
     return (
@@ -101,17 +82,7 @@ function OrbitProfilePage() {
       </header>
 
       <div className="relative aspect-[4/5] w-full overflow-hidden">
-        {p.photo ? (
-          <img src={p.photo} alt={`${p.name}, ${p.headline}`} className="h-full w-full object-cover" />
-        ) : (
-          <div
-            className="grid h-full w-full place-items-center font-display text-7xl font-bold text-foreground"
-            style={{ backgroundImage: `linear-gradient(140deg, oklch(0.5 0.18 ${p.hue}), oklch(0.28 0.1 ${p.hue + 40}))` }}
-            aria-hidden
-          >
-            {p.name.charAt(0)}
-          </div>
-        )}
+        <img src={p.photo} alt={`${p.name}, ${p.headline}`} className="h-full w-full object-cover" />
         <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(to_top,oklch(0.12_0.02_290/0.92),transparent)] p-5 pt-20">
           <div className="flex items-center gap-1.5">
             <h2 className="font-display text-2xl font-bold">
@@ -179,40 +150,11 @@ function OrbitProfilePage() {
           />
           <Action
             icon={Sparkles}
-            label={isMatch ? "Matched" : iMatched ? "Sent" : "Match"}
-            active={iMatched || isMatch}
+            label="Match"
             locked={!orbit.hasProfile}
-            onClick={gate(() => void onMatch(p.name))}
+            onClick={gate(() => toast.success(`Match request sent to ${p.name}`))}
           />
         </div>
-
-        {(isMatch || theyMatched) && (
-          <div className="mt-3 flex items-center gap-3 rounded-2xl bg-secondary/60 px-3.5 py-3">
-            <Sparkles className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.8} />
-            <p className="min-w-0 flex-1 text-xs text-muted-foreground">
-              {isMatch
-                ? `You and ${p.name} matched — chat is unlocked.`
-                : `${p.name} matched you. Match back to unlock chat.`}
-            </p>
-            {isMatch ? (
-              <Link
-                to="/orbit/chat/$userId"
-                params={{ userId: p.id }}
-                className="shrink-0 rounded-full bg-primary px-3.5 py-1.5 text-[11px] font-semibold text-primary-foreground transition-transform active:scale-95"
-              >
-                Chat
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={gate(() => void onMatch(p.name))}
-                className="shrink-0 rounded-full bg-foreground px-3.5 py-1.5 text-[11px] font-semibold text-background transition-transform active:scale-95"
-              >
-                Match back
-              </button>
-            )}
-          </div>
-        )}
 
         <OrbitCallActions profile={p} />
 

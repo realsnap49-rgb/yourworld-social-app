@@ -4,23 +4,15 @@ import {
   ArrowLeft, Play, Pause, Scissors, Gauge, Volume2,
   Sparkles, Captions, Trash2, Copy, RotateCw,
   Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop, SplitSquareHorizontal,
-  PictureInPicture2, Upload,
+  PictureInPicture2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
 import { LightTimeline } from "@/components/yw/editor/LightTimeline";
 import { NO_COPYRIGHT_MUSIC } from "@/components/yw/MusicVault";
 import { publishReel } from "@/lib/social-data";
-import { useUploads } from "@/lib/upload-progress";
-import { canMuxReel, renderReelWithMusic } from "@/lib/reel-mux";
-import { ReelPublishSheet, type ReelPublishMeta } from "@/components/yw/ReelPublishSheet";
-
-import type { AudioTrackState } from "@/components/yw/editor/AudioTrackLane";
 
 export const Route = createFileRoute("/create")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    mode: search.mode === "live" ? ("live" as const) : ("reel" as const),
-  }),
   head: () => ({
     meta: [
       { title: "Camera & Pro Edits Studio — YourWorld" },
@@ -73,16 +65,9 @@ const TOOL_MENU: { id: ToolId; label: string; Icon: React.ComponentType<{ size?:
   { id: "CROP", label: "Crop", Icon: Crop },
 ];
 
-const fmtSec = (s: number) => {
-  const v = Math.max(0, Math.floor(s || 0));
-  return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, "0")}`;
-};
-
 
 export function CreateStudioPage() {
   const navigate = useNavigate();
-  const { mode } = Route.useSearch();
-  const { startUpload } = useUploads();
   const [clips, setClips] = useState<ClipItem[]>([]);
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -131,173 +116,31 @@ export function CreateStudioPage() {
     setShowExport(false);
   };
 
-  const [showPublish, setShowPublish] = useState(false);
-
-  const postReel = async (meta: ReelPublishMeta) => {
-    const clip = clips[activeClipIndex] ?? clips[0];
-    const url = clip?.url;
+  const postReel = async () => {
+    const url = clips[activeClipIndex]?.url || clips[0]?.url;
     if (!url) {
       toast.error("Nothing to post yet");
       return;
     }
-    // Reels on YourWorld are 5–80 seconds long.
-    if (totalDuration < 5) {
-      toast.error("Reel is too short — it must be at least 5 seconds.");
-      return;
-    }
-    if (totalDuration > 80) {
-      toast.error("Reel is too long — trim it to 80 seconds or less.");
-      return;
-    }
     setPosting(true);
-    const caption = meta.caption || clip?.textOverlay || "";
-
-    // Bake the selected music into the video so the reel plays with sound.
-    let uploadUrl = url;
-    if (audioTrack && canMuxReel()) {
-      const t = toast.loading("Adding music to your reel…");
-      const trimEnd = clip?.trimEnd ?? clip?.duration;
-      const baked = await renderReelWithMusic({
-        videoUrl: url,
-        trimStart: clip?.trimStart ?? 0,
-        trimEnd: trimEnd && trimEnd > 0 ? trimEnd : undefined,
-        music: {
-          url: audioTrack.url,
-          start: audioTrack.start,
-          clipStart: audioTrack.clipStart,
-          clipEnd: audioTrack.clipEnd,
-        },
-      });
-      toast.dismiss(t);
-      if (!baked) {
-        setPosting(false);
-        toast.error("Music could not be added. Reel was not posted—please try again.");
-        return;
-      }
-      uploadUrl = baked;
-    } else if (audioTrack) {
-      setPosting(false);
-      toast.error("This browser cannot export reel audio. Try Chrome or Safari.");
+    const caption = clips[activeClipIndex]?.textOverlay ?? "";
+    const { error } = await publishReel({
+      fileUrl: url,
+      caption,
+      audio: audioTrack?.title ?? null,
+    });
+    setPosting(false);
+    if (error) {
+      toast.error(error);
       return;
     }
-
-    // Upload continues in the background with a live percentage bar.
-    void startUpload(
-      { kind: "reel", label: caption || "New reel", thumbnail: null, viewTo: "/reels" },
-      (onProgress) =>
-        publishReel({
-          fileUrl: uploadUrl,
-          caption,
-          hashtags: meta.hashtags,
-          location: meta.location,
-          link: meta.link,
-          audience: meta.audience,
-          taggedUserIds: meta.taggedUserIds,
-          viewerUserIds: meta.viewerUserIds,
-          audio: audioTrack?.title ?? null,
-          onProgress,
-        }),
-    ).then(({ error }) => {
-      if (error) toast.error(error);
-      else toast.success("Reel posted");
-    });
-
-    setPosting(false);
-    setShowPublish(false);
     setShowExport(false);
+    toast.success("Reel posted");
     navigate({ to: "/reels" });
   };
-
-  const [audioTrack, setAudioTrack] = useState<AudioTrackState | null>(null);
-
-  // ---- Real undo / redo history (clips + audio track) ----
-  type EditSnapshot = { clips: ClipItem[]; audioTrack: AudioTrackState | null };
-  const pastRef = useRef<EditSnapshot[]>([]);
-  const futureRef = useRef<EditSnapshot[]>([]);
-  const lastSnapRef = useRef<EditSnapshot>({ clips: [], audioTrack: null });
-  const skipHistoryRef = useRef(false);
-  const [historyVersion, setHistoryVersion] = useState(0);
-
-  useEffect(() => {
-    const snap: EditSnapshot = { clips, audioTrack };
-    if (
-      lastSnapRef.current.clips === clips &&
-      lastSnapRef.current.audioTrack === audioTrack
-    )
-      return;
-    if (skipHistoryRef.current) {
-      skipHistoryRef.current = false;
-      lastSnapRef.current = snap;
-      setHistoryVersion((v) => v + 1);
-      return;
-    }
-    pastRef.current = [...pastRef.current.slice(-49), lastSnapRef.current];
-    futureRef.current = [];
-    lastSnapRef.current = snap;
-    setHistoryVersion((v) => v + 1);
-  }, [clips, audioTrack]);
-
-  const applySnapshot = (snap: EditSnapshot) => {
-    skipHistoryRef.current = true;
-    setClips(snap.clips);
-    setAudioTrack(snap.audioTrack);
-    setActiveClipIndex((i) => Math.min(i, Math.max(0, snap.clips.length - 1)));
-  };
-
-  const handleUndo = () => {
-    const prev = pastRef.current.pop();
-    if (!prev) {
-      toast("Nothing to undo");
-      setHistoryVersion((v) => v + 1);
-      return;
-    }
-    futureRef.current = [...futureRef.current, lastSnapRef.current];
-    applySnapshot(prev);
-    toast("Undone");
-  };
-
-  const handleRedo = () => {
-    const next = futureRef.current.pop();
-    if (!next) {
-      toast("Nothing to redo");
-      setHistoryVersion((v) => v + 1);
-      return;
-    }
-    pastRef.current = [...pastRef.current, lastSnapRef.current];
-    applySnapshot(next);
-    toast("Redone");
-  };
-
-  const canUndo = pastRef.current.length > 0 && historyVersion >= 0;
-  const canRedo = futureRef.current.length > 0;
-
-
-
-  // Load a music file from the device gallery / storage
-  const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    const probe = document.createElement("audio");
-    probe.preload = "metadata";
-    probe.src = url;
-    probe.addEventListener("loadedmetadata", () => {
-      const dur = isFinite(probe.duration) && probe.duration > 0 ? probe.duration : 30;
-      setAudioTrack({
-        id: `up_${Date.now()}`,
-        title: file.name.replace(/\.[^.]+$/, ""),
-        url,
-        start: 0,
-        clipStart: 0,
-        clipEnd: dur,
-        duration: dur,
-      });
-      setShowMusicPicker(false);
-      toast.success("Music added from your device");
-    });
-    probe.addEventListener("error", () => toast.error("Could not read that audio file"));
-  };
+  const [audioTrack, setAudioTrack] = useState<
+    { id: string; title: string; url: string; start: number; duration: number } | null
+  >(null);
 
   const totalDuration = clips.reduce((acc, c) => {
     const d = c.duration || 0;
@@ -317,7 +160,6 @@ export function CreateStudioPage() {
   const dragRafRef = useRef<number | null>(null);
   const seekRafRef = useRef<number | null>(null);
   const pendingSeekRef = useRef<number | null>(null);
-  const globalTimeRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -465,82 +307,6 @@ export function CreateStudioPage() {
     window.addEventListener("pointerup", end);
   };
 
-  // Aspect-ratio presets: fit the largest box of `ratio` (w/h) inside the
-  // visible video area, expressed in stage percentages.
-  const applyAspect = (ratio: number | null) => {
-    if (ratio === null) {
-      setClips((prev) =>
-        prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: undefined } : c)),
-      );
-      return;
-    }
-    const stage = stageRef.current?.getBoundingClientRect();
-    const vid = videoRef.current?.getBoundingClientRect();
-    if (!stage || !vid || !stage.width || !stage.height) return;
-    // video box in stage %
-    const vx = ((vid.left - stage.left) / stage.width) * 100;
-    const vy = ((vid.top - stage.top) / stage.height) * 100;
-    const vw = (vid.width / stage.width) * 100;
-    const vh = (vid.height / stage.height) * 100;
-    // px-space fit, then convert back to %
-    let boxWpx = vid.width;
-    let boxHpx = boxWpx / ratio;
-    if (boxHpx > vid.height) {
-      boxHpx = vid.height;
-      boxWpx = boxHpx * ratio;
-    }
-    const w = (boxWpx / vid.width) * vw;
-    const h = (boxHpx / vid.height) * vh;
-    const next = { x: vx + (vw - w) / 2, y: vy + (vh - h) / 2, w, h };
-    setClips((prev) =>
-      prev.map((c, i) => (i === activeClipIndex ? { ...c, cropBox: next } : c)),
-    );
-  };
-
-
-  // ---- 60fps playhead: read the video on every frame, commit state only when
-  // it visibly changes so the timeline glides instead of stepping. ----
-  const lastSyncRef = useRef({ frac: -1, time: -1 });
-  const syncTime = React.useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const c = clips[activeClipIndex];
-    const dur = c?.duration || v.duration || 0;
-    const start = c?.trimStart ?? 0;
-    const end = c?.trimEnd ?? dur;
-    const span = Math.max(0.01, end - start);
-    const frac = Math.min(1, Math.max(0, (v.currentTime - start) / span));
-    let before = 0;
-    for (let i = 0; i < activeClipIndex; i++) {
-      const p = clips[i];
-      const pd = p?.duration || 0;
-      before += Math.max(0, (p?.trimEnd ?? pd) - (p?.trimStart ?? 0));
-    }
-    const global = before + frac * span;
-    globalTimeRef.current = global;
-    const last = lastSyncRef.current;
-    if (Math.abs(last.frac - frac) > 0.0015) {
-      last.frac = frac;
-      setPlayFraction(frac);
-    }
-    if (Math.abs(last.time - global) > 0.08) {
-      last.time = global;
-      setCurrentTime(global);
-    }
-  }, [clips, activeClipIndex]);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    let raf = 0;
-    const loop = () => {
-      syncTime();
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [isPlaying, syncTime]);
-
-
   // Real-time Video Speed Sync
   useEffect(() => {
     if (videoRef.current && currentClip) {
@@ -549,44 +315,31 @@ export function CreateStudioPage() {
     }
   }, [currentClip, activeClipIndex]);
 
-  // Reload the <video> source whenever the active clip's URL changes,
-  // and keep playing across clip boundaries
+  // Reload the <video> source whenever the active clip's URL changes
   useEffect(() => {
     const v = videoRef.current;
     const url = currentClip?.url;
     if (!v || !url) return;
-    const start = currentClip?.trimStart ?? 0;
-    const end = currentClip?.trimEnd;
-    const ready = () => {
-      if (scrubbingRef.current) return;
-      if (v.currentTime < start - 0.05 || (end != null && v.currentTime > end + 0.05)) {
+    if (loadedUrlRef.current === url) return;
+    loadedUrlRef.current = url;
+    v.src = url;
+    v.load();
+    const onReady = () => {
+      const start = currentClip?.trimStart ?? 0;
+      if (isFinite(start) && Math.abs(v.currentTime - start) > 0.05) {
         try { v.currentTime = start; } catch { /* ignore */ }
       }
       if (isPlaying) void v.play().catch(() => {});
     };
-    if (loadedUrlRef.current !== url) {
-      loadedUrlRef.current = url;
-      v.src = url;
-      v.load();
-      v.addEventListener("loadeddata", ready, { once: true });
-      return () => v.removeEventListener("loadeddata", ready);
-    }
-    if (v.readyState >= 2) {
-      ready();
-      return;
-    }
-    v.addEventListener("loadeddata", ready, { once: true });
-    return () => v.removeEventListener("loadeddata", ready);
-  }, [currentClip?.url, currentClip?.trimStart, currentClip?.trimEnd, activeClipIndex, isPlaying]);
+    if (v.readyState >= 2) onReady();
+    else v.addEventListener("loadeddata", onReady, { once: true });
+    return () => v.removeEventListener("loadeddata", onReady);
+  }, [currentClip?.url, currentClip?.trimStart, isPlaying]);
 
   // Advance to the next clip (loops back to the first)
-  const advancingRef = useRef(0);
   const advanceClip = React.useCallback(() => {
     const v = videoRef.current;
     if (!clips.length) return;
-    const now = Date.now();
-    if (now - advancingRef.current < 400) return;
-    advancingRef.current = now;
     const next = (activeClipIndex + 1) % clips.length;
     const nextClip = clips[next];
     setIsPlaying(true);
@@ -596,7 +349,6 @@ export function CreateStudioPage() {
     }
     setActiveClipIndex(next);
   }, [clips, activeClipIndex, currentClip?.url]);
-
 
   // Sync canvas playback to the selected clip's trim range
   useEffect(() => {
@@ -631,11 +383,8 @@ export function CreateStudioPage() {
     const a = audioElRef.current;
     if (!v || !a || !audioTrack) return;
     const sync = () => {
-      const global = globalTimeRef.current;
-      const span = Math.max(0.1, audioTrack.clipEnd - audioTrack.clipStart);
-      const rel = global - audioTrack.start;
-      const t = audioTrack.clipStart + rel;
-      if (rel >= 0 && rel <= span && !v.paused) {
+      const t = v.currentTime - audioTrack.start;
+      if (t >= 0 && t <= audioTrack.duration && !v.paused) {
         if (Math.abs(a.currentTime - t) > 0.25) a.currentTime = t;
         if (a.paused) void a.play().catch(() => {});
       } else if (!a.paused) {
@@ -654,7 +403,7 @@ export function CreateStudioPage() {
       v.removeEventListener("pause", onPause);
       a.pause();
     };
-  }, [audioTrack?.url, audioTrack?.start, audioTrack?.clipStart, audioTrack?.clipEnd, activeClipIndex]);
+  }, [audioTrack?.url, audioTrack?.start, audioTrack?.duration, activeClipIndex]);
 
   const handleSplit = () => {
     const v = videoRef.current;
@@ -748,14 +497,13 @@ export function CreateStudioPage() {
         type="file" 
         ref={audioInputRef} 
         accept="audio/*" 
-        onChange={handleAudioSelect}
+        onChange={() => alert("Background Audio track added successfully!")} 
         className="hidden" 
       />
 
       {clips.length === 0 ? (
         /* MINIMALIST LIVE CAMERA */
         <CameraCapture
-          allowedModes={mode === "live" ? ["LIVE"] : ["REEL"]}
           onClose={() => navigate({ to: "/" })}
           onCapture={(files) => addFiles(files)}
           onPick={() => fileInputRef.current?.click()}
@@ -845,15 +593,11 @@ export function CreateStudioPage() {
                     <p className="text-[11px] text-muted-foreground mb-4">{exportRes} video is ready.</p>
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => {
-                          if (totalDuration < 5) { toast.error("Reel is too short — it must be at least 5 seconds."); return; }
-                          if (totalDuration > 80) { toast.error("Reel is too long — trim it to 80 seconds or less."); return; }
-                          setShowPublish(true);
-                        }}
+                        onClick={() => void postReel()}
                         disabled={posting}
                         className="w-full py-3 rounded-lg bg-orange-500 text-white text-xs font-black uppercase tracking-wide disabled:opacity-60"
                       >
-                        Next: caption & audience
+                        {posting ? "Posting…" : "Post Reel"}
                       </button>
                       <button
                         onClick={saveToGallery}
@@ -868,33 +612,37 @@ export function CreateStudioPage() {
             </div>
           )}
 
-          <ReelPublishSheet
-            open={showPublish}
-            previewUrl={clips[activeClipIndex]?.url ?? clips[0]?.url}
-            posting={posting}
-            onClose={() => setShowPublish(false)}
-            onShare={(meta) => void postReel(meta)}
-          />
-
-
-
           {/* FULL-WIDTH VIDEO CANVAS */}
-          <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-black overflow-hidden">
+          <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-white overflow-hidden">
             <div ref={stageRef} className="relative h-full w-full flex items-center justify-center touch-none">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted={isMuted}
-                onTimeUpdate={syncTime}
-                onSeeked={syncTime}
-
+                onTimeUpdate={(e) => {
+                  const t = e.currentTarget.currentTime;
+                  const c = clips[activeClipIndex];
+                  const dur = c?.duration || e.currentTarget.duration || 0;
+                  const start = c?.trimStart ?? 0;
+                  const end = c?.trimEnd ?? dur;
+                  const span = Math.max(0.01, end - start);
+                  const frac = Math.min(1, Math.max(0, (t - start) / span));
+                  let before = 0;
+                  for (let i = 0; i < activeClipIndex; i++) {
+                    const p = clips[i];
+                    const pd = p?.duration || 0;
+                    before += Math.max(0, (p?.trimEnd ?? pd) - (p?.trimStart ?? 0));
+                  }
+                  setPlayFraction(frac);
+                  setCurrentTime(before + frac * span);
+                }}
                 onLoadedMetadata={(e) => {
                   const d = e.currentTarget.duration;
                   if (isFinite(d) && d > 0 && !currentClip?.duration) updateCurrentClip("duration", d);
                 }}
                 onEmptied={() => { loadedUrlRef.current = null; }}
-                className="h-full w-full object-cover will-change-transform"
+                className="h-full max-h-full max-w-full object-contain will-change-transform"
                 style={{
                   transform: `translateZ(0) rotate(${currentClip?.rotation || 0}deg) scale(${currentClip?.crop ?? 1})`,
                   clipPath: currentClip?.cropBox
@@ -950,58 +698,40 @@ export function CreateStudioPage() {
           </div>
 
           {/* PLAY CONTROLS DIRECTLY BELOW CANVAS */}
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-card/95 backdrop-blur-xl border-t border-border">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-card border-t border-border">
             <div className="flex items-center gap-3">
               <button
                 onClick={togglePlay}
-                className="w-10 h-10 rounded-full bg-gradient-to-b from-orange-400 to-orange-600 text-white flex items-center justify-center shadow-[0_6px_16px_-6px_rgba(249,115,22,0.9)] transition-transform duration-150 ease-out active:scale-90"
+                className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center active:scale-90 transition shadow-sm"
                 aria-label={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} />}
               </button>
-              <span className="text-[11px] font-bold tabular-nums text-muted-foreground">
+              <span className="text-[11px] font-bold text-muted-foreground">
                 Clip {activeClipIndex + 1}/{clips.length} · {currentClip?.speed}x
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              {[
-                { key: "undo", Icon: Undo2, label: "Undo", onClick: handleUndo, disabled: !canUndo },
-                { key: "redo", Icon: Redo2, label: "Redo", onClick: handleRedo, disabled: !canRedo },
-                { key: "split", Icon: SplitSquareHorizontal, label: "Split clip at playhead", onClick: handleSplit },
-                { key: "dup", Icon: Copy, label: "Duplicate clip", onClick: handleDuplicate },
-                { key: "del", Icon: Trash2, label: "Delete clip", onClick: handleDelete, danger: true },
-              ].map((b) => (
-                <button
-                  key={b.key}
-                  onClick={b.onClick}
-                  disabled={b.disabled}
-                  aria-label={b.label}
-                  className={`grid h-8 w-8 place-items-center rounded-full bg-muted/60 transition-transform duration-150 ease-out active:scale-90 ${
-                    b.disabled ? "opacity-35" : b.danger ? "text-destructive" : "text-foreground"
-                  }`}
-                >
-                  <b.Icon size={15} />
-                </button>
-              ))}
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <button onClick={() => updateCurrentClip("rotation", 0)} className="active:scale-90 transition" aria-label="Reset rotation"><Undo2 size={16} /></button>
+              <button onClick={() => updateCurrentClip("filter", "none")} className="active:scale-90 transition" aria-label="Reset filter"><Redo2 size={16} /></button>
+              <button onClick={handleSplit} className="active:scale-90 transition" aria-label="Split clip at playhead"><SplitSquareHorizontal size={16} /></button>
+              <button onClick={handleDuplicate} className="active:scale-90 transition" aria-label="Duplicate clip"><Copy size={16} /></button>
+              <button onClick={handleDelete} className="text-destructive active:scale-90 transition" aria-label="Delete clip"><Trash2 size={16} /></button>
             </div>
           </div>
 
           {/* HORIZONTAL SCROLLABLE TOOL MENU */}
-          <div
-            className="flex-shrink-0 bg-card/95 backdrop-blur-xl border-t border-border px-2 py-1.5 flex items-center justify-between gap-1 overflow-x-auto scrollbar-none overscroll-x-contain"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
+          <div className="flex-shrink-0 bg-card border-t border-border px-2 py-1.5 flex items-center justify-between gap-1 overflow-x-auto scrollbar-none">
             {TOOL_MENU.map((t) => {
               const active = activeToolPanel === t.id;
               return (
                 <button
                   key={t.id}
                   onClick={() => handleToolMenu(t.id)}
-                  style={{ transitionTimingFunction: "cubic-bezier(0.22,1,0.36,1)" }}
-                  className={`flex flex-col items-center justify-center gap-0.5 min-w-[44px] py-1.5 px-1 rounded-2xl text-[8px] font-extrabold uppercase tracking-tight flex-shrink-0 border duration-200 [transition-property:transform,background-color,color,box-shadow] active:scale-90 ${
+                  className={`flex flex-col items-center justify-center gap-0.5 min-w-[44px] py-1.5 px-1 rounded-xl text-[8px] font-extrabold uppercase tracking-tight flex-shrink-0 border transition active:scale-95 ${
                     active
-                      ? "bg-gradient-to-b from-orange-400 to-orange-600 text-white border-orange-500 shadow-[0_6px_14px_-8px_rgba(249,115,22,0.95)] scale-[1.04]"
-                      : "bg-muted/70 text-foreground border-transparent"
+                      ? "bg-orange-500 text-white border-orange-500"
+                      : "bg-muted text-foreground border-transparent"
                   }`}
                 >
                   <t.Icon size={15} />
@@ -1011,15 +741,9 @@ export function CreateStudioPage() {
             })}
           </div>
 
-
           {/* TOOL PANEL */}
           {activeToolPanel !== "NONE" && (
-            <div
-              key={activeToolPanel}
-              className="flex-shrink-0 bg-card/95 backdrop-blur-xl border-t border-border p-3 flex flex-col gap-2"
-              style={{ animation: "yw-rise 220ms cubic-bezier(0.22,1,0.36,1) both" }}
-            >
-
+            <div className="flex-shrink-0 bg-card border-t border-border p-3 flex flex-col gap-2">
 
               {activeToolPanel === "TRIM" && currentClip && (
                 <div className="flex flex-col gap-2">
@@ -1056,44 +780,20 @@ export function CreateStudioPage() {
               )}
 
               {activeToolPanel === "CROP" && currentClip && (
-                <div className="flex flex-col gap-2">
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                    {([
-                      { label: "Free", r: null },
-                      { label: "9:16", r: 9 / 16 },
-                      { label: "4:5", r: 4 / 5 },
-                      { label: "1:1", r: 1 },
-                      { label: "4:3", r: 4 / 3 },
-                      { label: "16:9", r: 16 / 9 },
-                    ] as const).map((a) => (
-                      <button
-                        key={a.label}
-                        onClick={() => applyAspect(a.r)}
-                        className="px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase border border-border bg-muted text-foreground flex-shrink-0 active:scale-95 transition"
-                      >
-                        {a.label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[10px] font-semibold text-muted-foreground">
-                    Drag the box on the video to crop freely.
-                  </p>
-                  <label className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
-                    <Crop size={14} className="text-orange-500" />
-                    <input
-                      type="range"
-                      min={1}
-                      max={3}
-                      step={0.05}
-                      value={currentClip.crop ?? 1}
-                      onChange={(e) => updateCurrentClip("crop", Number(e.target.value))}
-                      className="flex-1 accent-orange-500"
-                    />
-                    <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
-                  </label>
-                </div>
+                <label className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
+                  <Crop size={14} className="text-orange-500" />
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.05}
+                    value={currentClip.crop ?? 1}
+                    onChange={(e) => updateCurrentClip("crop", Number(e.target.value))}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="w-12 text-right font-mono">{(currentClip.crop ?? 1).toFixed(2)}x</span>
+                </label>
               )}
-
 
               {activeToolPanel === "FILTER" && (
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -1179,9 +879,6 @@ export function CreateStudioPage() {
               playFraction={playFraction}
               isPlaying={isPlaying}
               audioLabel={audioTrack?.title}
-              audioTrack={audioTrack}
-              onAudioChange={(next) => setAudioTrack(next)}
-              onAudioRemove={() => setAudioTrack(null)}
               onAddAudio={() => setShowMusicPicker(true)}
               isMuted={isMuted}
               onToggleMute={() => setIsMuted(!isMuted)}
@@ -1268,101 +965,6 @@ export function CreateStudioPage() {
             <div className="absolute inset-0 z-[60] bg-foreground/30 flex items-end" onClick={() => setShowMusicPicker(false)}>
               <div className="w-full bg-card border-t border-border rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 <p className="text-[11px] font-black uppercase tracking-wide text-muted-foreground mb-3">Music Library</p>
-
-                {/* CapCut-style music trim: choose which part of the song plays */}
-                {audioTrack && (
-                  <div className="mb-3 p-3 rounded-2xl bg-muted/70 border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-black truncate text-foreground">{audioTrack.title}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground">
-                        {fmtSec(audioTrack.clipStart)} → {fmtSec(audioTrack.clipEnd)}
-                      </span>
-                    </div>
-
-                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
-                      Start in song
-                    </label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={Math.max(0.2, audioTrack.duration - 0.2)}
-                      step={0.1}
-                      value={audioTrack.clipStart}
-                      onChange={(e) => {
-                        const s = Number(e.target.value);
-                        setAudioTrack((t) =>
-                          t ? { ...t, clipStart: s, clipEnd: Math.max(s + 0.5, t.clipEnd) } : t,
-                        );
-                      }}
-                      className="w-full accent-orange-500 mb-2"
-                    />
-
-                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
-                      End in song
-                    </label>
-                    <input
-                      type="range"
-                      min={0.2}
-                      max={audioTrack.duration}
-                      step={0.1}
-                      value={audioTrack.clipEnd}
-                      onChange={(e) => {
-                        const en = Number(e.target.value);
-                        setAudioTrack((t) =>
-                          t ? { ...t, clipEnd: en, clipStart: Math.min(t.clipStart, en - 0.5) } : t,
-                        );
-                      }}
-                      className="w-full accent-orange-500 mb-2"
-                    />
-
-                    <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">
-                      Place at {fmtSec(audioTrack.start)} on video
-                    </label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={Math.max(0.5, totalDuration)}
-                      step={0.1}
-                      value={Math.min(audioTrack.start, Math.max(0.5, totalDuration))}
-                      onChange={(e) =>
-                        setAudioTrack((t) => (t ? { ...t, start: Number(e.target.value) } : t))
-                      }
-                      className="w-full accent-orange-500"
-                    />
-
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => {
-                          const a = audioElRef.current;
-                          if (!a || !audioTrack) return;
-                          try { a.currentTime = audioTrack.clipStart; } catch { /* ignore */ }
-                          void a.play().catch(() => {});
-                          window.setTimeout(() => a.pause(), 4000);
-                        }}
-                        className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-[11px] font-black uppercase"
-                      >
-                        Preview
-                      </button>
-                      <button
-                        onClick={() => setShowMusicPicker(false)}
-                        className="flex-1 py-2 rounded-xl bg-card border border-border text-[11px] font-black uppercase text-foreground"
-                      >
-                        Done
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => audioInputRef.current?.click()}
-                  className="w-full mb-3 flex items-center gap-3 p-3 rounded-2xl border border-dashed border-orange-500/50 bg-orange-500/10 text-left active:scale-[0.99] transition"
-                >
-                  <span className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center"><Upload size={16} /></span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-xs font-black text-foreground">Upload from device</span>
-                    <span className="block text-[10px] text-muted-foreground">Pick any song from your gallery or storage</span>
-                  </span>
-                </button>
                 <div className="flex flex-col gap-2">
                   {NO_COPYRIGHT_MUSIC.map((m) => {
                     const [mm, ss] = m.duration.split(":").map(Number);
@@ -1371,7 +973,7 @@ export function CreateStudioPage() {
                       <button
                         key={m.id}
                         onClick={() => {
-                          setAudioTrack({ id: m.id, title: m.title, url: m.url, start: 0, clipStart: 0, clipEnd: secs, duration: secs });
+                          setAudioTrack({ id: m.id, title: m.title, url: m.url, start: 0, duration: secs });
                           setShowMusicPicker(false);
                           toast.success(`${m.title} added to audio track`);
                         }}

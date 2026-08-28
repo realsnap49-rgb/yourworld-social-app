@@ -4,22 +4,15 @@ import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
   Mic, Send, Smile, Play, Pause, X, MicOff,
   Pencil, Lock, EyeOff, Clock, Camera, VideoOff, BellOff, UserX, Flag,
-  Trash2, CheckCheck, Check, Crop, Type, Sparkles 
+  Trash2, CheckCheck, Check
 } from "lucide-react";
-import {
-  PHOTO_FILTERS, TEXT_COLORS, STICKER_EMOJIS, cropImage, renderPhoto,
-  type Overlay,
-} from "@/components/yw/chat/photo-editor";
 import { UserWatermark } from "@/components/yw/UserWatermark";
-import { LazyImage } from "@/components/yw/LazyImage";
-import { compressImageFile } from "@/lib/image-compress";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
-import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
 
-export const Route = createFileRoute("/_authenticated/chat/$threadId")({
+export const Route = createFileRoute("/chat/$threadId")({
   component: ChatThreadPage,
 });
 
@@ -33,9 +26,6 @@ type Message = {
   time: string;
   ts: number;
   local?: boolean;
-  read?: boolean;
-  viewOnce?: boolean;
-  opened?: boolean;
 };
 
 function MenuItem({
@@ -67,39 +57,6 @@ function MenuItem({
 
 export function ChatThreadPage() {
   const navigate = useNavigate();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [caption, setCaption] = useState("");
-  const [isViewOnce, setIsViewOnce] = useState(false);
-  const [isHD, setIsHD] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState("normal");
-  const [showFilters, setShowFilters] = useState(false);
-
-  const filters = PHOTO_FILTERS;
-
-  // Editor tools
-  const [overlays, setOverlays] = useState<Overlay[]>([]);
-  const [activeTool, setActiveTool] = useState<null | "crop" | "emoji" | "text">(null);
-  const [textColor, setTextColor] = useState(TEXT_COLORS[0]);
-  const [textDraft, setTextDraft] = useState("");
-  const [cropRect, setCropRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const cropStart = useRef<{ x: number; y: number } | null>(null);
-  const dragId = useRef<string | null>(null);
-  const imageBoxRef = useRef<HTMLDivElement>(null);
-  const [openedOnce, setOpenedOnce] = useState<string[]>([]);
-  const [viewOnceOpen, setViewOnceOpen] = useState<{ id: string; url: string } | null>(null);
-
-  const handleClosePreview = () => {
-    if (selectedImage?.startsWith("blob:")) { URL.revokeObjectURL(selectedImage); }
-    setSelectedImage(null);
-    setCaption("");
-    setIsViewOnce(false);
-    setSelectedFilter("normal");
-    setShowFilters(false);
-    setOverlays([]);
-    setActiveTool(null);
-    setCropRect(null);
-    setTextDraft("");
-  };
   const { threadId } = Route.useParams();
   const { startCall } = useCall();
   const {
@@ -107,13 +64,9 @@ export function ChatThreadPage() {
     currentUserId,
     send: sendToDb,
     remove: removeFromDb,
-    markRead,
-    burnMedia,
-    loading: messagesLoading,
-  } = useThreadMessages(threadId, { staleTime: Infinity });
+  } = useThreadMessages(threadId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const [message, setMessage] = useState("");
@@ -129,29 +82,17 @@ export function ChatThreadPage() {
     const fromDb: Message[] = dbMessages.map((m) => ({
       id: m.id,
       text: m.media_type === "text" ? m.content : m.content || undefined,
-      image: m.media_type.startsWith("image") ? m.media_url ?? undefined : undefined,
+      image: m.media_type === "image" ? m.media_url ?? undefined : undefined,
       audio: m.media_type === "audio" ? m.media_url ?? undefined : undefined,
       sender: m.sender_id === currentUserId ? "me" : "them",
       system: m.media_type === "system",
       time: fmtTime(m.created_at),
       ts: new Date(m.created_at).getTime(),
-      read: m.is_read,
-      viewOnce: m.media_type.startsWith("image_once"),
-      opened: m.media_type === "image_once_opened",
     }));
     return [...fromDb, ...localMessages]
       .filter((m) => !hiddenIds.includes(m.id))
       .sort((a, b) => a.ts - b.ts);
   }, [dbMessages, localMessages, hiddenIds, currentUserId]);
-
-  // Read receipts: any visible incoming message is marked read.
-  useEffect(() => {
-    if (!currentUserId) return;
-    const unread = dbMessages
-      .filter((m) => m.sender_id !== currentUserId && !m.is_read)
-      .map((m) => m.id);
-    if (unread.length) void markRead(unread);
-  }, [dbMessages, currentUserId, markRead]);
 
   const [showEmojis, setShowEmojis] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -165,19 +106,6 @@ export function ChatThreadPage() {
 
   // Peer identity resolved from the thread (never hardcoded)
   const peer = useThreadPeer(threadId, currentUserId);
-  // Live presence: online dot + "typing..." indicator.
-  const { peerOnline, peerTyping, setTyping } = useThreadPresence(threadId, currentUserId);
-
-  // Live view once: if the media is burned on either device, close the viewer.
-  useEffect(() => {
-    if (!viewOnceOpen) return;
-    const row = dbMessages.find((m) => m.id === viewOnceOpen.id);
-    if (row && (!row.media_url || row.media_type === "image_once_opened")) {
-      setOpenedOnce((prev) => (prev.includes(viewOnceOpen.id) ? prev : [...prev, viewOnceOpen.id]));
-      setViewOnceOpen(null);
-    }
-  }, [dbMessages, viewOnceOpen]);
-
   const [nameOverride, setNameOverride] = useState<string | null>(null);
   const displayName = nameOverride ?? peer.peerName ?? "";
   const setDisplayName = (n: string) => setNameOverride(n);
@@ -294,17 +222,22 @@ export function ChatThreadPage() {
     setShowEmojis(false);
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    // Compress on-device first so sending/uploading is near-instant.
-    const compressed = await compressImageFile(file, { maxDim: 1600, quality: 0.82 });
-    setCaption("");
-    setIsViewOnce(false);
-    setSelectedFilter("normal");
-    setShowFilters(false);
-    setSelectedImage(compressed);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const src = event.target.result as string;
+          if (currentUserId) {
+            void sendToDb({ media_url: src, media_type: "image" });
+          } else {
+            pushLocal({ image: src, sender: "me" });
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const startRecording = async () => {
@@ -337,11 +270,9 @@ export function ChatThreadPage() {
   };
 
   return (
-    <>
     <div className="fixed inset-0 z-50 bg-black text-white font-sans flex flex-col justify-between overflow-hidden">
       
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
-      <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleImageSelect} />
 
       {/* TOP HEADER */}
       <div className="relative z-[70] flex items-center justify-between px-4 py-3 bg-zinc-950/90 border-b border-zinc-800/80 backdrop-blur-md shrink-0">
@@ -354,11 +285,7 @@ export function ChatThreadPage() {
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md">
               U
             </div>
-            <span
-              className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${
-                peerOnline ? "bg-emerald-500" : "bg-zinc-600"
-              }`}
-            />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full" />
           </div>
 
           <div className="flex flex-col">
@@ -367,16 +294,8 @@ export function ChatThreadPage() {
               {secretLock && <Lock size={12} className="text-purple-400" />}
               {muted && <BellOff size={12} className="text-zinc-500" />}
             </span>
-            <span className="text-[11px] font-medium">
-              {blocked ? (
-                <span className="text-red-400">Blocked</span>
-              ) : peerTyping ? (
-                <span className="text-purple-400">typing...</span>
-              ) : peerOnline ? (
-                <span className="text-emerald-400">Online</span>
-              ) : (
-                <span className="text-zinc-500">Offline</span>
-              )}
+            <span className="text-[11px] text-emerald-400 font-medium">
+              {blocked ? <span className="text-red-400">Blocked</span> : "Online"}
             </span>
           </div>
         </div>
@@ -482,18 +401,6 @@ export function ChatThreadPage() {
 
       <div className="relative flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
         <UserWatermark username={currentUser.username} className="fixed text-white" />
-        {messagesLoading && messages.length === 0 && (
-          <div className="space-y-3.5" aria-hidden>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className={`flex ${i % 2 ? "justify-end" : "justify-start"}`}>
-                <div
-                  className="h-10 animate-pulse rounded-2xl bg-gradient-to-r from-zinc-800/70 via-zinc-700/60 to-zinc-800/70 bg-[length:200%_100%]"
-                  style={{ width: `${45 + ((i * 37) % 30)}%` }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
         {messages.map((m) => m.system ? (
           <p key={m.id} className="mx-auto w-fit rounded-full bg-zinc-800/70 px-3 py-1 text-center text-[11px] text-zinc-400">
             {m.text}
@@ -525,31 +432,9 @@ export function ChatThreadPage() {
               </div>
             )}
 
-            {m.image && m.viewOnce && m.sender === "them" && !m.opened && !openedOnce.includes(m.id) ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setViewOnceOpen({ id: m.id, url: m.image! });
-                }}
-                className="max-w-[75%] flex items-center gap-2 rounded-2xl border border-emerald-600/60 bg-emerald-950/30 px-4 py-3 text-xs font-bold text-emerald-400"
-              >
-                <span className="w-5 h-5 rounded-full border border-emerald-500 flex items-center justify-center">1</span>
-                Tap to view once
-              </button>
-            ) : m.image && !(m.viewOnce && (m.opened || openedOnce.includes(m.id))) ? (
+            {m.image && (
               <div className="max-w-[75%] rounded-2xl overflow-hidden border border-zinc-800 shadow-lg">
-                <LazyImage
-                  src={m.image}
-                  alt="Attachment"
-                  wrapperClassName="w-full"
-                  className="w-full h-auto object-cover max-h-60"
-                />
-              </div>
-            ) : null}
-
-            {m.viewOnce && m.sender === "them" && (m.opened || openedOnce.includes(m.id)) && (
-              <div className="max-w-[75%] flex items-center gap-2 rounded-2xl border border-zinc-700 bg-zinc-800/70 px-4 py-3 text-xs font-semibold text-zinc-400">
-                <EyeOff size={15} /> Opened
+                <img src={m.image} alt="Attachment" className="w-full h-auto object-cover max-h-60" />
               </div>
             )}
 
@@ -581,18 +466,7 @@ export function ChatThreadPage() {
               </div>
             )}
 
-            <span className="text-[10px] text-zinc-500 mt-1 px-1 flex items-center gap-1">
-              {m.time}
-              {m.sender === "me" && (
-                m.local ? (
-                  <Check size={12} className="text-zinc-500" />
-                ) : m.read ? (
-                  <CheckCheck size={12} className="text-sky-400" />
-                ) : (
-                  <CheckCheck size={12} className="text-zinc-500" />
-                )
-              )}
-            </span>
+            <span className="text-[10px] text-zinc-500 mt-1 px-1">{m.time}</span>
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -652,23 +526,11 @@ export function ChatThreadPage() {
             <button onClick={startRecording} className="p-2 text-zinc-400 hover:text-white"><Mic size={22} /></button>
             
             <div className="flex-1 relative flex items-center">
-              <button type="button" aria-label="Open camera" className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white mr-2 shrink-0" onClick={() => cameraInputRef.current?.click()}>
-  <Camera size={18} />
-</button>
               <input
                 type="text"
                 value={message}
-                onChange={(e) => {
-                  setMessage(e.target.value);
-                  setTyping(e.target.value.trim().length > 0);
-                }}
-                onBlur={() => setTyping(false)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    setTyping(false);
-                    handleSend();
-                  }
-                }}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Message..."
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none"
               />
@@ -691,304 +553,6 @@ export function ChatThreadPage() {
 
 
     </div>
-    {/* WhatsApp / Instagram Style Full Screen Editor */}
-{viewOnceOpen && (
-  <div className="fixed inset-0 z-[95] bg-black flex flex-col">
-    <div className="flex items-center justify-between p-4 text-white">
-      <span className="text-xs font-bold text-emerald-400 flex items-center gap-2"><EyeOff size={14} /> View once</span>
-      <button
-        type="button"
-        onClick={() => {
-          setViewOnceOpen(null);
-        }}
-        className="p-2 bg-zinc-800/80 rounded-full"
-      >
-        <X size={20} />
-      </button>
-    </div>
-    <div className="flex-1 flex items-center justify-center p-4">
-      <LazyImage
-        src={viewOnceOpen.url}
-        alt="View once"
-        loading="eager"
-        onLoad={() => {
-          const openedId = viewOnceOpen.id;
-          setOpenedOnce((prev) => (prev.includes(openedId) ? prev : [...prev, openedId]));
-          void burnMedia(openedId);
-        }}
-        wrapperClassName="max-h-full max-w-full"
-        className="max-h-full max-w-full object-contain rounded-lg"
-      />
-    </div>
-  </div>
-)}
-{selectedImage && (
-  <div className="fixed inset-0 bg-black z-50 flex flex-col justify-between p-4">
-    {/* Top Controls */}
-    <div className="flex items-center justify-between text-white pt-2 px-2 z-10">
-      <button type="button" onClick={handleClosePreview} className="p-2 bg-zinc-800/80 rounded-full hover:bg-zinc-700">
-        <X size={20} />
-      </button>
-      <div className="flex items-center gap-3">
-        <button 
-          type="button"
-          onClick={() => setIsHD(!isHD)} 
-          className={`px-2 py-0.5 text-xs font-bold border rounded transition-all ${isHD ? 'border-emerald-500 text-emerald-400 bg-emerald-950/40' : 'border-zinc-600 text-zinc-400'}`}
-        >
-          HD
-        </button>
-        <button 
-          type="button"
-          onClick={() => setShowFilters(!showFilters)} 
-          className={`p-2 rounded-full transition-all ${showFilters ? 'bg-emerald-500 text-black' : 'bg-zinc-800/80 text-zinc-200'}`}
-        >
-          <Sparkles size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => { setActiveTool((t) => (t === "crop" ? null : "crop")); setCropRect(null); }}
-          className={`p-2 rounded-full transition-all ${activeTool === "crop" ? "bg-emerald-500 text-black" : "bg-zinc-800/80 text-zinc-300"}`}
-        >
-          <Crop size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTool((t) => (t === "emoji" ? null : "emoji"))}
-          className={`p-2 rounded-full transition-all ${activeTool === "emoji" ? "bg-emerald-500 text-black" : "bg-zinc-800/80 text-zinc-300"}`}
-        >
-          <Smile size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTool((t) => (t === "text" ? null : "text"))}
-          className={`p-2 rounded-full transition-all ${activeTool === "text" ? "bg-emerald-500 text-black" : "bg-zinc-800/80 text-zinc-300"}`}
-        >
-          <Type size={18} />
-        </button>
-      </div>
-    </div>
-
-    {/* Center Image */}
-    <div
-      ref={imageBoxRef}
-      className="flex-1 flex items-center justify-center my-2 overflow-hidden relative touch-none"
-      onPointerDown={(e) => {
-        if (activeTool !== "crop") return;
-        const r = imageBoxRef.current!.getBoundingClientRect();
-        cropStart.current = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
-        setCropRect({ x: cropStart.current.x, y: cropStart.current.y, w: 0, h: 0 });
-      }}
-      onPointerMove={(e) => {
-        const r = imageBoxRef.current!.getBoundingClientRect();
-        const nx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-        const ny = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-        if (activeTool === "crop" && cropStart.current) {
-          const s = cropStart.current;
-          setCropRect({ x: Math.min(s.x, nx), y: Math.min(s.y, ny), w: Math.abs(nx - s.x), h: Math.abs(ny - s.y) });
-          return;
-        }
-        if (dragId.current) {
-          const id = dragId.current;
-          setOverlays((prev) => prev.map((o) => (o.id === id ? { ...o, x: nx, y: ny } : o)));
-        }
-      }}
-      onPointerUp={() => { cropStart.current = null; dragId.current = null; }}
-      onPointerLeave={() => { cropStart.current = null; dragId.current = null; }}
-    >
-      <img 
-        src={selectedImage} 
-        alt="Preview" 
-        draggable={false}
-        className={`max-h-full max-w-full object-contain rounded-lg transition-all duration-300 ${filters.find(f => f.id === selectedFilter)?.class || ''}`} 
-      />
-
-      {/* Draggable text / emoji overlays */}
-      {overlays.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          onPointerDown={(e) => { e.stopPropagation(); dragId.current = o.id; }}
-          onDoubleClick={() => setOverlays((prev) => prev.filter((x) => x.id !== o.id))}
-          style={{
-            left: `${o.x * 100}%`,
-            top: `${o.y * 100}%`,
-            color: o.color,
-            fontSize: `${o.size * 4}px`,
-            textShadow: o.kind === "text" ? "0 1px 4px rgba(0,0,0,0.7)" : undefined,
-          }}
-          className="absolute -translate-x-1/2 -translate-y-1/2 font-bold leading-none cursor-move select-none touch-none"
-        >
-          {o.value}
-        </button>
-      ))}
-
-      {/* Crop selection */}
-      {activeTool === "crop" && cropRect && cropRect.w > 0.02 && cropRect.h > 0.02 && (
-        <div
-          className="absolute border-2 border-emerald-400 bg-emerald-400/10 pointer-events-none"
-          style={{
-            left: `${cropRect.x * 100}%`,
-            top: `${cropRect.y * 100}%`,
-            width: `${cropRect.w * 100}%`,
-            height: `${cropRect.h * 100}%`,
-          }}
-        />
-      )}
-    </div>
-
-    {/* Crop actions */}
-    {activeTool === "crop" && (
-      <div className="flex items-center justify-center gap-3 py-2">
-        <span className="text-[11px] text-zinc-400">Drag on the photo to select an area</span>
-        <button
-          type="button"
-          disabled={!cropRect || cropRect.w < 0.02 || cropRect.h < 0.02}
-          onClick={async () => {
-            if (!selectedImage || !cropRect) return;
-            const next = await cropImage(selectedImage, cropRect);
-            setSelectedImage(next);
-            setCropRect(null);
-            setActiveTool(null);
-          }}
-          className="px-4 py-1.5 rounded-full bg-emerald-500 text-black text-xs font-bold disabled:bg-zinc-800 disabled:text-zinc-500"
-        >
-          Apply crop
-        </button>
-      </div>
-    )}
-
-    {/* Emoji sticker picker */}
-    {activeTool === "emoji" && (
-      <div className="flex gap-2 overflow-x-auto py-2 px-1 no-scrollbar">
-        {STICKER_EMOJIS.map((e) => (
-          <button
-            key={e}
-            type="button"
-            onClick={() =>
-              setOverlays((prev) => [
-                ...prev,
-                { id: `o-${Date.now()}-${Math.random()}`, kind: "emoji", value: e, x: 0.5, y: 0.5, color: "#fff", size: 10 },
-              ])
-            }
-            className="text-2xl p-2 bg-zinc-800 rounded-xl shrink-0"
-          >
-            {e}
-          </button>
-        ))}
-      </div>
-    )}
-
-    {/* Text tool */}
-    {activeTool === "text" && (
-      <div className="flex flex-col gap-2 py-2">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={textDraft}
-            onChange={(ev) => setTextDraft(ev.target.value)}
-            placeholder="Type text..."
-            style={{ color: textColor }}
-            className="flex-1 bg-zinc-900 border border-zinc-700 rounded-full px-4 py-2 text-sm font-bold focus:outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (!textDraft.trim()) return;
-              setOverlays((prev) => [
-                ...prev,
-                { id: `o-${Date.now()}-${Math.random()}`, kind: "text", value: textDraft.trim(), x: 0.5, y: 0.4, color: textColor, size: 8 },
-              ]);
-              setTextDraft("");
-            }}
-            className="px-4 py-2 rounded-full bg-emerald-500 text-black text-xs font-bold"
-          >
-            Add
-          </button>
-        </div>
-        <div className="flex gap-2 px-1">
-          {TEXT_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setTextColor(c)}
-              style={{ background: c }}
-              className={`w-6 h-6 rounded-full border-2 ${textColor === c ? "border-emerald-400 scale-110" : "border-zinc-700"}`}
-            />
-          ))}
-        </div>
-        <span className="text-[11px] text-zinc-500 px-1">Drag overlays to move, double-tap to remove.</span>
-      </div>
-    )}
-
-    {/* Filters Carousel */}
-    {showFilters && (
-      <div className="flex gap-2 overflow-x-auto py-2 px-1 my-1 no-scrollbar justify-start sm:justify-center">
-        {filters.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setSelectedFilter(f.id)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              selectedFilter === f.id 
-                ? 'bg-emerald-500 text-black font-bold scale-105' 
-                : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
-            }`}
-          >
-            {f.name}
-          </button>
-        ))}
-      </div>
-    )}
-
-    {/* Bottom Bar */}
-    <div className="flex flex-col gap-3 pb-2 z-10">
-      <div className="flex items-center bg-zinc-900 border border-zinc-700/80 rounded-full px-4 py-2 gap-2">
-        <ImageIcon size={18} className="text-zinc-400" />
-        <input
-          type="text"
-          placeholder="Add a caption..."
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          className="bg-transparent text-white text-sm flex-1 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => setIsViewOnce(!isViewOnce)}
-          className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
-            isViewOnce ? 'bg-emerald-500 text-black scale-110 shadow-lg shadow-emerald-500/30' : 'bg-zinc-800 text-white border border-zinc-600'
-          }`}
-        >
-          1
-        </button>
-      </div>
-
-      <div className="flex items-center justify-end px-2">
-        <button
-          type="button"
-          onClick={async () => {
-            if (!selectedImage) return;
-            const filterCss = filters.find((f) => f.id === selectedFilter)?.css ?? "none";
-            const finalImage = await renderPhoto(selectedImage, filterCss, overlays);
-            if (currentUserId) {
-              void sendToDb({
-                media_url: finalImage,
-                media_type: isViewOnce ? "image_once" : "image",
-                content: caption,
-              });
-            } else {
-              pushLocal({ image: finalImage, text: caption || undefined, sender: "me", viewOnce: isViewOnce });
-            }
-            handleClosePreview();
-          }}
-          className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg active:scale-95 transition-all"
-        >
-          <Send size={20} className="ml-0.5" />
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-    </>
   );
 }
 

@@ -20,12 +20,9 @@ interface CameraCaptureProps {
   onCapture: (files: File[]) => void;
   onPick: () => void;
   onDrafts: () => void;
-  /** Restrict the mode switcher to a subset (e.g. only REEL, or only LIVE). */
-  allowedModes?: Mode[];
 }
 
-export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedModes }: CameraCaptureProps) {
-  const modes: Mode[] = allowedModes && allowedModes.length ? allowedModes : ["POST", "REEL", "LIVE"];
+export function CameraCapture({ onClose, onCapture, onPick, onDrafts }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -33,7 +30,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedMod
   const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
-  const [mode, setMode] = useState<Mode>(modes.includes("REEL") ? "REEL" : modes[0]);
+  const [mode, setMode] = useState<Mode>("REEL");
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -236,17 +233,11 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedMod
   }, [applyZoom, zoom]);
 
   /* ---------- recording timer ---------- */
-  // Reels on YourWorld may be 5–80 seconds long. Auto-stop at the 80s ceiling.
   useEffect(() => {
     if (!recording) return;
     const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => window.clearInterval(id);
   }, [recording]);
-
-  useEffect(() => {
-    if (recording && elapsed >= 80) stopRecording();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elapsed, recording]);
 
   const grabPhoto = () => {
     const v = videoRef.current;
@@ -352,14 +343,7 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedMod
       return;
     }
     if (mode === "POST") return void shootPhoto();
-    if (recording) {
-      // Reels must be at least 5 seconds — keep recording until then.
-      if (elapsed < 5) {
-        toast.error("Keep recording — reels need at least 5 seconds");
-        return;
-      }
-      return stopRecording();
-    }
+    if (recording) return stopRecording();
     startRecording();
   };
 
@@ -508,20 +492,18 @@ export function CameraCapture({ onClose, onCapture, onPick, onDrafts, allowedMod
 
       {/* BOTTOM CONTROLS */}
       <div className="relative z-20 flex flex-col items-center gap-4 bg-gradient-to-t from-black/80 to-transparent pb-6 pt-8">
-        {modes.length > 1 && (
-          <div className="flex items-center gap-7 text-[11px] font-black uppercase tracking-wide">
-            {modes.map((m) => (
-              <button
-                key={m}
-                onClick={() => !recording && setMode(m)}
-                className={mode === m ? "text-white" : "text-white/50"}
-              >
-                {m}
-                {mode === m && <span className="mx-auto mt-1 block h-1 w-1 rounded-full bg-white" />}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-7 text-[11px] font-black uppercase tracking-wide">
+          {(["POST", "REEL", "LIVE"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => !recording && setMode(m)}
+              className={mode === m ? "text-white" : "text-white/50"}
+            >
+              {m}
+              {mode === m && <span className="mx-auto mt-1 block h-1 w-1 rounded-full bg-white" />}
+            </button>
+          ))}
+        </div>
 
         <div className="flex w-full items-center justify-around px-8">
           <button onClick={onPick} className="flex flex-col items-center gap-1 active:scale-90">

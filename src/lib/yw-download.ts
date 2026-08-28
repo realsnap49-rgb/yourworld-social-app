@@ -53,33 +53,3 @@ export async function downloadWithWatermark(src: string, username: string, fileN
   a.remove();
   URL.revokeObjectURL(url);
 }
-/** Generic saver for any media (video/audio/photo) — keeps original bytes. */
-export async function downloadMedia(src: string, fileName: string) {
-  const blob = await (await fetch(src)).blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-/** Photo → watermarked jpg, anything else → raw file. */
-export async function downloadMomentMedia(
-  src: string,
-  kind: "photo" | "video" | "text",
-  username: string,
-  id: string,
-) {
-  if (kind === "photo") {
-    try {
-      await downloadWithWatermark(src, username, `yw-moment-${id}.jpg`);
-      return;
-    } catch {
-      /* fall through to raw download */
-    }
-  }
-  await downloadMedia(src, `yw-moment-${id}.${kind === "video" ? "mp4" : "jpg"}`);
-}

@@ -1,148 +1,201 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, SwitchCamera, Zap, ZapOff } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react";
+import { Mic, MicOff, PhoneOff, Video, VideoOff, SwitchCamera, PhoneIncoming } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+
+const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:global.stun.twilio.com:3478" },
+];
 
 interface VideoCallSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  targetUserId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  recipientName?: string;
+  conversationId?: string;
+  isVideoCall?: boolean;
 }
 
-export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({ isOpen, onClose, targetUserId }) => {
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
-  const [isFlashOn, setIsFlashOn] = useState(false);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+export const VideoCallSheet: React.FC<VideoCallSheetProps> = ({
+  open,
+  onOpenChange,
+  recipientName = "User",
+  conversationId = "default-room",
+  isVideoCall = true,
+}) => {
+  const [micOn, setMicOn] = useState(true);
+  const [videoOn, setVideoOn] = useState(isVideoCall);
+  const [callStatus, setCallStatus] = useState<string>("Connecting...");
+  const [callAccepted, setCallAccepted] = useState(true);
 
-  // Simple ringtone sound generator
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    // Play Ringtone logic using Web Audio API (No external file needed)
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    let isPlaying = true;
-
-    const playRingtone = async () => {
-      while (isPlaying) {
-        try {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 1.5);
-          await new Promise(r => setTimeout(r, 3000));
-        } catch (e) {
-          break;
-        }
-      }
-    };
-    playRingtone();
-
-    return () => {
-      isPlaying = false;
-      audioCtx.close();
-    };
-  }, [isOpen]);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
-    let currentStream: MediaStream | null = null;
+    if (!open) return;
 
-    const startCamera = async () => {
+    let isMounted = true;
+
+    const startCall = async () => {
       try {
-        currentStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingMode },
-          audio: true
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: isVideoCall,
         });
+
+        if (!isMounted) return;
+        localStreamRef.current = stream;
+
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = currentStream;
+          localVideoRef.current.srcObject = stream;
         }
+
+        const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+        pcRef.current = pc;
+
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+        pc.ontrack = (event) => {
+          if (remoteVideoRef.current && event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+            setCallStatus("Connected");
+          }
+        };
+
+        const channel = supabase.channel(`call_${conversationId}`);
+        channelRef.current = channel;
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            channel.send({
+              type: "broadcast",
+              event: "signal",
+              payload: { candidate: event.candidate },
+            });
+          }
+        };
+
+        channel
+          .on("broadcast", { event: "signal" }, async ({ payload }) => {
+            if (payload.offer) {
+              await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              channel.send({
+                type: "broadcast",
+                event: "signal",
+                payload: { answer },
+              });
+            } else if (payload.answer) {
+              await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+            } else if (payload.candidate) {
+              await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            } else if (payload.end) {
+              endCall();
+            }
+          })
+          .subscribe(async (status) => {
+            if (status === "SUBSCRIBED") {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              channel.send({
+                type: "broadcast",
+                event: "signal",
+                payload: { offer },
+              });
+            }
+          });
       } catch (err) {
-        console.error("Camera error:", err);
+        console.error("Media error:", err);
+        setCallStatus("Permission denied");
       }
     };
 
-    startCamera();
+    startCall();
 
     return () => {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
+      isMounted = false;
+      cleanupCall();
     };
-  }, [isOpen, facingMode]);
+  }, [open, conversationId]);
 
-  const toggleCamera = () => {
-    setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
+  const cleanupCall = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    if (pcRef.current) {
+      pcRef.current.close();
+    }
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
   };
 
-  const toggleFlash = async () => {
-    const stream = localVideoRef.current?.srcObject as MediaStream;
-    const track = stream?.getVideoTracks()[0];
-    if (track) {
-      try {
-        await track.applyConstraints({
-          advanced: [{ torch: !isFlashOn }] as any
-        });
-        setIsFlashOn(!isFlashOn);
-      } catch (err) {
-        console.warn("Flashlight not supported.");
+  const endCall = () => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "signal",
+        payload: { end: true },
+      });
+    }
+    cleanupCall();
+    onOpenChange(false);
+  };
+
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setMicOn(audioTrack.enabled);
       }
     }
   };
 
-  if (!isOpen) return null;
+  const toggleVideo = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setVideoOn(videoTrack.enabled);
+      }
+    }
+  };
+
+  if (!open) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 999999 }}>
-      {/* Background Video */}
-      <video 
-        ref={localVideoRef} 
-        autoPlay 
-        playsInline 
-        muted 
-        style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} 
-      />
-      
-      {/* Top Controls (Flash & Camera Switch) Forced Visible */}
-      <div style={{ position: 'absolute', top: '24px', right: '24px', display: 'flex', gap: '12px', zIndex: 1000000 }}>
-        <button 
-          onClick={toggleFlash} 
-          style={{ padding: '12px', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '9999px', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' }}
-        >
-          {isFlashOn ? <Zap size={22} color="#facc15" /> : <ZapOff size={22} />}
-        </button>
-        <button 
-          onClick={toggleCamera} 
-          style={{ padding: '12px', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '9999px', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' }}
-        >
-          <SwitchCamera size={22} />
-        </button>
+    <div className="fixed inset-0 z-50 bg-black/95 text-white flex flex-col justify-between p-4">
+      <div className="text-center my-4">
+        <h2 className="text-xl font-bold">{recipientName}</h2>
+        <p className="text-sm text-gray-400">{callStatus}</p>
       </div>
 
-      {/* Bottom Controls */}
-      <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '24px', zIndex: 1000000 }}>
-        <button 
-          onClick={() => setIsMuted(!isMuted)} 
-          style={{ padding: '16px', borderRadius: '9999px', color: '#fff', backgroundColor: isMuted ? '#ef4444' : 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.3)' }}
-        >
-          {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+      <div className="relative flex-1 bg-zinc-900 rounded-2xl overflow-hidden flex items-center justify-center">
+        <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute top-4 right-4 w-28 h-40 bg-black rounded-xl object-cover border-2 border-zinc-700"
+        />
+      </div>
+
+      <div className="flex justify-center items-center gap-6 py-6">
+        <button onClick={toggleMic} className={cn("p-4 rounded-full", micOn ? "bg-zinc-800" : "bg-red-600")}>
+          {micOn ? <Mic size={24} /> : <MicOff size={24} />}
         </button>
-        <button 
-          onClick={() => setIsVideoOff(!isVideoOff)} 
-          style={{ padding: '16px', borderRadius: '9999px', color: '#fff', backgroundColor: isVideoOff ? '#ef4444' : 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.3)' }}
-        >
-          {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
-        </button>
-        <button 
-          onClick={onClose} 
-          style={{ padding: '16px', backgroundColor: '#dc2626', borderRadius: '9999px', color: '#fff' }}
-        >
+        {isVideoCall && (
+          <button onClick={toggleVideo} className={cn("p-4 rounded-full", videoOn ? "bg-zinc-800" : "bg-red-600")}>
+            {videoOn ? <Video size={24} /> : <VideoOff size={24} />}
+          </button>
+        )}
+        <button onClick={endCall} className="p-4 bg-red-600 rounded-full hover:bg-red-700">
           <PhoneOff size={24} />
         </button>
       </div>

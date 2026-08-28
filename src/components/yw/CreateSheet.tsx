@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Video, Radio, Film, X } from "lucide-react";
+import { Image, Video, Radio, X } from "lucide-react";
 
 interface CreateSheetProps {
   isOpen: boolean;
@@ -26,9 +26,21 @@ export function CreateSheet({ isOpen, onClose }: CreateSheetProps) {
 
         {/* Options Grid */}
         <div className="flex flex-col gap-3">
+          <button 
+            onClick={() => { onClose(); navigate({ to: "/create" }); }}
+            className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
+          >
+            <div className="p-3 rounded-xl bg-zinc-800 text-purple-400">
+              <Image className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Post</p>
+              <p className="text-xs text-zinc-400">Photo or video for feed</p>
+            </div>
+          </button>
 
           <button 
-            onClick={() => { onClose(); navigate({ to: "/create", search: { mode: "reel" } }); }}
+            onClick={() => { onClose(); navigate({ to: "/create" }); }}
             className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
           >
             <div className="p-3 rounded-xl bg-zinc-800 text-pink-400">
@@ -41,20 +53,7 @@ export function CreateSheet({ isOpen, onClose }: CreateSheetProps) {
           </button>
 
           <button 
-            onClick={() => { onClose(); navigate({ to: "/video/upload" }); }}
-            className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
-          >
-            <div className="p-3 rounded-xl bg-zinc-800 text-sky-400">
-              <Film className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="font-bold text-sm">Long Video</p>
-              <p className="text-xs text-zinc-400">Upload horizontal or vertical long-form video</p>
-            </div>
-          </button>
-
-          <button 
-            onClick={() => { onClose(); navigate({ to: "/create", search: { mode: "live" } }); }}
+            onClick={() => { onClose(); navigate({ to: "/create" }); }}
             className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-800/50 text-left transition"
           >
             <div className="p-3 rounded-xl bg-zinc-800 text-red-500">
