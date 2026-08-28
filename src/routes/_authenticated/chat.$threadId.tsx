@@ -187,8 +187,14 @@ export function ChatThreadPage() {
 
   // Chat options persisted per conversation in the backend.
   const { settings, patch } = useChatSettings(peer.peerId);
-  const displayName = settings.displayName ?? peer.peerName ?? "";
-  const setDisplayName = (n: string) => patch({ displayName: n });
+  const { nameFor } = useChatNames();
+  const displayName = nameFor(peer.peerId, settings.displayName ?? peer.peerName ?? "");
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const setDisplayName = (n: string) => {
+    patch({ displayName: n });
+    void saveChatDisplayName(peer.peerId ?? "", n);
+  };
 
   const secretLock = settings.secretLock;
   const viewOnce = settings.viewOnce;
