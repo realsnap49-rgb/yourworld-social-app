@@ -323,6 +323,7 @@ function OrbitChatPage() {
 
   // Real, database-backed Orbit conversation (live for both users).
   const chat = useOrbitChat(userId, accepted, clearedBefore);
+  const msgScrollRef = useRef<HTMLElement>(null);
   // Local-only notes (settings changes, capture alerts) stay on this device.
   const [notes, setNotes] = useState<Msg[]>([]);
 
@@ -861,8 +862,25 @@ function OrbitChatPage() {
         </div>
       )}
 
-      <section className="relative flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      <section
+        ref={msgScrollRef}
+        onScroll={() => {
+          const el = msgScrollRef.current;
+          if (!el || el.scrollTop > 80 || chat.loadingMore || !chat.hasMore) return;
+          const prevHeight = el.scrollHeight;
+          void chat.loadOlder().then(() => {
+            requestAnimationFrame(() => {
+              if (msgScrollRef.current)
+                msgScrollRef.current.scrollTop = msgScrollRef.current.scrollHeight - prevHeight;
+            });
+          });
+        }}
+        className="relative flex-1 space-y-2 overflow-y-auto px-4 py-4"
+      >
         <UserWatermark username={currentUser.username} className="fixed" />
+        {chat.loadingMore ? (
+          <p className="py-1 text-center text-[11px] text-muted-foreground">Loading older messages…</p>
+        ) : null}
         <OrbitChatGate
           profileId={p.id}
           name={p.name}

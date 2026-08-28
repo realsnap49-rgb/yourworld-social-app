@@ -111,8 +111,14 @@ export function ChatThreadPage() {
     markRead,
     burnMedia,
     loading: messagesLoading,
+    loadingMore,
+    hasMore,
+    loadOlder,
   } = useThreadMessages(threadId, { staleTime: Infinity });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const keepScrollRef = useRef<number | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -234,6 +240,12 @@ export function ChatThreadPage() {
 
   const didFirstScroll = useRef(false);
   useEffect(() => {
+    // Older pages prepend above — keep the reader anchored instead of jumping down.
+    if (keepScrollRef.current !== null && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight - keepScrollRef.current;
+      keepScrollRef.current = null;
+      return;
+    }
     const id = requestAnimationFrame(() => {
       messagesEndRef.current?.scrollIntoView({
         behavior: didFirstScroll.current ? "smooth" : "auto",
@@ -243,6 +255,14 @@ export function ChatThreadPage() {
     });
     return () => cancelAnimationFrame(id);
   }, [messages, isRecording]);
+
+  const onScrollMessages = () => {
+    const el = scrollRef.current;
+    if (!el || el.scrollTop > 80 || loadingMore || !hasMore) return;
+    keepScrollRef.current = el.scrollHeight;
+    void loadOlder();
+  };
+
 
   // Screenshot / recording detection posts an in-chat system note for both sides.
   useCaptureDetect(true, (kind) => {
@@ -481,8 +501,11 @@ export function ChatThreadPage() {
         </div>
       )}
 
-      <div className="relative flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
+      <div ref={scrollRef} onScroll={onScrollMessages} className="relative flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] p-4 space-y-3.5 bg-zinc-950/50" onClick={() => setShowOptionsMenu(false)}>
         <UserWatermark username={currentUser.username} className="fixed text-white" />
+        {loadingMore ? (
+          <p className="py-1 text-center text-[11px] text-zinc-500">Loading older messages…</p>
+        ) : null}
         {messagesLoading && messages.length === 0 && (
           <div className="space-y-3.5" aria-hidden>
             {[0, 1, 2, 3, 4, 5].map((i) => (
