@@ -650,6 +650,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 ref={remoteVideo}
                 autoPlay
                 playsInline
+                muted
                 className="absolute inset-0 z-0 h-full w-full object-cover"
               />
               <video
