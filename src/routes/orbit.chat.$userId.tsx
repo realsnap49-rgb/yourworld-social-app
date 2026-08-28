@@ -617,11 +617,8 @@ function OrbitChatPage() {
                 icon={<Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
                 label="Change Display Name"
                 onClick={() => {
-                  const next = window.prompt("Enter new display name:", name);
-                  if (next?.trim()) {
-                    setDisplayName(next.trim());
-                    pushSystem(`Display name changed to ${next.trim()}`);
-                  }
+                  setNameDraft(displayName ?? name);
+                  setNameDialogOpen(true);
                   setMenuOpen(false);
                 }}
               />
@@ -648,27 +645,10 @@ function OrbitChatPage() {
               />
               <MenuItem
                 icon={<Clock className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
-                label={
-                  autoDelete
-                    ? `Auto Delete: ${autoDelete === 86400 ? "24h" : autoDelete >= 3600 ? `${autoDelete / 3600}h` : `${autoDelete / 60}m`}`
-                    : "Auto Delete Messages"
-                }
+                label={autoDelete ? `Auto Delete: ${autoDeleteLabel(autoDelete)}` : "Auto Delete Messages"}
                 state={autoDelete > 0}
                 onClick={() => {
-                  const next =
-                    autoDelete === 0
-                      ? 60
-                      : autoDelete === 60
-                        ? 300
-                        : autoDelete === 300
-                          ? 3600
-                          : autoDelete === 3600
-                            ? 86400
-                            : 0;
-                  setAutoDelete(next);
-                  pushSystem(
-                    next ? `Messages will auto delete after ${next}s` : "Auto delete turned off",
-                  );
+                  setAutoDeleteOpen(true);
                   setMenuOpen(false);
                 }}
               />
