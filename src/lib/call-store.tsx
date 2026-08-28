@@ -165,6 +165,37 @@ export function CallProvider({ children }: { children: ReactNode }) {
     phase === "incoming" ? "incoming" : phase === "outgoing" ? "ringback" : null,
   );
 
+  /* ---------- auto-hiding controls (Social + Orbit video calls) ---------- */
+  useEffect(() => {
+    if (!call || phase === "idle" || phase === "incoming") {
+      setControlsVisible(true);
+      return;
+    }
+    setControlsVisible(true);
+    hideTimer.current = window.setTimeout(() => setControlsVisible(false), 3000);
+    return () => {
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    };
+  }, [call?.id, phase]);
+
+  const pokeControls = useCallback(() => {
+    setControlsVisible((v) => {
+      const next = !v;
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+      if (next) hideTimer.current = window.setTimeout(() => setControlsVisible(false), 3000);
+      return next;
+    });
+  }, []);
+
+  const toggleSpeaker = useCallback(() => {
+    setSpeakerOn((on) => {
+      const next = !on;
+      if (remoteAudio.current) remoteAudio.current.muted = !next;
+      if (remoteVideo.current) remoteVideo.current.muted = true; // video element stays silent; audio via <audio>
+      return next;
+    });
+  }, []);
+
   /* ---------- identity ---------- */
   useEffect(() => {
     setGuestId(getGuestCallId());
