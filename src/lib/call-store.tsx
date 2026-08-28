@@ -484,31 +484,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
       createPeer(localStream.current!);
       await openSignalChannel(callId, mode, true);
 
-      const ring = supabase.channel(`calls-user-${target}`, {
-        config: { broadcast: { self: false }, private: true },
-      });
-      ring.subscribe((status) => {
-        if (status !== "SUBSCRIBED") return;
-        const payload = { callId, mode, fromId: me, fromName: myName, threadId };
-        // Re-send a few times: the receiver may still be re-joining its channel.
-        let sent = 0;
-        const fire = () => {
-          if (phaseRef.current !== "outgoing") {
-            clearInterval(timer);
-            void supabase.removeChannel(ring);
-            return;
-          }
-          void ring.send({ type: "broadcast", event: "ring", payload });
-          if (++sent >= 5) {
-            clearInterval(timer);
-            setTimeout(() => void supabase.removeChannel(ring), 500);
-          }
-        };
-        const timer = setInterval(fire, 1200);
-        fire();
-      });
+      const ringPayload = { callId, mode, fromId: me, fromName: myName, threadId };
+      void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
+      // Re-send a few times: the receiver may still be re-joining its channel.
+      let sent = 1;
+      const timer = window.setInterval(() => {
+        if (phaseRef.current !== "outgoing" || sent >= 4) {
+          window.clearInterval(timer);
+          return;
+        }
+        sent++;
+        void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
+      }, 1500);
     },
-    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown],
+    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast],
+
   );
 
   const accept = useCallback(async () => {
