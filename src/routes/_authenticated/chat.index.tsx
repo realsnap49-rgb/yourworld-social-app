@@ -58,17 +58,34 @@ function ChatListPage() {
     async function loadThreads() {
       const { data: sessionData } = await supabase.auth.getSession();
       const me = sessionData.session?.user.id ?? null;
-      // Supabase direct messages table se threads fetch
-      const { data, error } = await supabase
+
+      // 1) Find every thread this user participates in.
+      let threadIds: string[] = [];
+      if (me) {
+        const { data: parts } = await supabase
+          .from("thread_participants")
+          .select("thread_id")
+          .eq("user_id", me);
+        threadIds = (parts ?? []).map((p) => p.thread_id);
+      }
+
+      // 2) Fetch all messages for those threads (RLS scopes to visible rows).
+      let query = supabase
         .from("direct_messages")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("id,thread_id,sender_id,content,media_type,is_read,created_at")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (threadIds.length > 0) query = query.in("thread_id", threadIds);
+      const { data, error } = await query;
 
       if (!error && data) {
         // Group messages by thread_id
         const map = new Map<string, ChatThread>();
         data.forEach((msg) => {
-          if (!map.has(msg.thread_id)) {
+          const existing = map.get(msg.thread_id);
+          const unread =
+            (existing?.unreadCount ?? 0) + (!msg.is_read && msg.sender_id !== me ? 1 : 0);
+          if (!existing) {
             map.set(msg.thread_id, {
               id: msg.thread_id,
               name: "Loading…",
@@ -77,8 +94,10 @@ function ChatListPage() {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
-              unreadCount: msg.is_read ? 0 : 1,
+              unreadCount: unread,
             });
+          } else {
+            existing.unreadCount = unread;
           }
         });
         const base = Array.from(map.values());
