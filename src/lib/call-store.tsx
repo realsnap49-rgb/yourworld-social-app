@@ -8,7 +8,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { Mic, MicOff, PhoneOff, Phone, Video, VideoOff, SwitchCamera, Zap, ZapOff } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Phone, Video, VideoOff, SwitchCamera, Zap, ZapOff, Volume2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -146,6 +146,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   /** WhatsApp-style: tap the PiP to swap which stream fills the screen. */
   const [swapped, setSwapped] = useState(false);
   const [peerAvatar, setPeerAvatar] = useState<string | null>(null);
+  /** Auto-hiding call controls: visible on activity, hidden after 3s. */
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [speakerOn, setSpeakerOn] = useState(true);
+  const hideTimer = useRef<number | null>(null);
 
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -160,6 +164,37 @@ export function CallProvider({ children }: { children: ReactNode }) {
   useRingtone(
     phase === "incoming" ? "incoming" : phase === "outgoing" ? "ringback" : null,
   );
+
+  /* ---------- auto-hiding controls (Social + Orbit video calls) ---------- */
+  useEffect(() => {
+    if (!call || phase === "idle" || phase === "incoming") {
+      setControlsVisible(true);
+      return;
+    }
+    setControlsVisible(true);
+    hideTimer.current = window.setTimeout(() => setControlsVisible(false), 3000);
+    return () => {
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    };
+  }, [call?.callId, phase]);
+
+  const pokeControls = useCallback(() => {
+    setControlsVisible((v) => {
+      const next = !v;
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+      if (next) hideTimer.current = window.setTimeout(() => setControlsVisible(false), 3000);
+      return next;
+    });
+  }, []);
+
+  const toggleSpeaker = useCallback(() => {
+    setSpeakerOn((on) => {
+      const next = !on;
+      if (remoteAudio.current) remoteAudio.current.muted = !next;
+      if (remoteVideo.current) remoteVideo.current.muted = true; // video element stays silent; audio via <audio>
+      return next;
+    });
+  }, []);
 
   /* ---------- identity ---------- */
   useEffect(() => {
@@ -669,7 +704,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     <CallCtx.Provider value={value}>
       {children}
       {call && phase !== "idle" && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-between bg-zinc-950 p-6 text-white">
+        <div
+          className="fixed inset-0 z-[100] flex flex-col justify-between bg-zinc-950 p-6 text-white"
+          onClick={phase === "incoming" ? undefined : pokeControls}
+        >
           {call.mode === "video" && (
             <>
               <video
@@ -677,7 +715,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                onClick={swapped ? () => setSwapped(false) : undefined}
+                onClick={
+                  swapped
+                    ? (e) => { e.stopPropagation(); setSwapped(false); }
+                    : undefined
+                }
                 className={
                   swapped
                     ? "absolute right-4 top-28 z-20 h-40 w-28 cursor-pointer rounded-2xl border border-white/20 object-cover shadow-2xl transition-all active:scale-95"
@@ -689,7 +731,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                onClick={swapped ? undefined : () => setSwapped(true)}
+                onClick={
+                  swapped
+                    ? undefined
+                    : (e) => { e.stopPropagation(); setSwapped(true); }
+                }
                 className={
                   swapped
                     ? "absolute inset-0 z-0 h-full w-full object-cover"
@@ -697,20 +743,32 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 }
               />
               {phase !== "incoming" && (
-                <div className="absolute right-4 top-4 z-[9999] flex gap-3">
-                  <button
-                    onClick={() => void toggleFlash()}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
-                    aria-label="Toggle flashlight"
-                  >
-                    {flashOn ? <Zap size={22} className="text-yellow-400" /> : <ZapOff size={22} />}
-                  </button>
+                <div
+                  className={`absolute right-3 top-3 z-[9999] flex items-center gap-2 rounded-full border border-white/15 bg-black/40 p-1.5 shadow-lg backdrop-blur-xl transition-all duration-300 ${
+                    controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     onClick={() => void flipCamera()}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
+                    className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:scale-90"
                     aria-label="Flip camera"
                   >
-                    <SwitchCamera size={22} />
+                    <SwitchCamera size={17} />
+                  </button>
+                  <button
+                    onClick={() => void toggleFlash()}
+                    className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:scale-90"
+                    aria-label="Toggle flashlight"
+                  >
+                    {flashOn ? <Zap size={17} className="text-yellow-400" /> : <ZapOff size={17} />}
+                  </button>
+                  <button
+                    onClick={toggleSpeaker}
+                    className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:scale-90"
+                    aria-label="Toggle speaker"
+                  >
+                    {speakerOn ? <Volume2 size={17} /> : <VolumeX size={17} />}
                   </button>
                 </div>
               )}
@@ -767,7 +825,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
               </div>
             </>
           ) : (
-            <div className="relative z-10 mt-12 flex flex-col gap-1 px-2">
+            <div
+              className={`relative z-10 mt-12 flex flex-col gap-1 px-2 transition-opacity duration-300 ${
+                controlsVisible ? "opacity-100" : "pointer-events-none opacity-0"
+              }`}
+            >
               <h2 className="text-lg font-bold drop-shadow-lg">{call.peerName}</h2>
               <span className="animate-pulse text-xs font-bold text-emerald-400 drop-shadow-lg">{statusText}</span>
             </div>
@@ -798,32 +860,40 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 </button>
               </div>
             ) : (
-
-              <>
+              <div
+                className={`flex items-center gap-4 rounded-full border border-white/10 bg-black/40 px-4 py-2.5 shadow-2xl backdrop-blur-xl transition-all duration-300 ${
+                  controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   onClick={toggleMic}
-                  className={`rounded-full p-4 backdrop-blur-md ${micOn ? "bg-zinc-800/80" : "bg-red-600"}`}
+                  className={`grid h-11 w-11 place-items-center rounded-full transition-all active:scale-90 ${
+                    micOn ? "bg-white/10 text-white hover:bg-white/20" : "bg-red-600 text-white"
+                  }`}
                   aria-label="Toggle microphone"
                 >
-                  {micOn ? <Mic size={22} /> : <MicOff size={22} />}
+                  {micOn ? <Mic size={19} /> : <MicOff size={19} />}
                 </button>
                 {call.mode === "video" && (
                   <button
                     onClick={toggleCam}
-                    className={`rounded-full p-4 backdrop-blur-md ${camOn ? "bg-zinc-800/80" : "bg-red-600"}`}
+                    className={`grid h-11 w-11 place-items-center rounded-full transition-all active:scale-90 ${
+                      camOn ? "bg-white/10 text-white hover:bg-white/20" : "bg-red-600 text-white"
+                    }`}
                     aria-label="Toggle camera"
                   >
-                    {camOn ? <Video size={22} /> : <VideoOff size={22} />}
+                    {camOn ? <Video size={19} /> : <VideoOff size={19} />}
                   </button>
                 )}
                 <button
                   onClick={() => void hangup()}
-                  className="rounded-full bg-red-600 p-5 active:scale-90"
+                  className="grid h-12 w-12 place-items-center rounded-full bg-red-600 text-white shadow-[0_8px_24px_-6px_rgba(220,38,38,0.8)] transition-transform active:scale-90"
                   aria-label="End call"
                 >
-                  <PhoneOff size={26} />
+                  <PhoneOff size={20} />
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
