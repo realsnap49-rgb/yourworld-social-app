@@ -146,6 +146,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   /** WhatsApp-style: tap the PiP to swap which stream fills the screen. */
   const [swapped, setSwapped] = useState(false);
   const [peerAvatar, setPeerAvatar] = useState<string | null>(null);
+  /** Auto-hiding call controls: visible on activity, hidden after 3s. */
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [speakerOn, setSpeakerOn] = useState(true);
+  const hideTimer = useRef<number | null>(null);
 
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
