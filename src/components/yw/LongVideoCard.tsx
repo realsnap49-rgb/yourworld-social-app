@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Play, Eye, Heart, Clock, MessageCircle, Send, Bookmark,
   Download, MoreHorizontal, Link2, Trash2, EyeOff,
@@ -20,6 +20,7 @@ import {
 import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 import { cn } from "@/lib/utils";
+import { onStopRequested, releasePlayback, requestPlayback } from "@/lib/video-playback";
 
 type Props = {
   video: LongVideo;
@@ -49,14 +50,14 @@ export function LongVideoCard({
   const [liking, setLiking] = useState(false);
   const [playerPortrait, setPlayerPortrait] = useState(video.orientation === "portrait");
   const counted = useRef(false);
-
-  const isMine = currentUserId === video.userId;
-  const isFollowing = !!following[video.userId];
-  const shareUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/?post=${video.id}` : undefined;
+  const cardRef = useRef<HTMLElement | null>(null);
+  const playingRef = useRef(false);
 
   const start = async () => {
+    requestPlayback(video.id); // stops any other playing video
+    playingRef.current = true;
     const url = await resolveMediaUrl(video.mediaUrl, "reels");
+    if (!playingRef.current) return; // stopped while resolving
     setSrc(url);
     setPlaying(true);
     if (!counted.current) {
@@ -64,6 +65,39 @@ export function LongVideoCard({
       onView(video.id);
     }
   };
+  const startRef = useRef(start);
+  startRef.current = start;
+
+  // Another card started playing → stop this one.
+  useEffect(() => onStopRequested(video.id, () => {
+    playingRef.current = false;
+    setPlaying(false);
+  }), [video.id]);
+
+  // Scroll behavior: auto-start when centered (>=60% visible), stop when scrolled away.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.intersectionRatio >= 0.6) {
+          if (!playingRef.current) void startRef.current();
+        } else if (entry.intersectionRatio < 0.35 && playingRef.current) {
+          playingRef.current = false;
+          setPlaying(false);
+          releasePlayback(video.id);
+        }
+      },
+      { threshold: [0, 0.35, 0.6, 1] },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [video.id]);
+
+  const isMine = currentUserId === video.userId;
+  const isFollowing = !!following[video.userId];
+  const shareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/?post=${video.id}` : undefined;
 
   const handleDownload = async () => {
     const toastId = toast.loading("Preparing download…");
@@ -141,7 +175,10 @@ export function LongVideoCard({
   if (hidden) return null;
 
   return (
-    <article className="space-y-3 overflow-hidden border-y border-zinc-800/80 bg-[#141418] shadow-2xl">
+    <article
+      ref={cardRef}
+      className="space-y-3 overflow-hidden border-y border-zinc-800/80 bg-[#141418] shadow-2xl"
+    >
       <div
         className={`relative w-full overflow-hidden bg-black ${
           playerPortrait ? "aspect-[9/16]" : "aspect-video"
