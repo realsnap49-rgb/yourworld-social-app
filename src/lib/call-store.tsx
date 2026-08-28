@@ -594,13 +594,19 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
       void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "decline" });
+      void supabase
+        .from("calls")
+        .update({ status: "declined" })
+        .eq("call_id", call.callId);
     } else if (call) {
       signal({ type: "end" });
       void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "end" });
       void httpBroadcast(`calls-user-${call.peerId}`, "cancel", { callId: call.callId });
+      void supabase.from("calls").update({ status: "ended" }).eq("call_id", call.callId);
     }
     teardown();
   }, [call, phase, signal, teardown, httpBroadcast]);
+
 
 
   const toggleMic = () => {
