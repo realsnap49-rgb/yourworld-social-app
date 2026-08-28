@@ -559,7 +559,7 @@ function OrbitChatPage() {
 
   return (
     <main className="flex h-[100dvh] flex-col overflow-hidden">
-      <header className="flex shrink-0 items-center gap-2 border-b border-border glass px-3 py-2.5">
+      <header className="relative flex shrink-0 items-center gap-2 border-b border-border glass px-3 py-2.5">
         <button
           type="button"
           onClick={() => navigate({ to: "/orbit/messages" })}
