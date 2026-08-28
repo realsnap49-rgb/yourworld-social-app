@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type ChatSettings = {
   displayName: string | null;
   secretLock: boolean;
+  secretPinSalt: string | null;
+  secretPinHash: string | null;
   viewOnce: boolean;
   autoDelete: number;
   screenshotAlert: boolean;
@@ -20,6 +22,8 @@ export type ChatSettings = {
 const DEFAULTS: ChatSettings = {
   displayName: null,
   secretLock: false,
+  secretPinSalt: null,
+  secretPinHash: null,
   viewOnce: false,
   autoDelete: 0,
   screenshotAlert: true,
@@ -31,6 +35,8 @@ const DEFAULTS: ChatSettings = {
 type Row = {
   display_name: string | null;
   secret_lock_enabled: boolean;
+  secret_pin_salt: string | null;
+  secret_pin_hash: string | null;
   view_once_mode: boolean;
   auto_delete_seconds: number;
   screenshot_alert: boolean;
@@ -57,7 +63,7 @@ export function useChatSettings(peerId: string | null) {
       const { data } = await supabase
         .from("orbit_chat_settings")
         .select(
-          "display_name,secret_lock_enabled,view_once_mode,auto_delete_seconds,screenshot_alert,recording_alert,muted,blocked",
+          "display_name,secret_lock_enabled,secret_pin_salt,secret_pin_hash,view_once_mode,auto_delete_seconds,screenshot_alert,recording_alert,muted,blocked",
         )
         .eq("user_id", me)
         .eq("peer_id", peerId)
@@ -68,6 +74,8 @@ export function useChatSettings(peerId: string | null) {
         setSettings({
           displayName: row.display_name,
           secretLock: row.secret_lock_enabled,
+          secretPinSalt: row.secret_pin_salt,
+          secretPinHash: row.secret_pin_hash,
           viewOnce: row.view_once_mode,
           autoDelete: row.auto_delete_seconds ?? 0,
           screenshotAlert: row.screenshot_alert,
@@ -97,6 +105,8 @@ export function useChatSettings(peerId: string | null) {
               peer_id: peerId,
               display_name: merged.displayName,
               secret_lock_enabled: merged.secretLock,
+              secret_pin_salt: merged.secretPinSalt,
+              secret_pin_hash: merged.secretPinHash,
               view_once_mode: merged.viewOnce,
               auto_delete_seconds: merged.autoDelete,
               screenshot_alert: merged.screenshotAlert,
