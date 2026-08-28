@@ -30,7 +30,7 @@ function HomePage() {
     currentUserId,
     toggleLike,
     reload,
-  } = useSocialPosts("video");
+  } = useSocialPosts("post");
   const { saved, toggleSave } = usePostSaves();
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
@@ -54,12 +54,14 @@ function HomePage() {
     const list: StoryRing[] = [];
     for (const m of moments) {
       if (m.mine) continue;
-      if (!seen.has(m.userId)) {
-        seen.add(m.userId);
+      const uid = m.author?.id;
+      if (!uid) continue;
+      if (!seen.has(uid)) {
+        seen.add(uid);
         list.push({
-          userId: m.userId,
-          username: m.username,
-          avatarUrl: m.avatarUrl,
+          userId: uid,
+          username: m.author?.username ?? "user",
+          avatarUrl: m.author?.avatar ?? undefined,
           hasUnseen: true,
           momentId: m.id,
         });
@@ -110,8 +112,8 @@ function HomePage() {
             className="relative w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center"
           >
             <div className="w-full h-full rounded-full bg-neutral-900 border-2 border-black overflow-hidden flex items-center justify-center">
-              {myLatest?.mediaUrl ? (
-                <img src={myLatest.mediaUrl} alt="My moment" className="w-full h-full object-cover" />
+              {myLatest?.media ? (
+                <img src={myLatest.media} alt="My moment" className="w-full h-full object-cover" />
               ) : (
                 <Plus className="w-6 h-6 text-pink-500" />
               )}
@@ -161,10 +163,10 @@ function HomePage() {
               key={post.id}
               post={post}
               currentUserId={currentUserId}
-              onToggleLike={() => toggleLike(post.id)}
-              isSaved={saved.has(post.id)}
-              onToggleSave={() => toggleSave(post.id)}
-              onDelete={reload}
+              onToggleLike={toggleLike}
+              isSaved={!!saved[post.id]}
+              onToggleSave={toggleSave}
+              onDeleted={() => reload()}
             />
           ))
         )}
