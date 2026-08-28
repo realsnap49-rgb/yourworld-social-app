@@ -194,6 +194,27 @@ export function useOrbitChat(peerId: string, enabled: boolean, clearedBefore?: s
     await remove(ids);
   }, [messages, remove]);
 
+  /** Infinite scroll: fetch the previous page of older Orbit messages. */
+  const loadOlder = useCallback(async () => {
+    const me = meRef.current;
+    const oldest = messagesRef.current.find((m) => !m.id.startsWith("temp-"))?.at;
+    if (!me || !oldest || loadingMore || !hasMore || !isUuid(peerId)) return;
+    setLoadingMore(true);
+    let query = supabase
+      .from("orbit_messages")
+      .select("id,sender_id,recipient_id,kind,text,url,view_once,expires_at,created_at")
+      .or(
+        `and(sender_id.eq.${me},recipient_id.eq.${peerId}),and(sender_id.eq.${peerId},recipient_id.eq.${me})`,
+      )
+      .lt("created_at", new Date(oldest).toISOString());
+    if (clearedBefore) query = query.gt("created_at", clearedBefore);
+    const { data } = await query.order("created_at", { ascending: false }).limit(PAGE_SIZE);
+    const rows = (data ?? []) as Row[];
+    setHasMore(rows.length >= PAGE_SIZE);
+    if (rows.length) merge(rows.map((r) => toMsg(r, me)));
+    setLoadingMore(false);
+  }, [peerId, clearedBefore, loadingMore, hasMore, merge]);
+
   useEffect(() => {
     if (!enabled) return;
     const sweep = () => void supabase.rpc("delete_expired_orbit_messages" as never);
@@ -202,5 +223,5 @@ export function useOrbitChat(peerId: string, enabled: boolean, clearedBefore?: s
     return () => window.clearInterval(timer);
   }, [enabled]);
 
-  return { messages, meId, sendText, sendMedia, insert, remove, clear };
+  return { messages, meId, sendText, sendMedia, insert, remove, clear, loadOlder, loadingMore, hasMore };
 }
