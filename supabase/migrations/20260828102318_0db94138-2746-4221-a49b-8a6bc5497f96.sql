@@ -1,0 +1,1 @@
+ALTER TABLE public.orbit_chat_settings ADD COLUMN IF NOT EXISTS blocked boolean NOT NULL DEFAULT false;
