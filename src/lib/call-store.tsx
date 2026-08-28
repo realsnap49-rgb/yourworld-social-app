@@ -160,6 +160,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteVideo = useRef<HTMLVideoElement | null>(null);
   const remoteAudio = useRef<HTMLAudioElement | null>(null);
   const remoteStream = useRef<MediaStream | null>(null);
+  /** Call ids we've already reacted to (broadcast + database ring paths). */
+  const seenCalls = useRef<Set<string>>(new Set());
+
 
   useRingtone(
     phase === "incoming" ? "incoming" : phase === "outgoing" ? "ringback" : null,
