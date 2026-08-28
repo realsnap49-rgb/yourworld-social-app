@@ -719,30 +719,86 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
           <audio ref={remoteAudio} autoPlay className="hidden" />
 
-          <div className="relative z-10 mt-12 flex flex-col gap-1 px-2">
-            <h2 className="text-lg font-bold drop-shadow-lg">{call.peerName}</h2>
-            <span className="animate-pulse text-xs font-bold text-emerald-400 drop-shadow-lg">{statusText}</span>
-          </div>
+          {phase === "incoming" ? (
+            <>
+              {/* Blurred caller backdrop */}
+              <div className="absolute inset-0 z-0 overflow-hidden">
+                {peerAvatar ? (
+                  <img
+                    src={peerAvatar}
+                    alt=""
+                    aria-hidden
+                    className="h-full w-full scale-125 object-cover opacity-60 blur-3xl"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-[radial-gradient(circle_at_50%_30%,rgba(16,185,129,0.35),transparent_65%)]" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/85" />
+              </div>
+
+              <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6">
+                <div className="relative flex h-40 w-40 items-center justify-center">
+                  <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/20" />
+                  <span
+                    className="absolute inset-4 animate-ping rounded-full bg-emerald-400/25"
+                    style={{ animationDelay: "0.6s" }}
+                  />
+                  <span className="absolute inset-6 rounded-full ring-1 ring-white/25" />
+                  {peerAvatar ? (
+                    <img
+                      src={peerAvatar}
+                      alt={call.peerName}
+                      className="relative h-28 w-28 rounded-full object-cover shadow-[0_0_40px_rgba(16,185,129,0.45)]"
+                    />
+                  ) : (
+                    <div className="relative grid h-28 w-28 place-items-center rounded-full bg-white/10 text-4xl font-bold backdrop-blur-md shadow-[0_0_40px_rgba(16,185,129,0.45)]">
+                      {call.peerName?.charAt(0)?.toUpperCase() || "?"}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <h2 className="text-2xl font-semibold tracking-tight drop-shadow-lg">
+                    {call.peerName}
+                  </h2>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-md">
+                    {call.mode === "video" ? "Incoming video call" : "Incoming voice call"}
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="relative z-10 mt-12 flex flex-col gap-1 px-2">
+              <h2 className="text-lg font-bold drop-shadow-lg">{call.peerName}</h2>
+              <span className="animate-pulse text-xs font-bold text-emerald-400 drop-shadow-lg">{statusText}</span>
+            </div>
+          )}
 
           <div className="relative z-10 mb-10 flex items-center justify-center gap-6">
             {phase === "incoming" ? (
-              <>
+              <div className="flex w-full items-center justify-between px-6">
                 <button
                   onClick={() => void hangup()}
-                  className="rounded-full bg-red-600 p-5 active:scale-90"
+                  className="flex flex-col items-center gap-2"
                   aria-label="Decline call"
                 >
-                  <PhoneOff size={26} />
+                  <span className="grid h-16 w-16 place-items-center rounded-full bg-red-600 shadow-[0_10px_30px_-6px_rgba(220,38,38,0.8)] transition-transform active:scale-90">
+                    <PhoneOff size={26} />
+                  </span>
+                  <span className="text-xs text-white/70">Decline</span>
                 </button>
                 <button
                   onClick={() => void accept()}
-                  className="animate-bounce rounded-full bg-emerald-600 p-5 active:scale-90"
+                  className="flex flex-col items-center gap-2"
                   aria-label="Accept call"
                 >
-                  <Phone size={26} />
+                  <span className="grid h-16 w-16 animate-bounce place-items-center rounded-full bg-emerald-500 shadow-[0_10px_30px_-6px_rgba(16,185,129,0.85)] transition-transform active:scale-90">
+                    <Phone size={26} />
+                  </span>
+                  <span className="text-xs text-white/70">Accept</span>
                 </button>
-              </>
+              </div>
             ) : (
+
               <>
                 <button
                   onClick={toggleMic}
