@@ -598,7 +598,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [facingMode, attachStreams]);
 
+  // Re-bind media to the elements whenever the call UI (re)mounts, so late
+  // remote tracks and the local preview always show up on both sides.
+  useEffect(() => {
+    if (!call || phase === "idle") return;
+    attachStreams();
+    const t = window.setTimeout(attachStreams, 250);
+    return () => window.clearTimeout(t);
+  }, [call, phase, attachStreams]);
+
   useEffect(() => () => teardown(), [teardown]);
+
 
   const value = useMemo(
     () => ({ startCall, myCallId: me, isGuest }),
