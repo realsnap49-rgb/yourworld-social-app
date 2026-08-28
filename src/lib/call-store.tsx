@@ -423,7 +423,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let retry: ReturnType<typeof setTimeout> | null = null;
     let alive = true;
     let connecting = false;
-    const seen = new Set<string>();
 
     const listen = async () => {
       if (!alive || connecting || ch) return;
@@ -442,10 +441,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const nextChannel = supabase
         .channel(`calls-user-${me}`, { config: { broadcast: { self: false }, private: true } })
         .on("broadcast", { event: "ring" }, ({ payload }) => {
-        if (!payload?.callId || seen.has(payload.callId)) return;
+        if (!payload?.callId || seenCalls.current.has(payload.callId)) return;
         // Only accept rings whose signalling topic we are actually a participant of.
         if (!String(payload.callId).includes(me)) return;
-        seen.add(payload.callId);
+        seenCalls.current.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
           void httpBroadcast(`rtc-${payload.callId}`, "signal", { type: "decline" });
@@ -512,6 +511,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const phaseRef = useRef<Phase>("idle");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+  const callRef = useRef<CallState | null>(null);
+  useEffect(() => { callRef.current = call; }, [call]);
 
   /* ---------- durable ring listener (database, works app-wide) ---------- */
   useEffect(() => {
