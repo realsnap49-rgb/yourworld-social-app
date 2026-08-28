@@ -825,7 +825,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
               </div>
             </>
           ) : (
-            <div className="relative z-10 mt-12 flex flex-col gap-1 px-2">
+            <div
+              className={`relative z-10 mt-12 flex flex-col gap-1 px-2 transition-opacity duration-300 ${
+                controlsVisible ? "opacity-100" : "pointer-events-none opacity-0"
+              }`}
+            >
               <h2 className="text-lg font-bold drop-shadow-lg">{call.peerName}</h2>
               <span className="animate-pulse text-xs font-bold text-emerald-400 drop-shadow-lg">{statusText}</span>
             </div>
@@ -856,32 +860,40 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 </button>
               </div>
             ) : (
-
-              <>
+              <div
+                className={`flex items-center gap-4 rounded-full border border-white/10 bg-black/40 px-4 py-2.5 shadow-2xl backdrop-blur-xl transition-all duration-300 ${
+                  controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   onClick={toggleMic}
-                  className={`rounded-full p-4 backdrop-blur-md ${micOn ? "bg-zinc-800/80" : "bg-red-600"}`}
+                  className={`grid h-11 w-11 place-items-center rounded-full transition-all active:scale-90 ${
+                    micOn ? "bg-white/10 text-white hover:bg-white/20" : "bg-red-600 text-white"
+                  }`}
                   aria-label="Toggle microphone"
                 >
-                  {micOn ? <Mic size={22} /> : <MicOff size={22} />}
+                  {micOn ? <Mic size={19} /> : <MicOff size={19} />}
                 </button>
                 {call.mode === "video" && (
                   <button
                     onClick={toggleCam}
-                    className={`rounded-full p-4 backdrop-blur-md ${camOn ? "bg-zinc-800/80" : "bg-red-600"}`}
+                    className={`grid h-11 w-11 place-items-center rounded-full transition-all active:scale-90 ${
+                      camOn ? "bg-white/10 text-white hover:bg-white/20" : "bg-red-600 text-white"
+                    }`}
                     aria-label="Toggle camera"
                   >
-                    {camOn ? <Video size={22} /> : <VideoOff size={22} />}
+                    {camOn ? <Video size={19} /> : <VideoOff size={19} />}
                   </button>
                 )}
                 <button
                   onClick={() => void hangup()}
-                  className="rounded-full bg-red-600 p-5 active:scale-90"
+                  className="grid h-12 w-12 place-items-center rounded-full bg-red-600 text-white shadow-[0_8px_24px_-6px_rgba(220,38,38,0.8)] transition-transform active:scale-90"
                   aria-label="End call"
                 >
-                  <PhoneOff size={26} />
+                  <PhoneOff size={20} />
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
