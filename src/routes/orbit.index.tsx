@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ChevronLeft,
   Heart,
@@ -11,6 +11,7 @@ import {
   Lock,
   ShieldCheck,
   Settings2,
+  UserRound,
   EyeOff,
   Flag,
   Ban,
@@ -22,8 +23,10 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import { orbitProfiles, approxDistance, type OrbitProfile } from "@/lib/orbit-data";
+import { approxDistance, type OrbitProfile } from "@/lib/orbit-data";
+import { useOrbitProfiles } from "@/lib/orbit-live";
 import { useOrbit, useScreenCaptureShield } from "@/lib/orbit-store";
+import { sendOrbitMatch, useOrbitMatches } from "@/lib/orbit-match";
 import { useNotifications } from "@/lib/notifications-store";
 import { analyzeProfile } from "@/lib/orbit-trust";
 import { moodById, moodMatchScore } from "@/lib/orbit-mood";
@@ -72,6 +75,22 @@ function OrbitBrowse() {
   const [searchOpen, setSearchOpen] = useState(false);
   const live = useLiveLocation();
   const obscured = useScreenCaptureShield(orbit.privacy.screenshotProtection);
+  const { profiles: orbitProfiles } = useOrbitProfiles();
+  const navigate = useNavigate();
+  const { mutual, likedByMe, refresh: refreshMatches } = useOrbitMatches();
+
+  const onMatch = async (id: string, name: string) => {
+    const next = !likedByMe.includes(id);
+    const res = await sendOrbitMatch(id, next);
+    refreshMatches();
+    if (!res.ok) {
+      toast.error("Couldn't send that match — try again.");
+      return;
+    }
+    if (!next) toast.success("Match withdrawn");
+    else if (res.mutual) toast.success(`It's a match with ${name}! Chat unlocked.`);
+    else toast.success(`Match sent to ${name}`);
+  };
 
   const visible = useMemo(
     () =>
@@ -86,6 +105,7 @@ function OrbitBrowse() {
           ),
       ),
     [
+      orbitProfiles,
       orbit.privacy.blocked,
       orbit.privacy.hiddenFrom,
       orbit.privacy.aiFakeDetection,
@@ -158,6 +178,13 @@ function OrbitBrowse() {
           <MessageCircle className="h-[15px] w-[15px]" strokeWidth={1.6} />
         </Link>
         <Link
+          to="/orbit/me"
+          aria-label="My Orbit profile"
+          className="grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
+        >
+          <UserRound className="h-[15px] w-[15px]" strokeWidth={1.6} />
+        </Link>
+        <Link
           to="/orbit/privacy"
           aria-label="Orbit privacy & safety"
           className="grid h-8 w-8 place-items-center rounded-full chip transition-transform active:scale-90"
@@ -215,12 +242,22 @@ function OrbitBrowse() {
               aria-label={`Open ${p.name}'s Orbit profile`}
               className="relative block aspect-[4/5] w-full overflow-hidden"
             >
-              <img
-                src={p.photo}
-                alt={`${p.name}, ${p.headline}`}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
+              {p.photo ? (
+                <img
+                  src={p.photo}
+                  alt={`${p.name}, ${p.headline}`}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div
+                  className="grid h-full w-full place-items-center font-display text-6xl font-bold text-foreground"
+                  style={{ backgroundImage: `linear-gradient(140deg, oklch(0.5 0.18 ${p.hue}), oklch(0.28 0.1 ${p.hue + 40}))` }}
+                  aria-hidden
+                >
+                  {p.name.charAt(0)}
+                </div>
+              )}
               <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(to_top,oklch(0.12_0.02_290/0.92),transparent)] p-4 pt-16">
                 <div className="flex items-center gap-1.5">
                   <h2 className="font-display text-lg font-bold">
@@ -284,7 +321,9 @@ function OrbitBrowse() {
                   icon={MessageCircle}
                   label="Message"
                   locked={!orbit.hasProfile}
-                  onClick={gate(() => toast.success(`Orbit chat opened with ${p.name}`))}
+                  onClick={gate(() =>
+                    navigate({ to: "/orbit/chat/$userId", params: { userId: p.id } }),
+                  )}
                 />
                 <OrbitAction
                   icon={Handshake}
@@ -300,9 +339,12 @@ function OrbitBrowse() {
                 />
                 <OrbitAction
                   icon={Sparkles}
-                  label="Match"
+                  label={
+                    mutual.includes(p.id) ? "Matched" : likedByMe.includes(p.id) ? "Sent" : "Match"
+                  }
+                  active={mutual.includes(p.id) || likedByMe.includes(p.id)}
                   locked={!orbit.hasProfile}
-                  onClick={gate(() => toast.success(`Match request sent to ${p.name}`))}
+                  onClick={gate(() => void onMatch(p.id, p.name))}
                 />
               </div>
 

@@ -24,7 +24,7 @@ export function BottomNav({ onOpenCreate }: BottomNavProps) {
 
         <Link to="/reels" className="flex flex-col items-center gap-1 text-[10px] text-zinc-400 hover:text-white">
           <Film className="w-5 h-5" />
-          <span>Reels</span>
+          <span>Video</span>
         </Link>
 
         <button 

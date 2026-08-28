@@ -17,7 +17,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
-import { byId, currentUser, formatCount } from "@/lib/yw-data";
+import { currentUser, formatCount } from "@/lib/yw-data";
+import { useProfiles } from "@/lib/profiles-map";
 import { aiFilterCss, useMoments } from "@/lib/moment-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,7 @@ export const Route = createFileRoute("/moment/$momentId")({
 function MomentViewer() {
   const { momentId } = useParams({ from: "/moment/$momentId" });
   const navigate = useNavigate();
-  const { moments, archive, addReply, votePoll, archiveMoment, deleteMoment, registerScreenshot } =
+  const { moments, archive, addReply, votePoll, archiveMoment, deleteMoment, registerScreenshot, registerView } =
     useMoments();
   const moment = useMemo(
     () => [...moments, ...archive].find((m) => m.id === momentId),
@@ -68,6 +69,22 @@ function MomentViewer() {
   );
   const [reply, setReply] = useState("");
   const [tab, setTab] = useState<"viewers" | "replies">("viewers");
+  const people = useProfiles(
+    useMemo(
+      () => [
+        ...(moment?.viewers ?? []).map((v) => v.userId),
+        ...(moment?.replies ?? []).map((r) => r.userId),
+      ],
+      [moment],
+    ),
+  );
+
+  // Count a real view once the moment opens
+  useEffect(() => {
+    if (moment && !moment.mine) registerView(moment.id);
+  }, [moment, registerView]);
+
+
 
   // Screenshot / capture alert
   useEffect(() => {
@@ -145,6 +162,28 @@ function MomentViewer() {
           className="relative aspect-9/16 w-full overflow-hidden rounded-[28px] border border-border bg-secondary"
           style={moment.kind === "text" ? { background: moment.textBg } : undefined}
         >
+          {moment.musicUrl && (
+            <audio
+              key={moment.id}
+              src={moment.musicUrl}
+              autoPlay
+              loop
+              onLoadedMetadata={(e) => {
+                e.currentTarget.volume = moment.musicVolume ?? 0.8;
+                e.currentTarget.currentTime = moment.musicStart ?? 0;
+                void e.currentTarget.play().catch(() => {});
+              }}
+              onTimeUpdate={(e) => {
+                const a = e.currentTarget;
+                const start = moment.musicStart ?? 0;
+                const end = moment.musicEnd ?? 0;
+                if (end > start && (a.currentTime >= end || a.currentTime < start)) {
+                  a.currentTime = start;
+                }
+              }}
+              className="hidden"
+            />
+          )}
           {moment.kind === "video" && moment.media ? (
             <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>
               <video
@@ -155,6 +194,16 @@ function MomentViewer() {
                 playsInline
                 style={{ filter }}
                 className="h-full w-full object-cover"
+                onLoadedMetadata={(e) => {
+                  if (moment.trim) e.currentTarget.currentTime = moment.trim.start;
+                }}
+                onTimeUpdate={(e) => {
+                  const v = e.currentTarget;
+                  if (!moment.trim) return;
+                  if (v.currentTime >= moment.trim.end || v.currentTime < moment.trim.start) {
+                    v.currentTime = moment.trim.start;
+                  }
+                }}
               />
             </div>
           ) : moment.kind === "photo" && moment.media ? (
@@ -260,7 +309,7 @@ function MomentViewer() {
         {tab === "viewers" ? (
           <ul className="space-y-1.5 pt-3">
             {moment.viewers.map((v) => {
-              const u = byId(v.userId);
+              const u = people.get(v.userId);
               return (
                 <li
                   key={v.userId}
@@ -291,7 +340,7 @@ function MomentViewer() {
               )}
               {moment.replies.map((r) => (
                 <li key={r.id} className="flex items-center gap-3 rounded-2xl bg-secondary/60 px-3 py-2.5">
-                  <YwAvatar user={byId(r.userId)} size={32} />
+                  <YwAvatar user={people.get(r.userId)} size={32} />
                   <p className="min-w-0 flex-1 truncate text-sm">{r.text}</p>
                 </li>
               ))}
@@ -325,27 +374,31 @@ function MomentViewer() {
           <Download className="mr-2 h-4 w-4" />
           {moment.allowDownload ? "Save with watermark" : "Downloads off"}
         </Button>
-        <Button
-          variant="secondary"
-          className="h-11 w-full justify-start rounded-2xl"
-          onClick={() => {
-            archiveMoment(moment.id);
-            toast.success("Saved to your archive");
-          }}
-        >
-          <Archive className="mr-2 h-4 w-4" /> Save to archive
-        </Button>
-        <Button
-          variant="secondary"
-          className="h-11 w-full justify-start rounded-2xl text-destructive"
-          onClick={() => {
-            deleteMoment(moment.id);
-            toast.success("Moment deleted");
-            navigate({ to: "/" });
-          }}
-        >
-          <Trash2 className="mr-2 h-4 w-4" /> Delete moment
-        </Button>
+        {moment.mine && (
+          <>
+            <Button
+              variant="secondary"
+              className="h-11 w-full justify-start rounded-2xl"
+              onClick={() => {
+                archiveMoment(moment.id);
+                toast.success("Saved to your archive");
+              }}
+            >
+              <Archive className="mr-2 h-4 w-4" /> Save to archive
+            </Button>
+            <Button
+              variant="secondary"
+              className="h-11 w-full justify-start rounded-2xl text-destructive"
+              onClick={() => {
+                deleteMoment(moment.id);
+                toast.success("Moment deleted");
+                navigate({ to: "/" });
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete moment
+            </Button>
+          </>
+        )}
       </section>
     </main>
   );

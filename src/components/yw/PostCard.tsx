@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 function PostCardBase({ post }: { post: Post }) {
   const user = byId(post.userId);
-  const { liked, saved, toggleLike, toggleSave } = useYw();
+  const { liked, saved, following, toggleLike, toggleSave, toggleFollow } = useYw();
   const { burst, onDoubleTap } = useDoubleTapLike(post.id);
   const isLiked = !!liked[post.id];
   const isSaved = !!saved[post.id];
@@ -53,13 +53,30 @@ function PostCardBase({ post }: { post: Post }) {
             )}
           </div>
         </div>
-        <button
+        <div className="flex items-center gap-1.5">
+          {post.userId !== "me" && (
+            <button
+              type="button"
+              onClick={() => toggleFollow(post.userId)}
+              className={cn(
+                "rounded-full px-3 py-1 font-ui text-[11px] font-semibold transition-all duration-200 active:scale-95",
+                following[post.userId]
+                  ? "bg-secondary text-foreground"
+                  : "bg-primary text-primary-foreground",
+              )}
+            >
+              {following[post.userId] ? "Following" : "Follow"}
+            </button>
+          )}
+          <button
           aria-label="More options"
           className="action-btn -mr-1 grid h-9 w-9 place-items-center rounded-full text-muted-foreground"
         >
           <MoreHorizontal className="h-[18px] w-[18px]" strokeWidth={1.7} />
-        </button>
+          </button>
+        </div>
       </header>
+
 
       <div
         onDoubleClick={onDoubleTap}
@@ -99,7 +116,7 @@ function PostCardBase({ post }: { post: Post }) {
               strokeWidth={1.7}
             />
           </button>
-          <CommentsSheet comments={post.comments}>
+          <CommentsSheet fallbackComments={post.comments}>
             <button
               aria-label="Comment"
               className="action-btn grid h-10 w-10 place-items-center rounded-full"
@@ -158,7 +175,7 @@ function PostCardBase({ post }: { post: Post }) {
           ))}
         </div>
         <div className="flex items-center gap-2 pt-0.5">
-          <CommentsSheet comments={post.comments}>
+          <CommentsSheet fallbackComments={post.comments}>
             <button className="font-ui text-[11.5px] leading-none text-muted-foreground transition-colors duration-200 hover:text-foreground">
               View all {post.comments.length} comments
             </button>

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Heart,
@@ -7,6 +7,7 @@ import {
   Bookmark,
   Download,
   Music2,
+  Volume2,
   Lock,
   MoreVertical,
   EyeOff,
@@ -150,12 +151,16 @@ function ReelMedia({
   alt,
   active,
   mediaRef,
+  muted,
+  paused = false,
 }: {
   url: string;
   type: string;
   alt: string;
   active: boolean;
   mediaRef: React.MutableRefObject<HTMLElement | null>;
+  muted: boolean;
+  paused?: boolean;
 }) {
   const [src, setSrc] = useState(url);
   const [asImage, setAsImage] = useState(!type.startsWith("video"));
@@ -188,13 +193,14 @@ function ReelMedia({
   useEffect(() => {
     const v = videoRef.current;
     if (!v || asImage) return;
-    if (active) void v.play().catch(() => {});
+    if (active && !paused) void v.play().catch(() => {});
     else v.pause();
-  }, [active, asImage, src]);
+  }, [active, asImage, src, paused]);
 
   const className = cn(
     "h-full w-full object-cover will-change-transform [backface-visibility:hidden]",
     active && asImage && "animate-kenburns",
+    paused && "[animation-play-state:paused]",
   );
 
   if (asImage) {
@@ -221,7 +227,7 @@ function ReelMedia({
       }}
       src={src}
       playsInline
-      muted
+      muted={muted}
       loop
       preload="metadata"
       onError={handleError}
@@ -252,6 +258,7 @@ function ReelItem({
   const { burst, onDoubleTap } = useDoubleTapLike(reel.id);
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
   const lastTap = useRef(0);
   const isLiked = onDbLike ? !!likedByMe : !!liked[reel.id];
   const isSaved = !!saved[reel.id];
@@ -260,12 +267,16 @@ function ReelItem({
   // ---- playback timeline -------------------------------------------------
   const [progress, setProgress] = useState(0); // 0..1
   const [scrubbing, setScrubbing] = useState(false);
+  // Single tap toggles pause/play; press-and-hold keeps it paused.
+  const [held, setHeld] = useState(false);
+  const [tappedPause, setTappedPause] = useState(false);
+  const paused = held || tappedPause;
   const barRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const lastTs = useRef(0);
 
   useEffect(() => {
-    if (!active || scrubbing) return;
+    if (!active || scrubbing || paused) return;
     lastTs.current = performance.now();
     const tick = (ts: number) => {
       const dt = (ts - lastTs.current) / 1000;
@@ -275,7 +286,7 @@ function ReelItem({
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [active, scrubbing]);
+  }, [active, scrubbing, paused]);
 
   const seekFromEvent = useCallback((clientX: number) => {
     const el = barRef.current;
@@ -310,9 +321,34 @@ function ReelItem({
     el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
   };
 
+  // ---- press & hold to pause --------------------------------------------
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdStart = useRef({ x: 0, y: 0 });
+  const heldRef = useRef(false);
+
+  const cancelHold = () => {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    if (heldRef.current) {
+      heldRef.current = false;
+      setHeld(false);
+    }
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 1) {
+      holdStart.current = { x: e.clientX, y: e.clientY };
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      holdTimer.current = setTimeout(() => {
+        heldRef.current = true;
+        setHeld(true);
+      }, 200);
+    }
     if (pointers.current.size === 2) {
+      cancelHold();
       const [a, b] = [...pointers.current.values()];
       pinchStart.current = {
         dist: Math.hypot(a.x - b.x, a.y - b.y) || 1,
@@ -326,6 +362,12 @@ function ReelItem({
   const onPointerMove = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 1 && !heldRef.current) {
+      // Finger drifted → it's a scroll, not a hold.
+      const dx = e.clientX - holdStart.current.x;
+      const dy = e.clientY - holdStart.current.y;
+      if (Math.hypot(dx, dy) > 12) cancelHold();
+    }
     if (pointers.current.size !== 2) return;
     e.preventDefault();
     const [a, b] = [...pointers.current.values()];
@@ -337,6 +379,7 @@ function ReelItem({
 
   const releasePointer = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId);
+    cancelHold();
     if (pointers.current.size < 2 && transform.current.scale !== 1) {
       transform.current = { scale: 1, x: 0, y: 0 };
       const el = mediaRef.current;
@@ -345,10 +388,18 @@ function ReelItem({
     }
   };
 
+  useEffect(() => () => cancelHold(), []);
+
   const handleTap = () => {
     const now = Date.now();
-    if (now - lastTap.current < 300) onDoubleTap();
+    if (now - lastTap.current < 300) {
+      onDoubleTap();
+      lastTap.current = 0;
+      return;
+    }
     lastTap.current = now;
+    // single tap toggles pause/play
+    setTappedPause((v) => !v);
   };
 
   const handleDownload = async () => {
@@ -363,13 +414,15 @@ function ReelItem({
   return (
     <>
       <div
-        className="absolute inset-0 touch-pan-y overflow-hidden"
+        className="absolute inset-0 touch-pan-y select-none overflow-hidden"
         onClick={handleTap}
         onDoubleClick={onDoubleTap}
+        onContextMenu={(e) => e.preventDefault()}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={releasePointer}
         onPointerCancel={releasePointer}
+        onPointerLeave={releasePointer}
       >
         <ReelMedia
           url={mediaUrl ?? reel.poster}
@@ -377,9 +430,25 @@ function ReelItem({
           alt={reel.caption}
           active={active}
           mediaRef={mediaRef}
+          muted={muted}
+          paused={paused}
         />
         <div className="pointer-events-none absolute inset-0 veil" />
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 transition-opacity duration-200",
+            paused ? "bg-black/20 opacity-100" : "opacity-0",
+          )}
+        />
+        {tappedPause && !held && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <svg viewBox="0 0 24 24" className="h-16 w-16 text-white/90 drop-shadow-lg" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        )}
       </div>
+
 
       {burst && (
         <Heart className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 animate-burst fill-primary text-primary" />
@@ -387,15 +456,31 @@ function ReelItem({
 
       <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-4">
         <h1 className="font-display text-lg font-bold drop-shadow">Reels</h1>
-        <span className="rounded-full bg-background/40 px-3 py-1 text-xs backdrop-blur">
-          Following
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMuted((value) => !value)}
+            className="grid h-8 w-8 place-items-center rounded-full bg-background/40 backdrop-blur"
+            aria-label={muted ? "Turn sound on" : "Mute reel"}
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+          <span className="rounded-full bg-background/40 px-3 py-1 text-xs backdrop-blur">
+            Following
+          </span>
+        </div>
       </div>
 
       <div className="absolute bottom-4 left-0 right-16 space-y-2 px-4">
         <div className="flex items-center gap-2.5">
-          <YwAvatar user={user} size={36} className="ring-2 ring-foreground/30" />
-          <span className="truncate text-sm font-semibold drop-shadow">@{user.username}</span>
+          <Link
+            to="/u/$userId"
+            params={{ userId: reel.userId }}
+            className="flex min-w-0 items-center gap-2.5 transition-opacity active:opacity-70"
+          >
+            <YwAvatar user={user} size={36} className="ring-2 ring-foreground/30" />
+            <span className="truncate text-sm font-semibold drop-shadow">@{user.username}</span>
+          </Link>
           <button
             onClick={() => toggleFollow(user.id)}
             className={cn(
@@ -422,53 +507,64 @@ function ReelItem({
         </p>
       </div>
 
-      <div className="absolute bottom-14 right-2 flex flex-col items-center gap-4">
+      <div className="absolute bottom-14 right-2 flex flex-col items-center gap-2.5">
         <Action
           onClick={() => (onDbLike ? onDbLike() : toggleLike(reel.id))}
           label={formatCount(onDbLike ? reel.likes : reel.likes + (isLiked ? 1 : 0))}
           active={isLiked}
         >
           <Heart
-            strokeWidth={1.6}
+            strokeWidth={1.8}
             className={cn("h-[18px] w-[18px]", isLiked && "fill-primary text-primary")}
           />
         </Action>
 
-        <CommentsSheet comments={commentSeed}>
+        <CommentsSheet
+          postId={onDbLike ? reel.id : null}
+          fallbackComments={commentSeed}
+        >
           <Action label={formatCount(reel.commentCount)}>
-            <MessageCircle strokeWidth={1.6} className="h-[18px] w-[18px]" />
+            <MessageCircle strokeWidth={1.8} className="h-[18px] w-[18px]" />
           </Action>
         </CommentsSheet>
 
-        <ShareSheet title={reel.caption}>
-          <Action label={formatCount(reel.shares)}>
-            <Send strokeWidth={1.6} className="h-[18px] w-[18px]" />
-          </Action>
-        </ShareSheet>
-
         <Action onClick={() => toggleSave(reel.id)} label="Save" active={isSaved}>
-          <Bookmark strokeWidth={1.6} className={cn("h-[18px] w-[18px]", isSaved && "fill-foreground")} />
+          <Bookmark
+            strokeWidth={1.8}
+            className={cn("h-[18px] w-[18px]", isSaved && "fill-foreground")}
+          />
         </Action>
 
         {reel.allowDownload ? (
-          <Action onClick={handleDownload} label="Save">
-            <Download strokeWidth={1.6} className="h-[18px] w-[18px]" />
+          <Action onClick={handleDownload} label="Download">
+            <Download strokeWidth={1.8} className="h-[18px] w-[18px]" />
           </Action>
         ) : (
           <Action
             onClick={() => toast("The creator turned downloads off for this reel")}
             label="Off"
           >
-            <Lock strokeWidth={1.6} className="h-[17px] w-[17px] text-muted-foreground" />
+            <Lock strokeWidth={1.8} className="h-[17px] w-[17px] text-muted-foreground" />
           </Action>
         )}
 
+        <ShareSheet
+          title={reel.caption}
+          media={mediaUrl ?? reel.poster}
+          mediaKind={mediaType === "video" ? "video" : "photo"}
+        >
+          <Action label={formatCount(reel.shares)}>
+            <Send strokeWidth={1.8} className="h-[18px] w-[18px]" />
+          </Action>
+        </ShareSheet>
+
         <div className="relative">
           <Action onClick={() => setMenuOpen((v) => !v)} label="More">
-            <MoreVertical strokeWidth={1.6} className="h-[18px] w-[18px]" />
+            <MoreVertical strokeWidth={1.8} className="h-[18px] w-[18px]" />
           </Action>
         </div>
       </div>
+
 
       {menuOpen && (
         <>
@@ -561,14 +657,22 @@ function Action({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-12 flex-col items-center gap-0.5 text-foreground/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-transform duration-150 active:scale-90",
+        "group flex w-11 flex-col items-center gap-1 text-foreground transition-transform duration-150 active:scale-90",
         active && "animate-pop",
       )}
     >
-      {children}
-      <span className="w-full truncate text-[9px] font-medium tracking-wide text-foreground/75">
+      <span
+        className={cn(
+          "grid h-9 w-9 place-items-center rounded-full border border-foreground/15 bg-background/25 shadow-[0_6px_20px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors group-hover:bg-background/40",
+          active && "border-primary/40 bg-primary/15",
+        )}
+      >
+        {children}
+      </span>
+      <span className="w-full truncate text-[8px] font-semibold tracking-wide text-foreground/85 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
         {label}
       </span>
     </button>
+
   );
 }
