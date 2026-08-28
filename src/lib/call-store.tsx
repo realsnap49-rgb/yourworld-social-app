@@ -626,7 +626,29 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(t);
   }, [call, phase, attachStreams]);
 
+  // Reset the swap + load the peer avatar for the premium incoming screen.
+  useEffect(() => {
+    setSwapped(false);
+    setPeerAvatar(null);
+    const peerId = call?.peerId;
+    if (!peerId || peerId.startsWith("guest-")) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", peerId)
+        .maybeSingle();
+      if (!cancelled && data?.avatar_url) setPeerAvatar(data.avatar_url);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [call?.peerId]);
+
   useEffect(() => () => teardown(), [teardown]);
+
+
 
 
   const value = useMemo(
