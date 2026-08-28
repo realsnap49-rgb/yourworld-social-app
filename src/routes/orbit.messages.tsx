@@ -19,6 +19,7 @@ import { useOrbitMatches, useOrbitThreadPreviews } from "@/lib/orbit-match";
 import type { OrbitProfile } from "@/lib/orbit-data";
 import { cn } from "@/lib/utils";
 import { useChatNames } from "@/lib/chat-names";
+import { useSecretChats } from "@/lib/secret-chats";
 
 export const Route = createFileRoute("/orbit/messages")({
   head: () => ({
@@ -162,8 +163,15 @@ function OrbitMessagesPage() {
   }, [visible, mutual, likesMe, likedByMe]);
 
   const { nameFor } = useChatNames();
+  const { isHidden } = useSecretChats(q);
+  const pinQuery = /^\d{4,8}$/.test(q.trim());
   const term = q.trim().toLowerCase();
-  const chatList = term ? chats.filter((p) => p.name.toLowerCase().includes(term)) : chats;
+  const openChats = chats.filter((p) => !isHidden(p.id));
+  const chatList = pinQuery
+    ? openChats
+    : term
+      ? openChats.filter((p) => p.name.toLowerCase().includes(term))
+      : openChats;
   const matchList = term ? matches.filter((m) => m.p.name.toLowerCase().includes(term)) : matches;
   const reqList = term ? requests.filter((r) => r.p.name.toLowerCase().includes(term)) : requests;
 
