@@ -704,7 +704,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     <CallCtx.Provider value={value}>
       {children}
       {call && phase !== "idle" && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-between bg-zinc-950 p-6 text-white">
+        <div
+          className="fixed inset-0 z-[100] flex flex-col justify-between bg-zinc-950 p-6 text-white"
+          onClick={phase === "incoming" ? undefined : pokeControls}
+        >
           {call.mode === "video" && (
             <>
               <video
@@ -712,7 +715,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                onClick={swapped ? () => setSwapped(false) : undefined}
+                onClick={
+                  swapped
+                    ? (e) => { e.stopPropagation(); setSwapped(false); }
+                    : undefined
+                }
                 className={
                   swapped
                     ? "absolute right-4 top-28 z-20 h-40 w-28 cursor-pointer rounded-2xl border border-white/20 object-cover shadow-2xl transition-all active:scale-95"
@@ -724,7 +731,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 autoPlay
                 playsInline
                 muted
-                onClick={swapped ? undefined : () => setSwapped(true)}
+                onClick={
+                  swapped
+                    ? undefined
+                    : (e) => { e.stopPropagation(); setSwapped(true); }
+                }
                 className={
                   swapped
                     ? "absolute inset-0 z-0 h-full w-full object-cover"
@@ -732,20 +743,32 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 }
               />
               {phase !== "incoming" && (
-                <div className="absolute right-4 top-4 z-[9999] flex gap-3">
-                  <button
-                    onClick={() => void toggleFlash()}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
-                    aria-label="Toggle flashlight"
-                  >
-                    {flashOn ? <Zap size={22} className="text-yellow-400" /> : <ZapOff size={22} />}
-                  </button>
+                <div
+                  className={`absolute right-3 top-3 z-[9999] flex items-center gap-2 rounded-full border border-white/15 bg-black/40 p-1.5 shadow-lg backdrop-blur-xl transition-all duration-300 ${
+                    controlsVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     onClick={() => void flipCamera()}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md active:scale-90"
+                    className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:scale-90"
                     aria-label="Flip camera"
                   >
-                    <SwitchCamera size={22} />
+                    <SwitchCamera size={17} />
+                  </button>
+                  <button
+                    onClick={() => void toggleFlash()}
+                    className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:scale-90"
+                    aria-label="Toggle flashlight"
+                  >
+                    {flashOn ? <Zap size={17} className="text-yellow-400" /> : <ZapOff size={17} />}
+                  </button>
+                  <button
+                    onClick={toggleSpeaker}
+                    className="grid h-9 w-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/10 active:scale-90"
+                    aria-label="Toggle speaker"
+                  >
+                    {speakerOn ? <Volume2 size={17} /> : <VolumeX size={17} />}
                   </button>
                 </div>
               )}
