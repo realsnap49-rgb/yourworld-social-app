@@ -50,6 +50,55 @@ export function LongVideoCard({
   const [liking, setLiking] = useState(false);
   const [playerPortrait, setPlayerPortrait] = useState(video.orientation === "portrait");
   const counted = useRef(false);
+  const cardRef = useRef<HTMLElement | null>(null);
+  const playingRef = useRef(false);
+
+  const stop = () => {
+    playingRef.current = false;
+    setPlaying(false);
+    releasePlayback(video.id);
+  };
+
+  const start = async () => {
+    requestPlayback(video.id); // stops any other playing video
+    playingRef.current = true;
+    const url = await resolveMediaUrl(video.mediaUrl, "reels");
+    if (!playingRef.current) return; // stopped while resolving
+    setSrc(url);
+    setPlaying(true);
+    if (!counted.current) {
+      counted.current = true;
+      onView(video.id);
+    }
+  };
+  const startRef = useRef(start);
+  startRef.current = start;
+
+  // Another card started playing → stop this one.
+  useEffect(() => onStopRequested(video.id, () => {
+    playingRef.current = false;
+    setPlaying(false);
+  }), [video.id]);
+
+  // Scroll behavior: auto-start when centered (>=60% visible), stop when scrolled away.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.intersectionRatio >= 0.6) {
+          if (!playingRef.current) void startRef.current();
+        } else if (entry.intersectionRatio < 0.35 && playingRef.current) {
+          playingRef.current = false;
+          setPlaying(false);
+          releasePlayback(video.id);
+        }
+      },
+      { threshold: [0, 0.35, 0.6, 1] },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [video.id]);
 
   const isMine = currentUserId === video.userId;
   const isFollowing = !!following[video.userId];
