@@ -560,7 +560,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await openSignalChannel(callId, mode, true);
 
       const ringPayload = { callId, mode, fromId: me, fromName: myName, threadId };
+      seenCalls.current.add(callId);
+      // Durable ring: a row the callee's realtime subscription always receives,
+      // so the incoming-call screen pops app-wide (WhatsApp / Instagram style).
+      if (!isGuest) {
+        void supabase.from("calls").insert({
+          call_id: callId,
+          caller_id: me,
+          callee_id: target,
+          caller_name: myName,
+          mode,
+          thread_id: threadId ?? null,
+          status: "ringing",
+        });
+      }
       void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
+
       // Re-send a few times: the receiver may still be re-joining its channel.
       let sent = 1;
       const timer = window.setInterval(() => {
