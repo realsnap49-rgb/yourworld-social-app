@@ -453,7 +453,7 @@ export function ChatThreadPage() {
                 deleteIds(messages.map((m) => m.id)); exitSelectMode(); setShowOptionsMenu(false);
               }} />
               <MenuItem danger icon={<UserX size={16} className="text-red-400" />} label={blocked ? "Unblock User" : "Block User"} state={blocked} onClick={() => {
-                setBlocked((v) => { pushSystem(`${displayName} ${!v ? "blocked" : "unblocked"}`); return !v; });
+                patch({ blocked: !blocked }); pushSystem(`${displayName} ${!blocked ? "blocked" : "unblocked"}`);
                 setShowOptionsMenu(false);
               }} />
               <MenuItem danger icon={<Flag size={16} className="text-red-400" />} label={reported ? "Reported" : "Report User"} state={reported} onClick={() => {
