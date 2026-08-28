@@ -54,12 +54,14 @@ function HomePage() {
     const list: StoryRing[] = [];
     for (const m of moments) {
       if (m.mine) continue;
-      if (!seen.has(m.userId)) {
-        seen.add(m.userId);
+      const uid = m.author?.id;
+      if (!uid) continue;
+      if (!seen.has(uid)) {
+        seen.add(uid);
         list.push({
-          userId: m.userId,
-          username: m.username,
-          avatarUrl: m.avatarUrl,
+          userId: uid,
+          username: m.author?.username ?? "user",
+          avatarUrl: m.author?.avatar ?? undefined,
           hasUnseen: true,
           momentId: m.id,
         });
