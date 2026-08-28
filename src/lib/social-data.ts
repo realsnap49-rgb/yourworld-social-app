@@ -597,8 +597,8 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
   }, [threadId]);
 
   return useMemo(
-    () => ({ messages, loading, currentUserId: me, send, remove, markRead, burnMedia, reload: load }),
-    [messages, loading, me, send, remove, markRead, burnMedia, load],
+    () => ({ messages, loading, loadingMore, hasMore, loadOlder, currentUserId: me, send, remove, markRead, burnMedia, reload: load }),
+    [messages, loading, loadingMore, hasMore, loadOlder, me, send, remove, markRead, burnMedia, load],
   );
 }
 
