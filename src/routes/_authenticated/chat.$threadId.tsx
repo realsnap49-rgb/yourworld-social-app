@@ -111,8 +111,14 @@ export function ChatThreadPage() {
     markRead,
     burnMedia,
     loading: messagesLoading,
+    loadingMore,
+    hasMore,
+    loadOlder,
   } = useThreadMessages(threadId, { staleTime: Infinity });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const keepScrollRef = useRef<number | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
