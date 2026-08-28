@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Play, Eye, Heart, Clock, MessageCircle, Send, Bookmark,
   Download, MoreHorizontal, Link2, Trash2, EyeOff,
@@ -20,6 +20,7 @@ import {
 import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 import { cn } from "@/lib/utils";
+import { onStopRequested, releasePlayback, requestPlayback } from "@/lib/video-playback";
 
 type Props = {
   video: LongVideo;
