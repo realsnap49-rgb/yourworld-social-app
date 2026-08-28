@@ -200,6 +200,9 @@ function OrbitChatPage() {
   const [secretPinHash, setSecretPinHash] = useState<string | null>(null);
   const [chatUnlocked, setChatUnlocked] = useState(true);
   const [unlockPin, setUnlockPin] = useState("");
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [autoDeleteOpen, setAutoDeleteOpen] = useState(false);
 
   // Chat options are per-person and survive leaving the chat.
   const prefsKey = `yw.orbit.chatprefs.${userId}`;
