@@ -20,6 +20,7 @@ import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
 import { useChatNames, saveChatDisplayName } from "@/lib/chat-names";
 import { useChatSettings } from "@/lib/chat-settings";
+import { hashPin, randomPinSalt } from "@/lib/secret-chats";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ChatThreadPage,
@@ -198,6 +199,32 @@ export function ChatThreadPage() {
   };
 
   const secretLock = settings.secretLock;
+  const [chatUnlocked, setChatUnlocked] = useState(false);
+  const [unlockPin, setUnlockPin] = useState("");
+  const toggleSecretLock = async () => {
+    if (secretLock) {
+      const pin = window.prompt("Enter the chat PIN to remove Secret Lock:");
+      const salt = settings.secretPinSalt;
+      const hash = settings.secretPinHash;
+      if (!pin || !salt || !hash || (await hashPin(salt, pin)) !== hash) {
+        pushSystem("Incorrect PIN");
+        return;
+      }
+      patch({ secretLock: false, secretPinSalt: null, secretPinHash: null });
+      setChatUnlocked(true);
+      pushSystem("Secret lock disabled");
+      return;
+    }
+    const pin = window.prompt("Create a 4-8 digit PIN for this chat:");
+    if (!pin || !/^\d{4,8}$/.test(pin)) {
+      pushSystem("Use a 4-8 digit PIN");
+      return;
+    }
+    const salt = randomPinSalt();
+    patch({ secretLock: true, secretPinSalt: salt, secretPinHash: await hashPin(salt, pin) });
+    setChatUnlocked(true);
+    pushSystem("Secret lock enabled");
+  };
   const viewOnce = settings.viewOnce;
   const autoDelete = settings.autoDelete;
   const screenshotAlert = settings.screenshotAlert;
@@ -367,6 +394,39 @@ export function ChatThreadPage() {
   return (
     <>
     <div className="fixed inset-0 z-50 bg-black text-white font-sans flex flex-col justify-between overflow-hidden">
+      {secretLock && !chatUnlocked && settings.secretPinHash ? (
+        <div className="absolute inset-0 z-[95] grid place-items-center bg-black px-6">
+          <form
+            className="w-full max-w-xs space-y-4 text-center"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void (async () => {
+                const salt = settings.secretPinSalt;
+                const hash = settings.secretPinHash;
+                if (!salt || !hash || (await hashPin(salt, unlockPin)) !== hash) return;
+                setChatUnlocked(true);
+                setUnlockPin("");
+              })();
+            }}
+          >
+            <Lock size={28} className="mx-auto text-purple-400" />
+            <div>
+              <h1 className="text-lg font-bold">Secret chat locked</h1>
+              <p className="mt-1 text-xs text-zinc-400">Enter your PIN to open this conversation.</p>
+            </div>
+            <input
+              value={unlockPin}
+              onChange={(e) => setUnlockPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              inputMode="numeric"
+              type="password"
+              autoFocus
+              aria-label="Secret chat PIN"
+              className="h-12 w-full rounded-xl bg-zinc-900 px-4 text-center text-lg outline-none"
+            />
+            <button type="submit" className="h-11 w-full rounded-xl bg-purple-600 text-sm font-bold">Unlock</button>
+          </form>
+        </div>
+      ) : null}
       
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
       <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleImageSelect} />
@@ -452,7 +512,7 @@ export function ChatThreadPage() {
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<Lock size={16} className="text-zinc-400" />} label="Secret Lock Chat" state={secretLock} onClick={() => {
-                patch({ secretLock: !secretLock }); pushSystem(`Secret lock ${!secretLock ? "enabled" : "disabled"}`);
+                void toggleSecretLock();
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<EyeOff size={16} className="text-zinc-400" />} label="View Once Mode" state={viewOnce} onClick={() => {

@@ -6,6 +6,7 @@ import { resolveThreadPeer } from "@/lib/social-data";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { deleteDirectThreads, hiddenThreadIds } from "@/lib/chat-delete";
 import { useChatNames } from "@/lib/chat-names";
+import { useSecretChats } from "@/lib/secret-chats";
 
 export const Route = createFileRoute("/_authenticated/chat/")({
   component: ChatListPage,
@@ -46,6 +47,7 @@ function ChatListPage() {
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
   const { nameFor } = useChatNames();
+  const { isHidden } = useSecretChats(searchQuery);
 
   const toggleSelect = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -164,11 +166,14 @@ function ChatListPage() {
     };
   }, [newChatOpen, peopleQuery]);
 
+  const pinQuery = /^\d{4,8}$/.test(searchQuery.trim());
   const filteredThreads = threads.filter(
     (t) =>
       !hidden.includes(t.id) &&
+      !isHidden(t.peerId) &&
+      (pinQuery ? true :
       (t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())),
+        t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()))),
   );
 
   const allSelected = filteredThreads.length > 0 && selected.length === filteredThreads.length;
