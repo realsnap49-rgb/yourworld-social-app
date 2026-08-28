@@ -178,18 +178,18 @@ export function ChatThreadPage() {
     }
   }, [dbMessages, viewOnceOpen]);
 
-  const [nameOverride, setNameOverride] = useState<string | null>(null);
-  const displayName = nameOverride ?? peer.peerName ?? "";
-  const setDisplayName = (n: string) => setNameOverride(n);
+  // Chat options persisted per conversation in the backend.
+  const { settings, patch } = useChatSettings(peer.peerId);
+  const displayName = settings.displayName ?? peer.peerName ?? "";
+  const setDisplayName = (n: string) => patch({ displayName: n });
 
-  // Chat option states
-  const [secretLock, setSecretLock] = useState(false);
-  const [viewOnce, setViewOnce] = useState(false);
-  const [autoDelete, setAutoDelete] = useState(0); // seconds, 0 = off
-  const [screenshotAlert, setScreenshotAlert] = useState(true);
-  const [recordingAlert, setRecordingAlert] = useState(true);
-  const [muted, setMuted] = useState(false);
-  const [blocked, setBlocked] = useState(false);
+  const secretLock = settings.secretLock;
+  const viewOnce = settings.viewOnce;
+  const autoDelete = settings.autoDelete;
+  const screenshotAlert = settings.screenshotAlert;
+  const recordingAlert = settings.recordingAlert;
+  const muted = settings.muted;
+  const blocked = settings.blocked;
   const [reported, setReported] = useState(false);
 
   const pushSystem = (text: string) =>
