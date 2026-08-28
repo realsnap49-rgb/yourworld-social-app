@@ -105,16 +105,6 @@ export function LongVideoCard({
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/?post=${video.id}` : undefined;
 
-  const start = async () => {
-    const url = await resolveMediaUrl(video.mediaUrl, "reels");
-    setSrc(url);
-    setPlaying(true);
-    if (!counted.current) {
-      counted.current = true;
-      onView(video.id);
-    }
-  };
-
   const handleDownload = async () => {
     const toastId = toast.loading("Preparing download…");
     try {
