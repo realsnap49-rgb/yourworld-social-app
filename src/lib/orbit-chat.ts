@@ -43,7 +43,10 @@ const toMsg = (r: Row, me: string): OrbitMessage => ({
 export function useOrbitChat(peerId: string, enabled: boolean, clearedBefore?: string | null) {
   const [messages, setMessages] = useState<OrbitMessage[]>([]);
   const [meId, setMeId] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const meRef = useRef<string | null>(null);
+  const messagesRef = useRef<OrbitMessage[]>([]);
 
   const merge = useCallback((next: OrbitMessage[]) => {
     setMessages((prev) => {
@@ -53,12 +56,28 @@ export function useOrbitChat(peerId: string, enabled: boolean, clearedBefore?: s
     });
   }, []);
 
+  // Keep the on-device copy fresh so reopening the chat paints instantly/offline.
+  useEffect(() => {
+    messagesRef.current = messages;
+    if (enabled && isUuid(peerId)) {
+      saveCachedThread(
+        `orbit:${peerId}`,
+        messages.filter((m) => !m.id.startsWith("temp-")),
+      );
+    }
+  }, [messages, peerId, enabled]);
+
   useEffect(() => {
     if (!enabled || !isUuid(peerId)) {
       setMessages([]);
       return;
     }
     let cancelled = false;
+
+    void loadCachedThread<OrbitMessage>(`orbit:${peerId}`).then((rows) => {
+      if (cancelled || !rows?.length) return;
+      merge(rows);
+    });
 
     const load = async () => {
       const { data: auth } = await supabase.auth.getUser();
@@ -73,12 +92,15 @@ export function useOrbitChat(peerId: string, enabled: boolean, clearedBefore?: s
           `and(sender_id.eq.${me},recipient_id.eq.${peerId}),and(sender_id.eq.${peerId},recipient_id.eq.${me})`,
         );
       if (clearedBefore) query = query.gt("created_at", clearedBefore);
-      const { data } = await query.order("created_at", { ascending: true });
+      const { data } = await query.order("created_at", { ascending: false }).limit(PAGE_SIZE);
       if (cancelled) return;
-      setMessages(((data ?? []) as Row[]).map((r) => toMsg(r, me)));
+      const rows = (data ?? []) as Row[];
+      setHasMore(rows.length >= PAGE_SIZE);
+      merge(rows.map((r) => toMsg(r, me)));
     };
 
     void load();
+
 
     const channel = supabase
       .channel(`orbit-chat-${peerId}`)
