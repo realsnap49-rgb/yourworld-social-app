@@ -258,7 +258,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (!s) s = new MediaStream();
         if (!e.streams[0] && !s.getTracks().includes(e.track)) s.addTrack(e.track);
         remoteStream.current = s;
-        attachStreams();
+        // Explicitly attach the received remote stream to the main full-screen
+        // <video> element immediately, then retry on the next frame in case the
+        // ref wasn't bound yet (e.g. track arrives before the element mounts).
+        const attachNow = () => {
+          if (remoteVideo.current) {
+            remoteVideo.current.srcObject = s;
+            void remoteVideo.current.play().catch(() => {});
+          }
+          if (remoteAudio.current) {
+            remoteAudio.current.srcObject = s;
+            void remoteAudio.current.play().catch(() => {});
+          }
+        };
+        attachNow();
+        requestAnimationFrame(attachNow);
+        requestAnimationFrame(() => requestAnimationFrame(attachNow));
       };
 
       pc.onconnectionstatechange = () => {
@@ -635,6 +650,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
                 ref={remoteVideo}
                 autoPlay
                 playsInline
+                muted
                 className="absolute inset-0 z-0 h-full w-full object-cover"
               />
               <video
