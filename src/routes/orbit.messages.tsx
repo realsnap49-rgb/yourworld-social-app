@@ -18,6 +18,7 @@ import { useOrbit } from "@/lib/orbit-store";
 import { useOrbitMatches, useOrbitThreadPreviews } from "@/lib/orbit-match";
 import type { OrbitProfile } from "@/lib/orbit-data";
 import { cn } from "@/lib/utils";
+import { useChatNames } from "@/lib/chat-names";
 
 export const Route = createFileRoute("/orbit/messages")({
   head: () => ({
