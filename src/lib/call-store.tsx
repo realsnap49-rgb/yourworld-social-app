@@ -210,12 +210,32 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const teardown = useCallback(() => {
     localStream.current?.getTracks().forEach((t) => t.stop());
     localStream.current = null;
+    // Release the remote tracks too, otherwise the camera/mic indicator can
+    // linger and the streams stay referenced by the media elements.
+    remoteStream.current?.getTracks().forEach((t) => t.stop());
     remoteStream.current = null;
-    try { pcRef.current?.close(); } catch { /* ignore */ }
+    for (const el of [localVideo.current, remoteVideo.current, remoteAudio.current]) {
+      if (el) {
+        try { el.pause(); } catch { /* ignore */ }
+        el.srcObject = null;
+      }
+    }
+    const pc = pcRef.current;
+    if (pc) {
+      pc.onicecandidate = null;
+      pc.ontrack = null;
+      pc.onconnectionstatechange = null;
+      pc.getSenders().forEach((s) => s.track?.stop());
+      try { pc.close(); } catch { /* ignore */ }
+    }
     pcRef.current = null;
     if (sigRef.current) {
       void supabase.removeChannel(sigRef.current);
       sigRef.current = null;
+    }
+    if (hideTimer.current) {
+      window.clearTimeout(hideTimer.current);
+      hideTimer.current = null;
     }
     pendingIce.current = [];
     setPhase("idle");
@@ -224,6 +244,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setCamOn(true);
     setFacingMode("user");
     setFlashOn(false);
+    setSwapped(false);
+    setControlsVisible(true);
   }, []);
 
   const signal = useCallback((payload: Record<string, unknown>) => {
