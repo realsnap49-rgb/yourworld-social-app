@@ -191,6 +191,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
     sigRef.current?.send({ type: "broadcast", event: "signal", payload });
   }, []);
 
+  /**
+   * Sends a broadcast over REST instead of joining the topic.
+   * Realtime RLS only lets you *read* your own `calls-user-<id>` topic, so a
+   * caller can never subscribe to the callee's ring topic — but it may write
+   * to it. REST delivery uses only that write permission, which makes rings,
+   * cancels and declines arrive instantly in both Social and Orbit chats.
+   */
+  const httpBroadcast = useCallback(
+    async (topic: string, event: string, payload: Record<string, unknown>) => {
+      const ch = supabase.channel(topic, { config: { private: true } });
+      try {
+        const { data } = await supabase.auth.getSession();
+        await supabase.realtime.setAuth(data.session?.access_token);
+        await ch.httpSend(event, payload);
+      } catch (err) {
+        console.error("[call] broadcast failed", topic, event, err);
+      } finally {
+        void supabase.removeChannel(ch);
+      }
+    },
+    [],
+  );
+
+
   const attachStreams = useCallback(() => {
     if (localVideo.current && localStream.current) {
       localVideo.current.srcObject = localStream.current;
@@ -228,12 +252,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (e.candidate) signal({ type: "ice", candidate: e.candidate.toJSON() });
       };
       pc.ontrack = (e) => {
-        const [s] = e.streams;
-        if (s) {
-          remoteStream.current = s;
-          attachStreams();
-        }
+        // Some browsers deliver tracks without a stream — build one ourselves so
+        // both the audio and video tracks always reach the <audio>/<video> tags.
+        let s = e.streams[0] ?? remoteStream.current;
+        if (!s) s = new MediaStream();
+        if (!e.streams[0] && !s.getTracks().includes(e.track)) s.addTrack(e.track);
+        remoteStream.current = s;
+        attachStreams();
       };
+
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") setPhase("active");
         if (pc.connectionState === "failed") {
@@ -342,13 +369,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         seen.add(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
-          supabase.channel(`rtc-${payload.callId}`, { config: { private: true } }).subscribe((s) => {
-            if (s === "SUBSCRIBED") {
-              void supabase
-                .channel(`rtc-${payload.callId}`, { config: { private: true } })
-                .send({ type: "broadcast", event: "signal", payload: { type: "decline" } });
-            }
-          });
+          void httpBroadcast(`rtc-${payload.callId}`, "signal", { type: "decline" });
           return;
         }
         setCall({
@@ -359,6 +380,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
           incoming: true,
         });
         setPhase("incoming");
+        toast.message(
+          `Incoming ${payload.mode === "video" ? "video" : "voice"} call`,
+          { description: payload.fromName ?? "Someone is calling you" },
+        );
+
       })
         .on("broadcast", { event: "cancel" }, () => {
         if (phaseRef.current === "incoming") {
@@ -403,7 +429,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", wake);
       if (ch) void supabase.removeChannel(ch);
     };
-  }, [me, teardown]);
+  }, [me, teardown, httpBroadcast]);
 
   const phaseRef = useRef<Phase>("idle");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -457,31 +483,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
       createPeer(localStream.current!);
       await openSignalChannel(callId, mode, true);
 
-      const ring = supabase.channel(`calls-user-${target}`, {
-        config: { broadcast: { self: false }, private: true },
-      });
-      ring.subscribe((status) => {
-        if (status !== "SUBSCRIBED") return;
-        const payload = { callId, mode, fromId: me, fromName: myName, threadId };
-        // Re-send a few times: the receiver may still be re-joining its channel.
-        let sent = 0;
-        const fire = () => {
-          if (phaseRef.current !== "outgoing") {
-            clearInterval(timer);
-            void supabase.removeChannel(ring);
-            return;
-          }
-          void ring.send({ type: "broadcast", event: "ring", payload });
-          if (++sent >= 5) {
-            clearInterval(timer);
-            setTimeout(() => void supabase.removeChannel(ring), 500);
-          }
-        };
-        const timer = setInterval(fire, 1200);
-        fire();
-      });
+      const ringPayload = { callId, mode, fromId: me, fromName: myName, threadId };
+      void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
+      // Re-send a few times: the receiver may still be re-joining its channel.
+      let sent = 1;
+      const timer = window.setInterval(() => {
+        if (phaseRef.current !== "outgoing" || sent >= 4) {
+          window.clearInterval(timer);
+          return;
+        }
+        sent++;
+        void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
+      }, 1500);
     },
-    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown],
+    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast],
+
   );
 
   const accept = useCallback(async () => {
@@ -501,29 +517,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
-      const ch = supabase.channel(`rtc-${call.callId}`, { config: { private: true } });
-      ch.subscribe((s) => {
-        if (s === "SUBSCRIBED") {
-          void ch
-            .send({ type: "broadcast", event: "signal", payload: { type: "decline" } })
-            .finally(() => setTimeout(() => void supabase.removeChannel(ch), 500));
-        }
-      });
+      void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "decline" });
     } else if (call) {
       signal({ type: "end" });
-      const cancel = supabase.channel(`calls-user-${call.peerId}`, {
-        config: { private: true },
-      });
-      cancel.subscribe((s) => {
-        if (s === "SUBSCRIBED") {
-          void cancel
-            .send({ type: "broadcast", event: "cancel", payload: { callId: call.callId } })
-            .finally(() => setTimeout(() => void supabase.removeChannel(cancel), 500));
-        }
-      });
+      void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "end" });
+      void httpBroadcast(`calls-user-${call.peerId}`, "cancel", { callId: call.callId });
     }
     teardown();
-  }, [call, phase, signal, teardown]);
+  }, [call, phase, signal, teardown, httpBroadcast]);
+
 
   const toggleMic = () => {
     const track = localStream.current?.getAudioTracks()[0];
@@ -596,7 +598,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [facingMode, attachStreams]);
 
+  // Re-bind media to the elements whenever the call UI (re)mounts, so late
+  // remote tracks and the local preview always show up on both sides.
+  useEffect(() => {
+    if (!call || phase === "idle") return;
+    attachStreams();
+    const t = window.setTimeout(attachStreams, 250);
+    return () => window.clearTimeout(t);
+  }, [call, phase, attachStreams]);
+
   useEffect(() => () => teardown(), [teardown]);
+
 
   const value = useMemo(
     () => ({ startCall, myCallId: me, isGuest }),
