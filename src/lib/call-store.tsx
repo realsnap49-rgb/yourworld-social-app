@@ -528,29 +528,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
-      const ch = supabase.channel(`rtc-${call.callId}`, { config: { private: true } });
-      ch.subscribe((s) => {
-        if (s === "SUBSCRIBED") {
-          void ch
-            .send({ type: "broadcast", event: "signal", payload: { type: "decline" } })
-            .finally(() => setTimeout(() => void supabase.removeChannel(ch), 500));
-        }
-      });
+      void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "decline" });
     } else if (call) {
       signal({ type: "end" });
-      const cancel = supabase.channel(`calls-user-${call.peerId}`, {
-        config: { private: true },
-      });
-      cancel.subscribe((s) => {
-        if (s === "SUBSCRIBED") {
-          void cancel
-            .send({ type: "broadcast", event: "cancel", payload: { callId: call.callId } })
-            .finally(() => setTimeout(() => void supabase.removeChannel(cancel), 500));
-        }
-      });
+      void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "end" });
+      void httpBroadcast(`calls-user-${call.peerId}`, "cancel", { callId: call.callId });
     }
     teardown();
-  }, [call, phase, signal, teardown]);
+  }, [call, phase, signal, teardown, httpBroadcast]);
+
 
   const toggleMic = () => {
     const track = localStream.current?.getAudioTracks()[0];
