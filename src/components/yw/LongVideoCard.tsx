@@ -21,6 +21,7 @@ import { formatCount } from "@/lib/yw-data";
 import { useYw } from "@/lib/yw-store";
 import { cn } from "@/lib/utils";
 import { onStopRequested, releasePlayback, requestPlayback } from "@/lib/video-playback";
+import { getAdjacentVideo, warmVideo, type QueueItem } from "@/lib/video-queue";
 
 type Props = {
   video: LongVideo;
@@ -49,14 +50,37 @@ export function LongVideoCard({
   const [commentCount, setCommentCount] = useState(video.commentCount);
   const [liking, setLiking] = useState(false);
   const [playerPortrait, setPlayerPortrait] = useState(video.orientation === "portrait");
+  const [active, setActive] = useState<QueueItem>({
+    id: video.id,
+    title: video.title,
+    mediaUrl: video.mediaUrl,
+    thumbnailUrl: video.thumbnailUrl,
+    portrait: video.orientation === "portrait",
+  });
+  const urlCache = useRef(new Map<string, string>());
   const counted = useRef(false);
   const cardRef = useRef<HTMLElement | null>(null);
   const playingRef = useRef(false);
 
+  /** Resolve + warm a media URL once, so a click plays instantly. */
+  const prefetch = React.useCallback(async (mediaUrl: string) => {
+    const cached = urlCache.current.get(mediaUrl);
+    if (cached) return cached;
+    const url = await resolveMediaUrl(mediaUrl, "reels");
+    urlCache.current.set(mediaUrl, url);
+    warmVideo(url);
+    return url;
+  }, []);
+
   const start = async () => {
     requestPlayback(video.id); // stops any other playing video
     playingRef.current = true;
-    const url = await resolveMediaUrl(video.mediaUrl, "reels");
+    const ready = urlCache.current.get(active.mediaUrl);
+    if (ready) {
+      setSrc(ready); // instant: no await on the click path
+      setPlaying(true);
+    }
+    const url = ready ?? (await prefetch(active.mediaUrl));
     if (!playingRef.current) return; // stopped while resolving
     setSrc(url);
     setPlaying(true);
@@ -64,6 +88,19 @@ export function LongVideoCard({
       counted.current = true;
       onView(video.id);
     }
+  };
+
+  /** Fullscreen swipe → next/previous video with the SAME orientation. */
+  const swipeQueue = async (dir: 1 | -1, portraitMode: boolean) => {
+    const next = getAdjacentVideo(active.id, portraitMode, dir);
+    if (!next) return;
+    const url = await prefetch(next.mediaUrl);
+    setActive(next);
+    setPlayerPortrait(next.portrait);
+    setSrc(url);
+    setPlaying(true);
+    const after = getAdjacentVideo(next.id, portraitMode, dir);
+    if (after) void prefetch(after.mediaUrl);
   };
   const startRef = useRef(start);
   startRef.current = start;
@@ -73,6 +110,23 @@ export function LongVideoCard({
     playingRef.current = false;
     setPlaying(false);
   }), [video.id]);
+
+  // Pre-buffer this card's stream well before it reaches the viewport.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          void prefetch(video.mediaUrl);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "800px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [prefetch, video.mediaUrl]);
 
   // Scroll behavior: auto-start when centered (>=60% visible), stop when scrolled away.
   useEffect(() => {
@@ -186,11 +240,13 @@ export function LongVideoCard({
       >
         {playing && src ? (
           <PremiumVideoPlayer
+            key={active.id}
             src={src}
-            title={video.title}
-            poster={video.thumbnailUrl}
-            portrait={video.orientation === "portrait"}
+            title={active.title}
+            poster={active.thumbnailUrl}
+            portrait={active.portrait}
             onOrientationChange={setPlayerPortrait}
+            onSwipeQueue={swipeQueue}
             autoPlay
             className="rounded-none"
           />

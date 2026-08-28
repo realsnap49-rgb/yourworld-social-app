@@ -14,6 +14,8 @@ type Props = {
   autoPlay?: boolean;
   className?: string;
   onOrientationChange?: (portrait: boolean) => void;
+  /** Fullscreen-only swipe to the next/previous video of the same orientation. */
+  onSwipeQueue?: (dir: 1 | -1, portrait: boolean) => void;
 };
 
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -29,7 +31,7 @@ function fmt(t: number) {
 }
 
 /** Premium player: YouTube-style controls + MX Player gestures (seek, volume, brightness, lock, fit). */
-export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className, onOrientationChange }: Props) {
+export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className, onOrientationChange, onSwipeQueue }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const vidRef = useRef<HTMLVideoElement | null>(null);
 
@@ -58,7 +60,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [audio, setAudio] = useState("Original");
 
   const hideTimer = useRef<number | null>(null);
-  const gesture = useRef<{ x: number; y: number; mode: null | "seek" | "vol" | "bright"; t0: number } | null>(null);
+  const gesture = useRef<{ x: number; y: number; mode: null | "seek" | "vol" | "bright" | "queue"; t0: number; dy: number } | null>(null);
   const lastTap = useRef(0);
   const [box, setBox] = useState({ w: 0, h: 0 });
 
@@ -198,18 +200,28 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   // ---- gestures (MX Player style) ----
   const onPointerDown = (e: React.PointerEvent) => {
     if (locked) return;
-    gesture.current = { x: e.clientX, y: e.clientY, mode: null, t0: vidRef.current?.currentTime ?? 0 };
+    gesture.current = { x: e.clientX, y: e.clientY, mode: null, t0: vidRef.current?.currentTime ?? 0, dy: 0 };
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const g = gesture.current;
     if (!g || locked) return;
     const dx = e.clientX - g.x;
     const dy = e.clientY - g.y;
+    g.dy = dy;
     if (!g.mode) {
       if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
       const rect = wrapRef.current?.getBoundingClientRect();
       const rightHalf = rect ? e.clientX - rect.left > rect.width / 2 : true;
-      g.mode = Math.abs(dx) > Math.abs(dy) ? "seek" : rightHalf ? "vol" : "bright";
+      const vertical = Math.abs(dy) >= Math.abs(dx);
+      // In fullscreen a vertical swipe pages through the queue (reels style).
+      g.mode = vertical
+        ? fullscreen && onSwipeQueue
+          ? "queue"
+          : rightHalf ? "vol" : "bright"
+        : "seek";
+    }
+    if (g.mode === "queue") {
+      return;
     }
     if (g.mode === "seek") {
       const v = vidRef.current;
@@ -227,7 +239,13 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       flash(`Brightness ${Math.round(nb * 100)}%`);
     }
   };
-  const onPointerUp = () => { gesture.current = null; };
+  const onPointerUp = () => {
+    const g = gesture.current;
+    gesture.current = null;
+    if (g?.mode === "queue" && Math.abs(g.dy) > 90) {
+      onSwipeQueue?.(g.dy < 0 ? 1 : -1, viewPortrait);
+    }
+  };
 
   const onTapZone = (side: "l" | "c" | "r") => {
     if (locked) { poke(); return; }
@@ -268,7 +286,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         poster={poster ?? undefined}
         autoPlay={autoPlay}
         playsInline
-        preload="metadata"
+        preload="auto"
         style={{
           filter: `brightness(${brightness})`,
           transform: rotation ? `translate(-50%, -50%) rotate(${rotation}deg)` : undefined,

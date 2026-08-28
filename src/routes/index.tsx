@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { usePostSaves } from "@/lib/post-actions";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { useLongVideos } from "@/lib/video-data";
+import { setVideoQueue } from "@/lib/video-queue";
 import { Search, Heart, Plus } from "lucide-react";
 import { useMoments } from "@/lib/moment-store";
 import { useAlertsCount } from "@/lib/alerts-count";
@@ -29,6 +30,19 @@ function HomePage() {
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
 
+
+  // Keep the fullscreen swipe queue in sync with the feed.
+  React.useEffect(() => {
+    setVideoQueue(
+      videos.map((v) => ({
+        id: v.id,
+        title: v.title,
+        mediaUrl: v.mediaUrl,
+        thumbnailUrl: v.thumbnailUrl,
+        portrait: v.orientation === "portrait",
+      })),
+    );
+  }, [videos]);
 
   const myLatest = React.useMemo(
     () => moments.find((m) => m.mine),
