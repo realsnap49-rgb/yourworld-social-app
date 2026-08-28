@@ -53,12 +53,6 @@ export function LongVideoCard({
   const cardRef = useRef<HTMLElement | null>(null);
   const playingRef = useRef(false);
 
-  const stop = () => {
-    playingRef.current = false;
-    setPlaying(false);
-    releasePlayback(video.id);
-  };
-
   const start = async () => {
     requestPlayback(video.id); // stops any other playing video
     playingRef.current = true;
@@ -181,7 +175,10 @@ export function LongVideoCard({
   if (hidden) return null;
 
   return (
-    <article className="space-y-3 overflow-hidden border-y border-zinc-800/80 bg-[#141418] shadow-2xl">
+    <article
+      ref={cardRef}
+      className="space-y-3 overflow-hidden border-y border-zinc-800/80 bg-[#141418] shadow-2xl"
+    >
       <div
         className={`relative w-full overflow-hidden bg-black ${
           playerPortrait ? "aspect-[9/16]" : "aspect-video"
