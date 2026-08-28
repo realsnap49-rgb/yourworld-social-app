@@ -345,11 +345,13 @@ function OrbitChatPage() {
   // Landing on the chat (e.g. tapping Message on a profile) focuses the
   // composer so the user is straight in the message box, ready to type.
   useEffect(() => {
-    if (inputDisabled) return;
-    const t = setTimeout(() => inputRef.current?.focus(), 250);
+    const t = setTimeout(() => {
+      const el = inputRef.current;
+      if (el && !el.disabled) el.focus();
+    }, 250);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
 
   const pushSystem = (text: string) => {
     seq.current += 1;
@@ -422,6 +424,8 @@ function OrbitChatPage() {
     });
   };
 
+  const localIds = useMemo(() => new Set(msgs.map((m) => m.id)), [msgs]);
+
 
   if (!p) {
     return (
@@ -469,7 +473,7 @@ function OrbitChatPage() {
 
   // Only messages from the local accepted-chat history are deletable.
   // Request preview messages (preMessages) are managed by the orbit store.
-  const localIds = useMemo(() => new Set(msgs.map((m) => m.id)), [msgs]);
+
   const isDeletable = (id: string) => localIds.has(id) && msgs.find((m) => m.id === id)?.me === true;
 
   const startLongPress = (id: string, rect: DOMRect, me: boolean) => {
