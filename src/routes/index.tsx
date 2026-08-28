@@ -1,8 +1,8 @@
-import React, { memo } from "react";
+import React from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSocialPosts } from "@/lib/social-data";
 import { usePostSaves } from "@/lib/post-actions";
-import { FeedPostCard } from "@/components/yw/FeedPostCard";
+import { LongVideoCard } from "@/components/yw/LongVideoCard";
+import { useLongVideos } from "@/lib/video-data";
 import { Search, Heart, Plus, ImagePlus } from "lucide-react";
 import { useMoments } from "@/lib/moment-store";
 import { useAlertsCount } from "@/lib/alerts-count";
@@ -24,16 +24,11 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const navigate = useNavigate();
-  const {
-    posts,
-    loading,
-    currentUserId,
-    toggleLike,
-    reload,
-  } = useSocialPosts("post");
+  const { videos, loading, currentUserId, countView, toggleLike, reload } = useLongVideos();
   const { saved, toggleSave } = usePostSaves();
   const { moments } = useMoments();
   const { count: alertCount } = useAlertsCount();
+
 
   const myLatest = React.useMemo(
     () => moments.find((m) => m.mine),
@@ -155,21 +150,23 @@ function HomePage() {
       <main className="max-w-lg mx-auto px-2 sm:px-4 py-4 space-y-4">
         {loading ? (
           <div className="text-center py-12 text-neutral-500 text-sm">Loading feed...</div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12 text-neutral-500 text-sm">No posts yet. Be the first to share!</div>
+        ) : videos.length === 0 ? (
+          <div className="text-center py-12 text-neutral-500 text-sm">No videos yet. Be the first to share!</div>
         ) : (
-          posts.map((post) => (
-            <FeedPostCard
-              key={post.id}
-              post={post}
+          videos.map((video) => (
+            <LongVideoCard
+              key={video.id}
+              video={video}
               currentUserId={currentUserId}
-              onToggleLike={toggleLike}
-              isSaved={!!saved[post.id]}
+              onView={countView}
+              onLike={toggleLike}
+              isSaved={!!saved[video.id]}
               onToggleSave={toggleSave}
               onDeleted={() => reload()}
             />
           ))
         )}
+
       </main>
     </div>
   );
