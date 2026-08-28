@@ -161,6 +161,16 @@ function MenuItem({
   );
 }
 
+const AUTO_DELETE_OPTIONS = [
+  { value: 0, label: "Off" },
+  { value: 3600, label: "1 hour" },
+  { value: 86400, label: "24 hours" },
+  { value: 604800, label: "7 days" },
+] as const;
+
+function autoDeleteLabel(seconds: number) {
+  return AUTO_DELETE_OPTIONS.find((o) => o.value === seconds)?.label ?? `${Math.round(seconds / 60)}m`;
+}
 
 function OrbitChatPage() {
   const { userId } = Route.useParams();
@@ -200,6 +210,9 @@ function OrbitChatPage() {
   const [secretPinHash, setSecretPinHash] = useState<string | null>(null);
   const [chatUnlocked, setChatUnlocked] = useState(true);
   const [unlockPin, setUnlockPin] = useState("");
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [autoDeleteOpen, setAutoDeleteOpen] = useState(false);
 
   // Chat options are per-person and survive leaving the chat.
   const prefsKey = `yw.orbit.chatprefs.${userId}`;
@@ -614,11 +627,8 @@ function OrbitChatPage() {
                 icon={<Pencil className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
                 label="Change Display Name"
                 onClick={() => {
-                  const next = window.prompt("Enter new display name:", name);
-                  if (next?.trim()) {
-                    setDisplayName(next.trim());
-                    pushSystem(`Display name changed to ${next.trim()}`);
-                  }
+                  setNameDraft(displayName ?? name);
+                  setNameDialogOpen(true);
                   setMenuOpen(false);
                 }}
               />
@@ -645,27 +655,10 @@ function OrbitChatPage() {
               />
               <MenuItem
                 icon={<Clock className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />}
-                label={
-                  autoDelete
-                    ? `Auto Delete: ${autoDelete === 86400 ? "24h" : autoDelete >= 3600 ? `${autoDelete / 3600}h` : `${autoDelete / 60}m`}`
-                    : "Auto Delete Messages"
-                }
+                label={autoDelete ? `Auto Delete: ${autoDeleteLabel(autoDelete)}` : "Auto Delete Messages"}
                 state={autoDelete > 0}
                 onClick={() => {
-                  const next =
-                    autoDelete === 0
-                      ? 60
-                      : autoDelete === 60
-                        ? 300
-                        : autoDelete === 300
-                          ? 3600
-                          : autoDelete === 3600
-                            ? 86400
-                            : 0;
-                  setAutoDelete(next);
-                  pushSystem(
-                    next ? `Messages will auto delete after ${next}s` : "Auto delete turned off",
-                  );
+                  setAutoDeleteOpen(true);
                   setMenuOpen(false);
                 }}
               />
@@ -745,6 +738,65 @@ function OrbitChatPage() {
           </>
         )}
       </header>
+
+      {nameDialogOpen && (
+        <div className="fixed inset-0 z-[130] grid place-items-center bg-black/60 px-6" onClick={() => setNameDialogOpen(false)}>
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const next = nameDraft.trim();
+              setDisplayName(next || null);
+              pushSystem(next ? `Display name changed to ${next}` : "Display name reset");
+              setNameDialogOpen(false);
+            }}
+            className="w-full max-w-xs space-y-4 rounded-2xl border border-border bg-popover p-5 shadow-2xl"
+          >
+            <h2 className="text-sm font-bold">Change display name</h2>
+            <input
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value.slice(0, 40))}
+              autoFocus
+              aria-label="Display name"
+              className="h-11 w-full rounded-xl bg-secondary px-4 text-sm outline-none"
+            />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setNameDialogOpen(false)} className="h-10 flex-1 rounded-xl bg-secondary text-xs font-semibold">
+                Cancel
+              </button>
+              <button type="submit" className="h-10 flex-1 rounded-xl bg-primary text-xs font-bold text-primary-foreground">
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {autoDeleteOpen && (
+        <div className="fixed inset-0 z-[130] grid place-items-center bg-black/60 px-6" onClick={() => setAutoDeleteOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xs space-y-1 rounded-2xl border border-border bg-popover p-4 shadow-2xl">
+            <h2 className="px-2 pb-2 text-sm font-bold">Auto delete messages</h2>
+            {AUTO_DELETE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setAutoDelete(opt.value);
+                  pushSystem(opt.value ? `Messages auto delete after ${opt.label}` : "Auto delete turned off");
+                  setAutoDeleteOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-secondary ${
+                  autoDelete === opt.value ? "font-bold text-primary" : "text-foreground"
+                }`}
+              >
+                {opt.label}
+                {autoDelete === opt.value && <CheckCheck className="h-4 w-4" strokeWidth={2} />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {secretLock && !chatUnlocked && (
         <div className="absolute inset-0 z-[120] grid place-items-center bg-background px-6">
