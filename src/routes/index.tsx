@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { usePostSaves } from "@/lib/post-actions";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { useLongVideos } from "@/lib/video-data";
-import { Search, Heart, Plus, ImagePlus } from "lucide-react";
+import { Search, Heart, Plus } from "lucide-react";
 import { useMoments } from "@/lib/moment-store";
 import { useAlertsCount } from "@/lib/alerts-count";
 import ywLogo from "@/assets/yw-logo.png";
@@ -76,9 +76,6 @@ function HomePage() {
           </span>
         </Link>
         <div className="flex items-center gap-3">
-          <Link to="/moment/create" className="p-2 rounded-full hover:bg-neutral-900 text-neutral-200 transition-colors">
-            <ImagePlus className="w-5 h-5" />
-          </Link>
           <Link to="/search" className="p-2 rounded-full hover:bg-neutral-900 text-neutral-200 transition-colors">
             <Search className="w-5 h-5" />
           </Link>
