@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { usePostSaves } from "@/lib/post-actions";
 import { LongVideoCard } from "@/components/yw/LongVideoCard";
 import { useLongVideos } from "@/lib/video-data";
-import { Search, Heart, Plus, ImagePlus } from "lucide-react";
+import { Search, Heart, Plus } from "lucide-react";
 import { useMoments } from "@/lib/moment-store";
 import { useAlertsCount } from "@/lib/alerts-count";
 import ywLogo from "@/assets/yw-logo.png";
