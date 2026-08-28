@@ -424,29 +424,29 @@ export function ChatThreadPage() {
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<Lock size={16} className="text-zinc-400" />} label="Secret Lock Chat" state={secretLock} onClick={() => {
-                setSecretLock((v) => { pushSystem(`Secret lock ${!v ? "enabled" : "disabled"}`); return !v; });
+                patch({ secretLock: !secretLock }); pushSystem(`Secret lock ${!secretLock ? "enabled" : "disabled"}`);
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<EyeOff size={16} className="text-zinc-400" />} label="View Once Mode" state={viewOnce} onClick={() => {
-                setViewOnce((v) => { pushSystem(`View once mode ${!v ? "on" : "off"}`); return !v; });
+                patch({ viewOnce: !viewOnce }); pushSystem(`View once mode ${!viewOnce ? "on" : "off"}`);
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<Clock size={16} className="text-zinc-400" />} label={autoDelete ? `Auto Delete: ${autoDelete}s` : "Auto Delete Messages"} state={autoDelete > 0} onClick={() => {
                 const next = autoDelete === 0 ? 60 : autoDelete === 60 ? 300 : autoDelete === 300 ? 3600 : 0;
-                setAutoDelete(next);
+                patch({ autoDelete: next });
                 pushSystem(next ? `Messages will auto delete after ${next}s` : "Auto delete turned off");
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<Camera size={16} className="text-zinc-400" />} label="Screenshot Alert" state={screenshotAlert} onClick={() => {
-                setScreenshotAlert((v) => { pushSystem(`Screenshot alerts ${!v ? "on" : "off"}`); return !v; });
+                patch({ screenshotAlert: !screenshotAlert }); pushSystem(`Screenshot alerts ${!screenshotAlert ? "on" : "off"}`);
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<VideoOff size={16} className="text-zinc-400" />} label="Screen Recording Alert" state={recordingAlert} onClick={() => {
-                setRecordingAlert((v) => { pushSystem(`Recording alerts ${!v ? "on" : "off"}`); return !v; });
+                patch({ recordingAlert: !recordingAlert }); pushSystem(`Recording alerts ${!recordingAlert ? "on" : "off"}`);
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<BellOff size={16} className="text-zinc-400" />} label="Mute Notifications" state={muted} onClick={() => {
-                setMuted((v) => { pushSystem(`Notifications ${!v ? "muted" : "unmuted"}`); return !v; });
+                patch({ muted: !muted }); pushSystem(`Notifications ${!muted ? "muted" : "unmuted"}`);
                 setShowOptionsMenu(false);
               }} />
               <MenuItem icon={<Trash2 size={16} className="text-zinc-400" />} label="Clear Chat" onClick={() => {
