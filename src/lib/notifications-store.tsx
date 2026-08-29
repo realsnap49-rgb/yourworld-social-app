@@ -425,12 +425,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       "orbit_chat_requests",
       "orbit_connections",
     ];
+    // The feed is rebuilt with ~12 queries, so coalesce bursts (e.g. a chat
+    // conversation) into a single refresh instead of one per row change.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void load(), 2000);
+    };
     let channel = supabase.channel("yw-notifications");
     for (const table of tables) {
-      channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, () => void load());
+      channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, reload);
     }
     channel.subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       void supabase.removeChannel(channel);
     };
   }, [hydrated, live, load]);
