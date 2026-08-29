@@ -428,7 +428,8 @@ function ChatListPage() {
                       <p className="truncate text-xs text-gray-400">@{p.username}</p>
                     ) : null}
                   </div>
-                </Link>
+                </button>
+
               ))
             )}
           </div>
