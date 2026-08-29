@@ -874,6 +874,7 @@ export type Database = {
           visible: boolean
         }[]
       }
+      dm_thread_id: { Args: { _a: string; _b: string }; Returns: string }
       get_follow_counts: {
         Args: { ids: string[] }
         Returns: {
