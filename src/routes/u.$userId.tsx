@@ -216,9 +216,19 @@ function PublicProfilePage() {
           >
             {isFollowing ? "Following" : "Follow"}
           </button>
-          <Link to="/chat" className="flex-1 rounded-xl bg-zinc-800 py-2 text-center text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              if (!me) return;
+              void navigate({
+                to: "/chat/$threadId",
+                params: { threadId: dmThreadId(me, userId) },
+              });
+            }}
+            className="flex-1 rounded-xl bg-zinc-800 py-2 text-center text-xs font-bold"
+          >
             Message
-          </Link>
+          </button>
         </div>
       </section>
 
