@@ -359,6 +359,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
             <p className="line-clamp-1 pt-1 text-xs font-semibold text-white/90">{title}</p>
             <div className="flex items-center gap-1">
               <IconBtn label="Lock screen" onClick={() => { setLocked(true); flash("Locked"); }}><Unlock size={16} /></IconBtn>
+              <IconBtn label="Fit screen" onClick={() => setFit((f) => { const i = FITS.indexOf(f); const n = FITS[(i + 1) % FITS.length]; flash(`Fit · ${n}`); return n; })}><Maximize size={16} /></IconBtn>
               <IconBtn label="Rotate" onClick={rotate}><RotateCw size={16} /></IconBtn>
               <IconBtn label="Picture in picture" onClick={togglePip}><PictureInPicture2 size={16} /></IconBtn>
               <IconBtn label="Settings" onClick={() => setMenu(menu ? null : "root")}><Settings size={16} /></IconBtn>
