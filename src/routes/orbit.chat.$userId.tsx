@@ -282,21 +282,25 @@ function OrbitChatPage() {
           reported,
         }),
       );
-      void supabase.auth.getUser().then(({ data }) => {
-        const me = data.user?.id;
-        if (!me) return;
-        void supabase.from("orbit_chat_settings").upsert({
-          user_id: me,
-          peer_id: userId,
-          display_name: displayName,
-          view_once_mode: viewOnceMode,
-          auto_delete_seconds: autoDelete,
-          screenshot_alert: screenshotAlert,
-          recording_alert: recordingAlert,
-          muted,
-          cleared_before: clearedBefore,
-        } as never, { onConflict: "user_id,peer_id" });
-      });
+      // Coalesce rapid toggles into one write so the chat never stalls.
+      const t = setTimeout(() => {
+        void supabase.auth.getUser().then(({ data }) => {
+          const me = data.user?.id;
+          if (!me) return;
+          void supabase.from("orbit_chat_settings").upsert({
+            user_id: me,
+            peer_id: userId,
+            display_name: displayName,
+            view_once_mode: viewOnceMode,
+            auto_delete_seconds: autoDelete,
+            screenshot_alert: screenshotAlert,
+            recording_alert: recordingAlert,
+            muted,
+            cleared_before: clearedBefore,
+          } as never, { onConflict: "user_id,peer_id" });
+        });
+      }, 600);
+      return () => clearTimeout(t);
     } catch {
       /* storage unavailable */
     }
