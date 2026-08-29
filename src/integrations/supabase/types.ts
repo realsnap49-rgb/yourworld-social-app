@@ -86,6 +86,27 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_counts: {
+        Row: {
+          followers: number
+          following: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          followers?: number
+          following?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          followers?: number
+          following?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string

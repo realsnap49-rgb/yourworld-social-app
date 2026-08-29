@@ -48,8 +48,11 @@ export async function setFollow(targetId: string, on: boolean) {
 }
 
 async function counts(userId: string): Promise<FollowCounts> {
-  const { data } = await supabase.rpc("get_follow_counts", { ids: [userId] });
-  const row = (data ?? [])[0];
+  const { data: row } = await supabase
+    .from("follow_counts")
+    .select("followers,following")
+    .eq("user_id", userId)
+    .maybeSingle();
   return { followers: Number(row?.followers ?? 0), following: Number(row?.following ?? 0) };
 }
 
@@ -69,7 +72,11 @@ export function useFollowCounts(userId: string | null) {
     try {
       ch = supabase
         .channel(`follows:${userId}:${crypto.randomUUID()}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => void reload())
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "follow_counts", filter: `user_id=eq.${userId}` },
+          () => void reload(),
+        )
         .subscribe();
     } catch (err) {
       console.error("[useFollowCounts] realtime unavailable", err);
