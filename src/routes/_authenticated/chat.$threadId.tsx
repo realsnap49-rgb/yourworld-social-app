@@ -16,6 +16,7 @@ import { compressImageFile } from "@/lib/image-compress";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { useThreadMessages, useThreadPeer, dmThreadId } from "@/lib/social-data";
+import { supabase } from "@/integrations/supabase/client";
 import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
 import { useChatNames, saveChatDisplayName } from "@/lib/chat-names";
