@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
-  Lock, Unlock, RotateCw, Repeat, Sun, Gauge, MonitorPlay, RotateCcw,
+  Lock, Unlock, RotateCw, Repeat, Gauge, MonitorPlay,
   Subtitles, Languages, ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
