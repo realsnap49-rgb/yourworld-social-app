@@ -347,9 +347,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
       };
 
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "connected") setPhase("active");
+        if (pc.connectionState === "connected") {
+          connectedAt.current ??= Date.now();
+          setPhase("active");
+        }
         if (pc.connectionState === "failed") {
           toast.error("Call connection failed");
+          void logCallOutcome("missed");
           teardown();
         }
       };
@@ -407,9 +411,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
               }
             } else if (payload.type === "end") {
               toast.message("Call ended");
+              void logCallOutcome(connectedAt.current ? "answered" : "missed");
               teardown();
             } else if (payload.type === "decline") {
               toast.message("Call declined");
+              void logCallOutcome("declined");
               teardown();
             }
           } catch (err) {
