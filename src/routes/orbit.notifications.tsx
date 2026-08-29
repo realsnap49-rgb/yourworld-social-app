@@ -31,7 +31,9 @@ function OrbitNotificationsPage() {
 
   const list = useMemo(
     () =>
-      items.filter((i) => ORBIT_KINDS.includes(i.kind)).sort((a, b) => b.at - a.at),
+      items
+        .filter((i) => ORBIT_KINDS.includes(i.kind) && i.kind !== "message")
+        .sort((a, b) => b.at - a.at),
     [items],
   );
 
