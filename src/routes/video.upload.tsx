@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Upload, Image as ImageIcon, Clock, Loader2, Camera } from "lucide-react";
+import { ArrowLeft, Upload, Image as ImageIcon, Clock, Loader2, Camera, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,8 @@ import {
   publishLongVideo,
 } from "@/lib/video-data";
 import { useUploads } from "@/lib/upload-progress";
+
+type AccessOption = "public" | "vip" | "paid";
 
 export const Route = createFileRoute("/video/upload")({
   head: () => ({
