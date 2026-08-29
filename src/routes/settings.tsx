@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { User, Megaphone, Orbit, Lock, Bell, Palette, HelpCircle, Info, LogOut, ChevronRight, ArrowLeft, X } from "lucide-react";
+import { User, Megaphone, Orbit, Lock, Bell, Palette, HelpCircle, Info, LogOut, ChevronRight, ArrowLeft, X, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/settings")({
@@ -96,7 +96,25 @@ export function SettingsPage() {
           <ChevronRight className="text-zinc-600" size={18} />
         </div>
 
+        {/* Monetization & Wallet */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate({ to: "/wallet" })}
+          className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer"
+        >
+          <div className="flex items-center gap-4">
+            <Wallet className="text-zinc-400" size={20} />
+            <div>
+              <div className="font-semibold text-sm">Monetization & Wallet</div>
+              <div className="text-[11px] text-zinc-500">Earnings, courses, payouts & tax invoices</div>
+            </div>
+          </div>
+          <ChevronRight className="text-zinc-600" size={18} />
+        </div>
+
         {/* Orbit */}
+
         <div 
           onClick={() => navigate({ to: "/orbit" })} 
           className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer"
