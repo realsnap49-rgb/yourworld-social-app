@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft, Eye, Heart, MessageCircle, Send, Bookmark, Download, Clock,
+  ArrowLeft, Heart, MessageCircle, Send, Bookmark, Download, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -164,82 +164,78 @@ function WatchPage() {
 
         {/* === INDEPENDENT SCROLLABLE BELOW SECTION === */}
         <div className="overflow-y-auto px-3 pb-24 pt-3">
-          {/* Title + duration */}
+          {/* Title */}
           <h1 className="text-base font-bold leading-snug text-white">{video.title}</h1>
-          <div className="mt-1 flex items-center gap-2 text-[12px] text-zinc-400">
-            <span className="inline-flex items-center gap-1"><Eye size={13} /> {formatViews(video.views)}</span>
-            <span>·</span>
-            <span>{timeAgo(video.createdAt)}</span>
-            {video.durationSeconds ? (
-              <>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1"><Clock size={12} /> {formatDuration(video.durationSeconds)}</span>
-              </>
-            ) : null}
-          </div>
 
-          {/* Action bar */}
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-zinc-900/70 px-3 py-2">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleLike}
-                disabled={liking}
-                aria-label="Like"
-                className="flex items-center gap-1 text-xs text-zinc-200 transition-transform active:scale-90 disabled:opacity-60"
-              >
-                <Heart size={20} className={video.likedByMe ? "fill-pink-500 text-pink-500" : "text-zinc-200"} />
-                {video.likeCount > 0 && <span className="font-semibold">{formatCount(video.likeCount)}</span>}
-              </button>
+          {/* Metadata: @username • views • time ago */}
+          <p className="mt-1 text-[12px] text-zinc-400">
+            @{video.author.username} • {formatViews(video.views)} • {timeAgo(video.createdAt)}
+            {video.durationSeconds ? ` • ${formatDuration(video.durationSeconds)}` : ""}
+          </p>
 
-              <CommentsSheet postId={video.id} onCountChange={setCommentCount}>
-                <button aria-label="Comments" className="flex items-center gap-1 text-xs text-zinc-200 transition-transform active:scale-90">
-                  <MessageCircle size={20} />
-                  {commentCount > 0 && <span className="font-semibold">{formatCount(commentCount)}</span>}
-                </button>
-              </CommentsSheet>
-
-              <ShareSheet title={video.title} url={shareUrl} media={src ?? undefined} mediaKind="video">
-                <button aria-label="Share" className="text-zinc-200 transition-transform active:scale-90">
-                  <Send size={18} />
-                </button>
-              </ShareSheet>
-
-              <button onClick={handleDownload} aria-label="Download" className="text-zinc-300 transition-transform hover:text-white active:scale-90">
-                <Download size={18} />
-              </button>
-            </div>
-
-            <button onClick={handleSave} aria-label="Save" className="text-zinc-200 transition-transform active:scale-90">
-              <Bookmark size={20} className={isSaved ? "fill-white text-white" : "text-zinc-200"} />
-            </button>
-          </div>
-
-          {/* Channel / author row */}
-          <Link
-            to="/u/$userId"
-            params={{ userId: video.userId }}
-            className="mt-3 flex items-center gap-2 rounded-xl bg-zinc-900/70 px-3 py-2 transition-colors active:bg-zinc-800"
-          >
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-[#8b2fc9] text-sm font-bold text-white">
+          {/* Creator row — clean, no card container */}
+          <div className="mt-3 flex items-center gap-2.5">
+            <Link
+              to="/u/$userId"
+              params={{ userId: video.userId }}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#8b2fc9] text-sm font-bold text-white"
+            >
               {video.author.letter}
-            </span>
-            <div className="min-w-0 flex-1">
+            </Link>
+            <Link to="/u/$userId" params={{ userId: video.userId }} className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-white">@{video.author.username}</p>
               <p className="truncate text-[11px] text-zinc-400">{video.author.name}</p>
-            </div>
+            </Link>
             {!isMine && (
               <button
                 type="button"
-                onClick={(e) => { e.preventDefault(); toggleFollow(video.userId); }}
+                onClick={() => toggleFollow(video.userId)}
                 className={cn(
-                  "rounded-full px-3 py-1 text-[11px] font-semibold transition-all active:scale-95",
-                  isFollowing ? "bg-zinc-800 text-white" : "bg-pink-500 text-white",
+                  "rounded-full px-4 py-1.5 text-[12px] font-semibold transition-all active:scale-95",
+                  isFollowing ? "bg-zinc-800 text-white" : "bg-white text-black",
                 )}
               >
                 {isFollowing ? "Following" : "Follow"}
               </button>
             )}
-          </Link>
+          </div>
+
+          {/* Capsule action bar */}
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <button
+              onClick={handleLike}
+              disabled={liking}
+              aria-label="Like"
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#272727] px-3.5 py-2 text-xs font-medium text-white transition-transform active:scale-95 disabled:opacity-60"
+            >
+              <Heart size={18} className={video.likedByMe ? "fill-pink-500 text-pink-500" : "text-white"} />
+              {video.likeCount > 0 && <span>{formatCount(video.likeCount)}</span>}
+            </button>
+
+            <CommentsSheet postId={video.id} onCountChange={setCommentCount}>
+              <button aria-label="Comments" className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#272727] px-3.5 py-2 text-xs font-medium text-white transition-transform active:scale-95">
+                <MessageCircle size={18} />
+                {commentCount > 0 && <span>{formatCount(commentCount)}</span>}
+              </button>
+            </CommentsSheet>
+
+            <ShareSheet title={video.title} url={shareUrl} media={src ?? undefined} mediaKind="video">
+              <button aria-label="Share" className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#272727] px-3.5 py-2 text-xs font-medium text-white transition-transform active:scale-95">
+                <Send size={17} />
+                <span>Share</span>
+              </button>
+            </ShareSheet>
+
+            <button onClick={handleDownload} aria-label="Download" className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#272727] px-3.5 py-2 text-xs font-medium text-white transition-transform active:scale-95">
+              <Download size={17} />
+              <span>Save</span>
+            </button>
+
+            <button onClick={handleSave} aria-label="Save" className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#272727] px-3.5 py-2 text-xs font-medium text-white transition-transform active:scale-95">
+              <Bookmark size={18} className={isSaved ? "fill-white text-white" : "text-white"} />
+              {isSaved && <span>Saved</span>}
+            </button>
+          </div>
 
           {upcoming && (
             <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-1 text-[11px] font-semibold text-amber-400">
@@ -259,15 +255,18 @@ function WatchPage() {
             </div>
           )}
 
-          {/* Comments header */}
-          <div className="mt-5">
+          {/* Comments preview card */}
+          <div className="mt-4">
             <CommentsSheet postId={video.id} onCountChange={setCommentCount}>
-              <button className="flex w-full items-center justify-between border-b border-zinc-800 pb-2 text-sm font-semibold text-white">
-                <span>{commentCount} {commentCount === 1 ? "Comment" : "Comments"}</span>
-                <span className="text-[11px] font-normal text-pink-400">View all</span>
+              <button className="flex w-full items-center gap-3 rounded-xl bg-[#272727] px-3 py-3 text-left transition-colors active:bg-zinc-800">
+                <MessageCircle size={18} className="text-zinc-300" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white">{commentCount} {commentCount === 1 ? "Comment" : "Comments"}</p>
+                  <p className="text-[11px] text-zinc-400">Tap to view & add a comment</p>
+                </div>
+                <span className="text-[11px] font-medium text-pink-400">Open</span>
               </button>
             </CommentsSheet>
-            <p className="py-3 text-center text-xs text-neutral-600">Tap above to open comments</p>
           </div>
 
           {/* Recommended videos */}
