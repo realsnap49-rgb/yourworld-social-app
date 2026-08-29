@@ -15,6 +15,13 @@
       "when": 1787988341158,
       "tag": "0001_enable_social_interactions_realtime",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787988575224,
+      "tag": "0002_restore_social_interaction_data_api_access",
+      "breakpoints": true
     }
   ]
 }
