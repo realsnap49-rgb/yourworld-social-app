@@ -428,15 +428,15 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       {!locked && (
         <div
           className={cn(
-            "pointer-events-none absolute inset-0 z-20 transition-opacity duration-200",
+            "pointer-events-none absolute inset-0 z-40 transition-opacity duration-200",
             showUI || !playing ? "opacity-100" : "opacity-0",
           )}
         >
           {/* top bar */}
           <div className="pointer-events-auto flex items-start justify-end gap-2 bg-gradient-to-b from-black/80 to-transparent p-3">
-            <div className="flex items-center gap-1">
-              <IconBtn label="Lock screen" onClick={() => { setLocked(true); flash("Locked"); }}><Unlock size={16} /></IconBtn>
-              <IconBtn label="Cast" onClick={cast}><Cast size={16} /></IconBtn>
+            <div className="relative z-10 flex items-center gap-1">
+              <IconBtn label="Lock screen" onClick={() => { setLocked(true); flash("Locked"); }}><Lock size={16} /></IconBtn>
+              <IconBtn label="Cast" onClick={() => { void cast(); }}><Cast size={16} /></IconBtn>
               <IconBtn label="Settings" onClick={() => setMenu(menu ? null : "root")}><Settings size={16} /></IconBtn>
             </div>
           </div>
