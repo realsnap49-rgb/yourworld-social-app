@@ -23,7 +23,7 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-type PanelId = "account" | "privacy" | "notifications" | "appearance" | "help" | "about";
+type PanelId = "privacy" | "notifications" | "appearance" | "help" | "about";
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -60,7 +60,7 @@ export function SettingsPage() {
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setPanel("account")}
+          onClick={() => navigate({ to: "/account" })}
           className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer"
         >
           <div className="flex items-center gap-4">
@@ -183,13 +183,6 @@ export function SettingsPage() {
         </div>
 
       </div>
-
-      {panel === "account" && (
-        <Panel title="Account" onClose={() => setPanel(null)}>
-          <Row label="Account details" hint="Email & phone" onClick={() => navigate({ to: "/account" })} />
-          <Row label="Password" hint="Change your password" onClick={() => navigate({ to: "/reset-password" })} />
-        </Panel>
-      )}
 
       {panel === "privacy" && (
         <Panel title="Privacy & Downloads" onClose={() => setPanel(null)}>
