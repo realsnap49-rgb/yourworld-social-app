@@ -67,7 +67,7 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => persist("yw:saved", saved), [saved]);
   useEffect(() => persist("yw:following", following), [following]);
 
-  // Hydrate real follows from the database (and keep them in sync on auth change).
+  // Hydrate real follows / likes / saves from the database (and on auth change).
   useEffect(() => {
     let cancelled = false;
     const sync = async () => {
@@ -84,6 +84,27 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
       } catch {
         /* offline / signed out */
       }
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const me = auth.user?.id ?? null;
+        meRef.current = me;
+        if (!me || cancelled) return;
+        const [likes, saves] = await Promise.all([
+          supabase.from("post_likes").select("post_id").eq("user_id", me),
+          supabase.from("post_saves").select("post_id").eq("user_id", me),
+        ]);
+        if (cancelled) return;
+        const merge = (rows: { post_id: string }[] | null) => (prev: Toggles) => {
+          const next: Toggles = {};
+          for (const [k, v] of Object.entries(prev)) if (v && !isRealUserId(k)) next[k] = true;
+          for (const r of rows ?? []) next[r.post_id] = true;
+          return next;
+        };
+        setLiked(merge(likes.data as { post_id: string }[] | null));
+        setSaved(merge(saves.data as { post_id: string }[] | null));
+      } catch {
+        /* offline / signed out */
+      }
     };
     void sync();
     const { data: sub } = supabase.auth.onAuthStateChange(() => void sync());
@@ -93,14 +114,57 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const toggleLike = useCallback(
-    (id: string) => setLiked((p) => ({ ...p, [id]: !p[id] })),
+  // Shared writer for post_likes / post_saves so every surface (feed, reels,
+  // profile, long video) persists the same rows.
+  const persistToggle = useCallback(
+    async (
+      table: "post_likes" | "post_saves",
+      postId: string,
+      on: boolean,
+      revert: (v: boolean) => void,
+    ) => {
+      if (!isRealUserId(postId)) return;
+      const me = meRef.current ?? (await supabase.auth.getUser()).data.user?.id ?? null;
+      meRef.current = me;
+      if (!me) {
+        revert(!on);
+        toast.error("Sign in to continue");
+        return;
+      }
+      const { error } = on
+        ? await supabase.from(table).insert({ post_id: postId, user_id: me })
+        : await supabase.from(table).delete().eq("post_id", postId).eq("user_id", me);
+      if (error && !(on && error.code === "23505")) {
+        revert(!on);
+        toast.error(error.message);
+      }
+    },
     [],
+  );
+
+  const toggleLike = useCallback(
+    (id: string) => {
+      let next = false;
+      setLiked((p) => {
+        next = !p[id];
+        return { ...p, [id]: next };
+      });
+      void persistToggle("post_likes", id, next, (v) => setLiked((p) => ({ ...p, [id]: v })));
+    },
+    [persistToggle],
   );
   const toggleSave = useCallback(
-    (id: string) => setSaved((p) => ({ ...p, [id]: !p[id] })),
-    [],
+    (id: string) => {
+      let next = false;
+      setSaved((p) => {
+        next = !p[id];
+        return { ...p, [id]: next };
+      });
+      void persistToggle("post_saves", id, next, (v) => setSaved((p) => ({ ...p, [id]: v })));
+    },
+    [persistToggle],
   );
+
   const toggleFollow = useCallback((id: string) => {
     let next = false;
     setFollowing((p) => {
