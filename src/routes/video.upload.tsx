@@ -204,6 +204,12 @@ function VideoUploadPage() {
                 Change video
               </button>
             </div>
+            {tooShort && (
+              <p className="text-[11px] font-semibold text-red-400">
+                This video is {formatDuration(duration)} — long videos must be at least 90 seconds.
+              </p>
+            )}
+
           </div>
         )}
         <input
