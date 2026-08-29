@@ -394,12 +394,20 @@ function ChatListPage() {
               <p className="py-6 text-center text-sm text-gray-500">No accounts found.</p>
             ) : (
               people.map((p) => (
-                <Link
+                <button
                   key={p.id}
-                  to="/chat/$threadId"
-                  params={{ threadId: p.id }}
-                  onClick={() => setNewChatOpen(false)}
-                  className="flex items-center gap-3 rounded-xl p-3 hover:bg-zinc-900"
+                  type="button"
+                  onClick={async () => {
+                    const uid =
+                      me ?? (await supabase.auth.getSession()).data.session?.user.id ?? null;
+                    if (!uid) return;
+                    setNewChatOpen(false);
+                    void navigate({
+                      to: "/chat/$threadId",
+                      params: { threadId: dmThreadId(uid, p.id) },
+                    });
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-zinc-900"
                 >
                   {p.avatar_url ? (
                     <img
