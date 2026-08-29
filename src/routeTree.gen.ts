@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
@@ -49,6 +50,11 @@ import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authentica
 import { Route as OrbitChatUserIdRouteImport } from './routes/orbit.chat.$userId'
 import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
 
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
   '/channel/monetization': typeof ChannelMonetizationRoute
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
   '/channel/monetization': typeof ChannelMonetizationRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
   '/channel/monetization': typeof ChannelMonetizationRoute
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
     | '/channel/monetization'
@@ -419,6 +429,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
     | '/channel/monetization'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
     | '/channel/monetization'
@@ -502,6 +514,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  WalletRoute: typeof WalletRoute
   MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
   PostCreateRoute: typeof PostCreateRoute
@@ -513,6 +526,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -866,6 +886,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  WalletRoute: WalletRoute,
   MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
   PostCreateRoute: PostCreateRoute,
