@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Search, SquarePen, MessageSquare, X, Check, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveThreadPeer } from "@/lib/social-data";
+import { resolveThreadPeer, dmThreadId } from "@/lib/social-data";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { deleteDirectThreads, hiddenThreadIds } from "@/lib/chat-delete";
 import { useChatNames } from "@/lib/chat-names";
