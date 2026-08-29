@@ -11,6 +11,7 @@ import { deletePost } from "@/lib/post-actions";
 import { PremiumVideoPlayer } from "@/components/yw/PremiumVideoPlayer";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
 import { ShareSheet } from "@/components/yw/ShareSheet";
+import { VideoPoster } from "@/components/yw/VideoPoster";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -257,16 +258,11 @@ export function LongVideoCard({
             aria-label={`Open ${video.title}`}
             className="group relative h-full w-full"
           >
-            {video.thumbnailUrl ? (
-              <img
-                src={video.thumbnailUrl}
-                alt={video.title}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
-            )}
+            <VideoPoster
+              thumbnailUrl={video.thumbnailUrl}
+              mediaUrl={video.mediaUrl}
+              alt={video.title}
+            />
             <span className="absolute inset-0 grid place-items-center bg-black/25">
               <span className="grid h-14 w-14 place-items-center rounded-full bg-white/90 text-black transition-transform group-active:scale-90">
                 <Play size={22} className="ml-0.5 fill-black" />
