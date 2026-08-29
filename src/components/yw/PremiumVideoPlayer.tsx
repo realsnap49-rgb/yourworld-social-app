@@ -370,6 +370,27 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         </div>
       )}
 
+      {/* fullscreen brightness slider (left side, MX Player style) */}
+      {fullscreen && showBrightBar && !locked && (
+        <div className="pointer-events-none absolute left-6 top-1/2 z-30 flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-2 py-3 backdrop-blur">
+          <Sun size={16} className="text-white" />
+          <div className="relative h-32 w-1.5 overflow-hidden rounded-full bg-white/25">
+            <div
+              className="absolute bottom-0 w-full rounded-full bg-white transition-[height] duration-100"
+              style={{ height: `${Math.round(((brightness - 0.25) / 1.35) * 100)}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-semibold tabular-nums text-white">{Math.round(brightness * 100)}%</span>
+        </div>
+      )}
+
+      {/* zoom indicator */}
+      {fullscreen && zoom > 1.01 && (
+        <div className="pointer-events-none absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
+          {Math.round(zoom * 100)}%
+        </div>
+      )}
+
       {/* lock overlay */}
       {locked && (
         <button
