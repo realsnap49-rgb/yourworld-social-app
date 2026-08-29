@@ -126,7 +126,7 @@ export function useOrbitProfiles() {
         .filter((r) => r.user_id !== me)
         .map(rowToOrbitProfile);
       registerOrbitProfiles(list);
-      setProfiles(list.length ? list : demoProfiles);
+      setProfiles(list);
       setLoading(false);
     };
 
