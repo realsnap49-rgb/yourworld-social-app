@@ -674,7 +674,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
         myName = myProfile?.display_name || myProfile?.username || "Someone";
       }
-      setCall({ callId, mode, peerId: target, peerName: peerName ?? "Calling…", incoming: false });
+      setCall({ callId, mode, peerId: target, peerName: peerName ?? "Calling…", incoming: false, threadId: threadId ?? null });
       setPhase("outgoing");
 
       try {
