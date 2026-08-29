@@ -16,6 +16,8 @@ type Props = {
   onOrientationChange?: (portrait: boolean) => void;
   /** Fullscreen-only swipe to the next/previous video of the same orientation. */
   onSwipeQueue?: (dir: 1 | -1, portrait: boolean) => void;
+  /** When true (inline feed cards), hide the Loop and Fullscreen buttons in the bottom-right. */
+  hideAuxControls?: boolean;
 };
 
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -31,7 +33,7 @@ function fmt(t: number) {
 }
 
 /** Premium player: YouTube-style controls + MX Player gestures (seek, volume, brightness, lock, fit). */
-export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className, onOrientationChange, onSwipeQueue }: Props) {
+export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className, onOrientationChange, onSwipeQueue, hideAuxControls }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const vidRef = useRef<HTMLVideoElement | null>(null);
 
@@ -470,14 +472,16 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 </button>
                 <span className="tabular-nums">{fmt(time)} / {fmt(dur)}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setLoop((l) => !l)} aria-label="Loop">
-                  <Repeat size={16} className={loop ? "text-pink-400" : ""} />
-                </button>
-                <button onClick={toggleFullscreen} aria-label="Fullscreen">
-                  {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-                </button>
-              </div>
+              {hideAuxControls ? null : (
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setLoop((l) => !l)} aria-label="Loop">
+                    <Repeat size={16} className={loop ? "text-pink-400" : ""} />
+                  </button>
+                  <button onClick={toggleFullscreen} aria-label="Fullscreen">
+                    {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

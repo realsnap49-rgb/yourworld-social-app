@@ -250,6 +250,7 @@ export function LongVideoCard({
             onOrientationChange={setPlayerPortrait}
             onSwipeQueue={swipeQueue}
             autoPlay
+            hideAuxControls
             className="rounded-none"
           />
         ) : (

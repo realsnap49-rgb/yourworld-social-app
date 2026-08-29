@@ -145,6 +145,7 @@ function FeedPostCardBase({
             title={post.caption || `@${post.author.username}`}
             portrait
             autoPlay
+            hideAuxControls
             className="h-full rounded-none aspect-auto"
           />
         ) : (
@@ -297,6 +298,7 @@ function FeedPostCardBase({
           src={src}
           title={post.caption || `@${post.author.username}`}
           portrait
+          hideAuxControls
           className={reel ? "aspect-[9/16] rounded-2xl overflow-hidden" : "aspect-square"}
         />
       ) : (
