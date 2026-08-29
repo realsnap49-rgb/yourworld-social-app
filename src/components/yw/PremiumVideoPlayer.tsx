@@ -415,19 +415,27 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         </div>
       )}
 
-      {/* settings sheet */}
+      {/* settings sheet — YouTube-style bottom sheet */}
       {menu && !locked && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-sm" onClick={() => setMenu(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-sm"
+          onClick={() => setMenu(null)}
+        >
           <div
-            className="max-h-[70vh] w-full overflow-y-auto rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
+            className="relative max-h-[70vh] w-full overflow-y-auto rounded-t-[16px] bg-[#1f1f1f] text-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="sticky top-0 z-10 flex flex-col gap-2 bg-[#1f1f1f] px-4 pb-2 pt-3">
+              <span className="mx-auto h-1.5 w-10 rounded-full bg-white/25" />
+              <p className="text-sm font-medium text-white/90">{menu === "root" ? "Settings" : title || "Settings"}</p>
+            </div>
+            <div className="px-2 pb-4 pt-1">
             {menu === "root" && (
-              <div className="space-y-1">
-                <Row icon={<Gauge size={16} />} label="Playback speed" value={`${speed}x`} onClick={() => setMenu("speed")} />
-                <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
-                <Row icon={<Subtitles size={16} />} label="Captions" value={caption} onClick={() => setMenu("captions")} />
-                <Row icon={<Languages size={16} />} label="Audio track" value={audio} onClick={() => setMenu("audio")} />
+              <div className="space-y-0.5">
+                <Row icon={<Gauge size={18} />} label="Playback speed" value={`${speed}x`} onClick={() => setMenu("speed")} />
+                <Row icon={<MonitorPlay size={18} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
+                <Row icon={<Subtitles size={18} />} label="Captions" value={caption} onClick={() => setMenu("captions")} />
+                <Row icon={<Languages size={18} />} label="Audio track" value={audio} onClick={() => setMenu("audio")} />
               </div>
             )}
             {menu === "speed" && (
