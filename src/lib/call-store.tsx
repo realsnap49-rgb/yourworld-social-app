@@ -26,6 +26,8 @@ type CallState = {
   peerId: string;
   peerName: string;
   incoming: boolean;
+  /** Social chat thread the call was started from (when known). */
+  threadId?: string | null;
 };
 
 type Ctx = {
@@ -162,6 +164,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteStream = useRef<MediaStream | null>(null);
   /** Call ids we've already reacted to (broadcast + database ring paths). */
   const seenCalls = useRef<Set<string>>(new Set());
+  /** Set when the peer connection reaches "connected" — used for call duration. */
+  const connectedAt = useRef<number | null>(null);
+  /** Ensures the call-log chat message is written exactly once per call. */
+  const loggedCall = useRef<string | null>(null);
 
 
   useRingtone(
@@ -306,6 +312,65 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return stream;
   }, [attachStreams, facingMode]);
 
+  const phaseRef = useRef<Phase>("idle");
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  const callRef = useRef<CallState | null>(null);
+  useEffect(() => { callRef.current = call; }, [call]);
+  const meRef = useRef<string | null>(null);
+  useEffect(() => { meRef.current = me; }, [me]);
+  const isGuestRef = useRef(true);
+  useEffect(() => { isGuestRef.current = isGuest; }, [isGuest]);
+
+  /**
+   * Writes a permanent call-log entry into the chat so both sides can see who
+   * called, whether it was answered (with duration) or missed/declined. Only
+   * the caller writes it, and only once per call — the other side receives it
+   * through the normal chat realtime subscription.
+   */
+  const logCallOutcome = useCallback(
+    async (outcome: "answered" | "missed" | "declined") => {
+      const c = callRef.current;
+      const meId = meRef.current;
+      if (!c || c.incoming || !meId || isGuestRef.current) return;
+      if (c.peerId.startsWith("guest-")) return;
+      if (loggedCall.current === c.callId) return;
+      loggedCall.current = c.callId;
+      const durMs = connectedAt.current ? Date.now() - connectedAt.current : null;
+      connectedAt.current = null;
+      const fmtDur = (ms: number) => {
+        const s = Math.max(1, Math.round(ms / 1000));
+        return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+      };
+      const label = c.mode === "video" ? "Video" : "Voice";
+      const icon = c.mode === "video" ? "📹" : "📞";
+      const text =
+        outcome === "answered" && durMs != null
+          ? `${icon} ${label} call · ${fmtDur(durMs)}`
+          : outcome === "declined"
+            ? `${icon} ${label} call declined`
+            : `${icon} Missed ${label.toLowerCase()} call`;
+      try {
+        if (c.threadId) {
+          await supabase.from("direct_messages").insert({
+            thread_id: c.threadId,
+            sender_id: meId,
+            content: text,
+            media_type: "system",
+          });
+        } else {
+          await supabase.from("orbit_messages").insert({
+            sender_id: meId,
+            recipient_id: c.peerId,
+            kind: "system",
+            text,
+          });
+        }
+      } catch (err) {
+        console.error("[call] log insert failed", err);
+      }
+    },
+    [],
+  );
   const createPeer = useCallback(
     (stream: MediaStream) => {
       // Pre-gather ICE candidates so the call connects near-instantly.
@@ -341,15 +406,19 @@ export function CallProvider({ children }: { children: ReactNode }) {
       };
 
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "connected") setPhase("active");
+        if (pc.connectionState === "connected") {
+          connectedAt.current ??= Date.now();
+          setPhase("active");
+        }
         if (pc.connectionState === "failed") {
           toast.error("Call connection failed");
+          void logCallOutcome("missed");
           teardown();
         }
       };
       return pc;
     },
-    [signal, attachStreams, teardown],
+    [signal, attachStreams, teardown, logCallOutcome],
   );
 
   const flushIce = useCallback(async () => {
@@ -401,9 +470,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
               }
             } else if (payload.type === "end") {
               toast.message("Call ended");
+              void logCallOutcome(connectedAt.current ? "answered" : "missed");
               teardown();
             } else if (payload.type === "decline") {
               toast.message("Call declined");
+              void logCallOutcome("declined");
               teardown();
             }
           } catch (err) {
@@ -413,7 +484,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           if (status === "SUBSCRIBED") resolve();
         });
       }),
-    [createPeer, flushIce, getMedia, signal, teardown],
+    [createPeer, flushIce, getMedia, signal, teardown, logCallOutcome],
   );
 
   /* ---------- incoming ring listener (per user) ---------- */
@@ -509,10 +580,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
   }, [me, teardown, httpBroadcast]);
 
-  const phaseRef = useRef<Phase>("idle");
-  useEffect(() => { phaseRef.current = phase; }, [phase]);
-  const callRef = useRef<CallState | null>(null);
-  useEffect(() => { callRef.current = call; }, [call]);
 
   /* ---------- durable ring listener (database, works app-wide) ---------- */
   useEffect(() => {
@@ -607,7 +674,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
         myName = myProfile?.display_name || myProfile?.username || "Someone";
       }
-      setCall({ callId, mode, peerId: target, peerName: peerName ?? "Calling…", incoming: false });
+      setCall({ callId, mode, peerId: target, peerName: peerName ?? "Calling…", incoming: false, threadId: threadId ?? null });
       setPhase("outgoing");
 
       try {
@@ -679,9 +746,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
       void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "end" });
       void httpBroadcast(`calls-user-${call.peerId}`, "cancel", { callId: call.callId });
       void supabase.from("calls").update({ status: "ended" }).eq("call_id", call.callId);
+      // Caller hanging up: answered calls log the duration, unanswered rings
+      // become a missed-call entry in the chat.
+      void logCallOutcome(connectedAt.current ? "answered" : "missed");
     }
     teardown();
-  }, [call, phase, signal, teardown, httpBroadcast]);
+  }, [call, phase, signal, teardown, httpBroadcast, logCallOutcome]);
 
 
 
