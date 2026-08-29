@@ -62,6 +62,8 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
   const [saved, setSaved] = useState<Toggles>(() => load("yw:saved"));
   const [following, setFollowing] = useState<Toggles>(() => load("yw:following"));
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const meRef = useRef<string | null>(null);
+
 
   useEffect(() => persist("yw:liked", liked), [liked]);
   useEffect(() => persist("yw:saved", saved), [saved]);
