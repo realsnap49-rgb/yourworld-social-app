@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { User, Megaphone, Orbit, Lock, Bell, Palette, HelpCircle, Info, LogOut, ChevronRight, ArrowLeft, X } from "lucide-react";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
