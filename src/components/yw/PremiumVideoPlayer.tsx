@@ -285,7 +285,11 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     setPan({ x: limit(p.pan.x + (m.x - p.cx)), y: limit(p.pan.y + (m.y - p.cy)) });
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (e.touches.length < 2) pinch.current = null;
+    if (e.touches.length < 2) {
+      pinch.current = null;
+      if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current);
+      zoomBadgeTimer.current = window.setTimeout(() => setShowZoomBadge(false), 500);
+    }
     if (zoom <= 1.01) setPan({ x: 0, y: 0 });
   };
 
