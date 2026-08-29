@@ -270,9 +270,9 @@ function WatchPage() {
           </div>
 
           {/* Recommended videos */}
-          <div className="mt-4">
-            <h2 className="mb-2 text-sm font-semibold text-zinc-300">Recommended</h2>
-            <div className="space-y-3">
+          <div className="mt-5 px-4">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-300">Recommended</h2>
+            <div className="space-y-4">
               {recommended.map((r) => (
                 <RecommendedRow key={r.id} video={r} />
               ))}
@@ -288,27 +288,28 @@ function WatchPage() {
 }
 
 function RecommendedRow({ video }: { video: LongVideo }) {
-  const portrait = video.orientation === "portrait";
   return (
     <Link
       to="/video/$videoId"
       params={{ videoId: video.id }}
-      className="flex gap-2 rounded-lg p-1 transition-colors active:bg-zinc-900"
+      className="block overflow-hidden rounded-xl bg-zinc-900/60 transition-colors active:bg-zinc-800"
     >
-      <div className={cn("relative shrink-0 overflow-hidden rounded-md bg-zinc-900", portrait ? "aspect-[9/16] h-20" : "aspect-video w-32")}>
+      {/* Full-width 16:9 thumbnail */}
+      <div className="relative aspect-video w-full overflow-hidden bg-zinc-900">
         {video.thumbnailUrl ? (
           <img src={video.thumbnailUrl} alt={video.title} loading="lazy" className="h-full w-full object-cover" />
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
         )}
         {video.durationSeconds ? (
-          <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[9px] font-semibold text-white">
+          <span className="absolute bottom-1.5 right-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
             {formatDuration(video.durationSeconds)}
           </span>
         ) : null}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-xs font-semibold text-white">{video.title}</p>
+      {/* Metadata below thumbnail */}
+      <div className="px-3 py-2.5">
+        <p className="line-clamp-2 text-sm font-semibold leading-snug text-white">{video.title}</p>
         <p className="mt-1 text-[11px] text-zinc-400">@{video.author.username}</p>
         <p className="text-[11px] text-zinc-500">{formatViews(video.views)} · {timeAgo(video.createdAt)}</p>
       </div>
