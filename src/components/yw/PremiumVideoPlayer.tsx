@@ -67,6 +67,8 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const brightBarTimer = useRef<number | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [showZoomBadge, setShowZoomBadge] = useState(false);
+  const zoomBadgeTimer = useRef<number | null>(null);
   const pinch = useRef<{ dist: number; cx: number; cy: number; zoom: number; pan: { x: number; y: number } } | null>(null);
 
   const flashBrightBar = useCallback(() => {
@@ -116,8 +118,16 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
 
   // Zoom/pan are fullscreen-only; reset to 100% fit when leaving fullscreen.
   useEffect(() => {
-    if (!fullscreen) { setZoom(1); setPan({ x: 0, y: 0 }); pinch.current = null; }
+    if (!fullscreen) {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      setShowZoomBadge(false);
+      pinch.current = null;
+      if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current);
+    }
   }, [fullscreen]);
+
+  useEffect(() => () => { if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current); }, []);
 
   const toggleFullscreen = async () => {
     const el = wrapRef.current;
@@ -261,6 +271,8 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     const m = touchMid(e.touches);
     gesture.current = null;
     pinch.current = { dist: m.d || 1, cx: m.x, cy: m.y, zoom, pan };
+    setShowZoomBadge(true);
+    if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current);
   };
   const onTouchMove = (e: React.TouchEvent) => {
     const p = pinch.current;
@@ -273,7 +285,11 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     setPan({ x: limit(p.pan.x + (m.x - p.cx)), y: limit(p.pan.y + (m.y - p.cy)) });
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (e.touches.length < 2) pinch.current = null;
+    if (e.touches.length < 2) {
+      pinch.current = null;
+      if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current);
+      zoomBadgeTimer.current = window.setTimeout(() => setShowZoomBadge(false), 500);
+    }
     if (zoom <= 1.01) setPan({ x: 0, y: 0 });
   };
 
@@ -384,9 +400,9 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         </div>
       )}
 
-      {/* zoom indicator */}
-      {fullscreen && zoom > 1.01 && (
-        <div className="pointer-events-none absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
+      {/* zoom indicator — only visible while actively pinch-zooming */}
+      {fullscreen && zoom > 1.01 && showZoomBadge && (
+        <div className="pointer-events-none absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur transition-opacity duration-300">
           {Math.round(zoom * 100)}%
         </div>
       )}
