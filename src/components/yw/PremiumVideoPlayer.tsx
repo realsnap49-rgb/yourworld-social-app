@@ -67,6 +67,8 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const brightBarTimer = useRef<number | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [showZoomBadge, setShowZoomBadge] = useState(false);
+  const zoomBadgeTimer = useRef<number | null>(null);
   const pinch = useRef<{ dist: number; cx: number; cy: number; zoom: number; pan: { x: number; y: number } } | null>(null);
 
   const flashBrightBar = useCallback(() => {
