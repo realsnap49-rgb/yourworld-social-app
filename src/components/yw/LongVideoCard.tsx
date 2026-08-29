@@ -3,7 +3,7 @@ import {
   Play, Eye, Heart, Clock, MessageCircle, Send, Bookmark,
   Download, MoreHorizontal, Link2, Trash2, EyeOff,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatDuration, formatViews, timeAgo, type LongVideo } from "@/lib/video-data";
 import { resolveMediaUrl } from "@/lib/social-data";
@@ -44,6 +44,7 @@ export function LongVideoCard({
   onDeleted,
 }: Props) {
   const { following, toggleFollow } = useYw();
+  const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
   const [src, setSrc] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -252,8 +253,8 @@ export function LongVideoCard({
           />
         ) : (
           <button
-            onClick={start}
-            aria-label={`Play ${video.title}`}
+            onClick={() => navigate({ to: "/video/$videoId", params: { videoId: video.id } })}
+            aria-label={`Open ${video.title}`}
             className="group relative h-full w-full"
           >
             {video.thumbnailUrl ? (
