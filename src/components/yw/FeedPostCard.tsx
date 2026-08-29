@@ -145,6 +145,7 @@ function FeedPostCardBase({
             title={post.caption || `@${post.author.username}`}
             portrait
             autoPlay
+            hideAuxControls
             className="h-full rounded-none aspect-auto"
           />
         ) : (
