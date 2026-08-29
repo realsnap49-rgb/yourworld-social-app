@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { OrbitMoodId } from "@/lib/orbit-mood";
 import {
   orbitById,
-  orbitProfiles as demoProfiles,
   registerOrbitProfiles,
   type OrbitProfile,
 } from "@/lib/orbit-data";
