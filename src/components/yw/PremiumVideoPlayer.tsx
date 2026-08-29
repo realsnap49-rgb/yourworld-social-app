@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
   Lock, Unlock, RotateCw, Repeat, Gauge, MonitorPlay,
-  Subtitles, Languages, ChevronLeft,
+  Subtitles, Languages, ChevronLeft, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -415,19 +415,27 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         </div>
       )}
 
-      {/* settings sheet */}
+      {/* settings sheet — YouTube-style bottom sheet */}
       {menu && !locked && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-sm" onClick={() => setMenu(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-sm"
+          onClick={() => setMenu(null)}
+        >
           <div
-            className="max-h-[70vh] w-full overflow-y-auto rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
+            className="relative max-h-[70vh] w-full overflow-y-auto rounded-t-[16px] bg-[#1f1f1f] text-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="sticky top-0 z-10 flex flex-col gap-2 bg-[#1f1f1f] px-4 pb-2 pt-3">
+              <span className="mx-auto h-1.5 w-10 rounded-full bg-white/25" />
+              <p className="text-sm font-medium text-white/90">{menu === "root" ? "Settings" : title || "Settings"}</p>
+            </div>
+            <div className="px-2 pb-4 pt-1">
             {menu === "root" && (
-              <div className="space-y-1">
-                <Row icon={<Gauge size={16} />} label="Playback speed" value={`${speed}x`} onClick={() => setMenu("speed")} />
-                <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
-                <Row icon={<Subtitles size={16} />} label="Captions" value={caption} onClick={() => setMenu("captions")} />
-                <Row icon={<Languages size={16} />} label="Audio track" value={audio} onClick={() => setMenu("audio")} />
+              <div className="space-y-0.5">
+                <Row icon={<Gauge size={18} />} label="Playback speed" value={`${speed}x`} onClick={() => setMenu("speed")} />
+                <Row icon={<MonitorPlay size={18} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
+                <Row icon={<Subtitles size={18} />} label="Captions" value={caption} onClick={() => setMenu("captions")} />
+                <Row icon={<Languages size={18} />} label="Audio track" value={audio} onClick={() => setMenu("audio")} />
               </div>
             )}
             {menu === "speed" && (
@@ -469,6 +477,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 emptyHint={audioTracks.length === 0 ? "No alternate language track was uploaded" : undefined}
               />
             )}
+            </div>
           </div>
         </div>
       )}
@@ -493,37 +502,37 @@ function IconBtn({ children, label, onClick, big }: { children: React.ReactNode;
 
 function Row({ icon, label, value, onClick }: { icon: React.ReactNode; label: string; value: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-white/5">
-      <span className="text-zinc-400">{icon}</span>
-      <span className="flex-1 font-medium">{label}</span>
-      <span className="text-xs text-zinc-400">{value}</span>
+    <button onClick={onClick} className="flex w-full items-center gap-4 px-4 py-3.5 text-left text-[15px] text-white transition-colors hover:bg-white/10">
+      <span className="text-white/70">{icon}</span>
+      <span className="flex-1 font-normal">{label}</span>
+      <span className="text-sm text-white/60">{value}</span>
     </button>
   );
 }
 
 function OptionList({ title, options, active, onPick, emptyHint, onBack }: { title: string; options: string[]; active: string; onPick: (o: string) => void; emptyHint?: string; onBack?: () => void }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1 px-1 pb-1 pt-1">
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-2 px-4 pb-1 pt-2">
         {onBack && (
-          <button type="button" onClick={onBack} aria-label="Back to settings" className="grid h-8 w-8 place-items-center rounded-full text-zinc-300 hover:bg-white/10">
-            <ChevronLeft size={18} />
+          <button type="button" onClick={onBack} aria-label="Back to settings" className="grid h-8 w-8 place-items-center rounded-full text-white/80 hover:bg-white/10">
+            <ChevronLeft size={20} />
           </button>
         )}
-        <p className="px-2 text-xs font-bold uppercase tracking-wide text-zinc-400">{title}</p>
+        <p className="text-[15px] font-medium text-white">{title}</p>
       </div>
-      {emptyHint && <p className="px-3 pb-2 text-xs text-zinc-500">{emptyHint}</p>}
+      {emptyHint && <p className="px-4 pb-2 text-xs text-white/50">{emptyHint}</p>}
       {options.map((o) => (
         <button
           key={o}
           onClick={() => onPick(o)}
           className={cn(
-            "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-white/5",
-            o === active && "bg-white/10 font-bold text-pink-400",
+            "flex w-full items-center justify-between px-4 py-3 text-[15px] transition-colors hover:bg-white/10",
+            o === active ? "text-white" : "text-white/90",
           )}
         >
           {o}
-          {o === active && <span className="text-xs">✓</span>}
+          {o === active && <span className="text-white"><Check size={18} /></span>}
         </button>
       ))}
     </div>
