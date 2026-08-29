@@ -253,8 +253,8 @@ export function LongVideoCard({
           />
         ) : (
           <button
-            onClick={start}
-            aria-label={`Play ${video.title}`}
+            onClick={() => navigate({ to: "/video/$videoId", params: { videoId: video.id } })}
+            aria-label={`Open ${video.title}`}
             className="group relative h-full w-full"
           >
             {video.thumbnailUrl ? (
