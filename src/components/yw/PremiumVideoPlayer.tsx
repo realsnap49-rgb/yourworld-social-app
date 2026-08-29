@@ -349,10 +349,15 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       {/* gesture surface */}
       <div
         className="absolute inset-0 flex"
+        style={{ touchAction: fullscreen ? "none" : undefined }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
       >
         <div className="h-full flex-1" onClick={() => onTapZone("l")} />
         <div className="h-full flex-1" onClick={() => onTapZone("c")} />
