@@ -55,9 +55,16 @@ function NotificationsPage() {
   const [tuning, setTuning] = useState(false);
   const navigate = useNavigate();
 
-  /** Orbit, Connections and Matches live only inside the Orbit section. */
-  const items = useMemo(() => allItems.filter((i) => !ORBIT_KINDS.includes(i.kind)), [allItems]);
-  const homeKinds = useMemo(() => NOTIFICATION_KINDS.filter((k) => !ORBIT_KINDS.includes(k.id)), []);
+  /** Orbit, Connections and Matches live only inside the Orbit section.
+   *  Message alerts are hidden here — they already live in the Chats inbox. */
+  const items = useMemo(
+    () => allItems.filter((i) => !ORBIT_KINDS.includes(i.kind) && i.kind !== "message"),
+    [allItems],
+  );
+  const homeKinds = useMemo(
+    () => NOTIFICATION_KINDS.filter((k) => !ORBIT_KINDS.includes(k.id) && k.id !== "message"),
+    [],
+  );
 
   const list = useMemo(() => {
     const base =
