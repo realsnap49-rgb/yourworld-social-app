@@ -33,8 +33,10 @@ export const Route = createFileRoute("/video/upload")({
   }),
   component: VideoUploadPage,
 });
+const MIN_DURATION = 90;
 
 function VideoUploadPage() {
+
   const navigate = useNavigate();
   const { startUpload } = useUploads();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -94,15 +96,25 @@ function VideoUploadPage() {
     setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const scheduledAt = scheduled && date && time ? new Date(`${date}T${time}`) : null;
+  const tooShort = duration !== null && duration < MIN_DURATION;
   const canPublish =
-    !!fileUrl && title.trim().length >= 2 && (!scheduled || !!scheduledAt) && !busy;
+    !!fileUrl &&
+    !tooShort &&
+    title.trim().length >= 2 &&
+    (!scheduled || !!scheduledAt) &&
+    !busy;
 
   const submit = () => {
     if (!fileUrl) return;
+    if (duration === null || duration < MIN_DURATION) {
+      toast.error("Long videos must be at least 90 seconds.");
+      return;
+    }
     if (scheduled && scheduledAt && scheduledAt.getTime() <= Date.now()) {
       toast.error("Pick a future date and time to schedule");
       return;
     }
+
     setBusy(true);
 
     // Upload keeps running in the background while the user browses the app.
@@ -160,8 +172,9 @@ function VideoUploadPage() {
             </div>
             <p className="font-semibold">Select a long video</p>
             <p className="text-xs text-zinc-400">
-              Horizontal (16:9) or vertical (9:16) · 1 minute to several hours
+              Horizontal (16:9) or vertical (9:16) · 90 seconds to several hours
             </p>
+
           </button>
         ) : (
           <div className="space-y-2">
@@ -191,6 +204,12 @@ function VideoUploadPage() {
                 Change video
               </button>
             </div>
+            {tooShort && (
+              <p className="text-[11px] font-semibold text-red-400">
+                This video is {formatDuration(duration)} — long videos must be at least 90 seconds.
+              </p>
+            )}
+
           </div>
         )}
         <input
