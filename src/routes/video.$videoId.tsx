@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { PremiumVideoPlayer } from "@/components/yw/PremiumVideoPlayer";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
 import { ShareSheet } from "@/components/yw/ShareSheet";
+import { VideoPoster } from "@/components/yw/VideoPoster";
 
 export const Route = createFileRoute("/video/$videoId")({
   head: () => ({
