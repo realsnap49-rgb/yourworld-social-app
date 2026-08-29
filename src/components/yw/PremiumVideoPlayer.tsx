@@ -417,9 +417,9 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
 
       {/* settings sheet */}
       {menu && !locked && (
-        <div className="absolute inset-0 z-30 flex items-end bg-black/50 backdrop-blur-sm" onClick={() => setMenu(null)}>
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-sm" onClick={() => setMenu(null)}>
           <div
-            className="max-h-full w-full overflow-y-auto rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
+            className="max-h-[70vh] w-full overflow-y-auto rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {menu === "root" && (
@@ -428,10 +428,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
                 <Row icon={<Subtitles size={16} />} label="Captions" value={caption} onClick={() => setMenu("captions")} />
                 <Row icon={<Languages size={16} />} label="Audio track" value={audio} onClick={() => setMenu("audio")} />
-                <Row icon={<Maximize size={16} />} label="Screen fit" value={fit} onClick={() => setMenu("fit")} />
-                <Row icon={<Sun size={16} />} label="Brightness" value={`${Math.round(brightness * 100)}%`} onClick={() => setBrightness((b) => (b >= 1.6 ? 0.5 : b + 0.25))} />
-                <Row icon={<Repeat size={16} />} label="Loop" value={loop ? "On" : "Off"} onClick={() => setLoop((l) => !l)} />
-                <Row icon={<RotateCcw size={16} />} label="Restart" value="" onClick={() => { const v = vidRef.current; if (v) v.currentTime = 0; setMenu(null); }} />
               </div>
             )}
             {menu === "speed" && (
