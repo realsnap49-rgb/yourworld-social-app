@@ -319,7 +319,12 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         autoPlay={autoPlay}
         playsInline
         preload="auto"
-        style={{ filter: `brightness(${brightness})` }}
+        style={{
+          filter: `brightness(${brightness})`,
+          transform: fullscreen && zoom > 1 ? `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` : undefined,
+          transformOrigin: "center center",
+          transition: pinch.current ? "none" : "transform 120ms ease-out",
+        }}
         className={cn(
           "h-full w-full",
           fullscreen
