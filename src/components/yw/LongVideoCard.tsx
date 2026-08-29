@@ -3,7 +3,7 @@ import {
   Play, Eye, Heart, Clock, MessageCircle, Send, Bookmark,
   Download, MoreHorizontal, Link2, Trash2, EyeOff,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatDuration, formatViews, timeAgo, type LongVideo } from "@/lib/video-data";
 import { resolveMediaUrl } from "@/lib/social-data";
