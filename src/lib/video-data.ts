@@ -220,6 +220,8 @@ export function useLongVideos() {
       channel = supabase
         .channel("long-videos")
         .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, queue)
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, queue)
+        .on("postgres_changes", { event: "*", schema: "public", table: "post_comments" }, queue)
         .subscribe();
     }, 300);
     return () => {
@@ -250,7 +252,10 @@ export function useLongVideos() {
       );
       const { error } = wasLiked
         ? await supabase.from("post_likes").delete().eq("post_id", id).eq("user_id", me)
-        : await supabase.from("post_likes").insert({ post_id: id, user_id: me });
+        : await supabase.from("post_likes").upsert(
+            { post_id: id, user_id: me },
+            { onConflict: "post_id,user_id", ignoreDuplicates: true },
+          );
       if (error) {
         setVideos((prev) =>
           prev.map((v) =>

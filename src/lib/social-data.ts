@@ -199,12 +199,23 @@ export function useSocialPosts(kind: "post" | "reel") {
         }),
       );
       if (wasLiked) {
-        await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", me);
+        const { error } = await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", me);
+        if (error) {
+          await load();
+          throw error;
+        }
       } else {
-        await supabase.from("post_likes").insert({ post_id: postId, user_id: me });
+        const { error } = await supabase.from("post_likes").upsert(
+          { post_id: postId, user_id: me },
+          { onConflict: "post_id,user_id", ignoreDuplicates: true },
+        );
+        if (error) {
+          await load();
+          throw error;
+        }
       }
     },
-    [me],
+    [me, load],
   );
 
   /** Optimistically bump a post's comment count (call when a comment is posted). */
