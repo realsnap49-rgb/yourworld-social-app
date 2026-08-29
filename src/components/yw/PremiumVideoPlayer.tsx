@@ -118,8 +118,16 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
 
   // Zoom/pan are fullscreen-only; reset to 100% fit when leaving fullscreen.
   useEffect(() => {
-    if (!fullscreen) { setZoom(1); setPan({ x: 0, y: 0 }); pinch.current = null; }
+    if (!fullscreen) {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      setShowZoomBadge(false);
+      pinch.current = null;
+      if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current);
+    }
   }, [fullscreen]);
+
+  useEffect(() => () => { if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current); }, []);
 
   const toggleFullscreen = async () => {
     const el = wrapRef.current;
