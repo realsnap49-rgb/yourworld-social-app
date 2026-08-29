@@ -47,6 +47,7 @@ import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
 import { supabase } from "@/integrations/supabase/client";
 import { saveChatDisplayName, setChatNameLocal, useChatNames } from "@/lib/chat-names";
+import { saveSecretChatLock } from "@/lib/secret-chats";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -288,9 +289,6 @@ function OrbitChatPage() {
           user_id: me,
           peer_id: userId,
           display_name: displayName,
-          secret_lock_enabled: secretLock,
-          secret_pin_salt: secretPinSalt,
-          secret_pin_hash: secretPinHash,
           view_once_mode: viewOnceMode,
           auto_delete_seconds: autoDelete,
           screenshot_alert: screenshotAlert,
@@ -518,6 +516,7 @@ function OrbitChatPage() {
         toast.error("Incorrect PIN");
         return;
       }
+      await saveSecretChatLock(userId, false, null, null);
       setSecretLock(false);
       setSecretPinSalt(null);
       setSecretPinHash(null);
@@ -531,8 +530,10 @@ function OrbitChatPage() {
       return;
     }
     const salt = randomPinSalt();
+    const hash = await hashPin(salt, pin);
+    await saveSecretChatLock(userId, true, salt, hash);
     setSecretPinSalt(salt);
-    setSecretPinHash(await hashPin(salt, pin));
+    setSecretPinHash(hash);
     setSecretLock(true);
     setChatUnlocked(true);
     toast.success("Secret Lock enabled");

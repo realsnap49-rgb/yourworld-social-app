@@ -18,6 +18,30 @@ export async function hashPin(salt: string, pin: string) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/** Persist only this user's lock fields for one peer, atomically. */
+export async function saveSecretChatLock(
+  peerId: string,
+  enabled: boolean,
+  salt: string | null,
+  hash: string | null,
+) {
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (authError || !userId) throw authError ?? new Error("Not signed in");
+
+  const { error } = await supabase.from("orbit_chat_settings").upsert(
+    {
+      user_id: userId,
+      peer_id: peerId,
+      secret_lock_enabled: enabled,
+      secret_pin_salt: salt,
+      secret_pin_hash: hash,
+    } as never,
+    { onConflict: "user_id,peer_id" },
+  );
+  if (error) throw error;
+}
+
 export type LockedChat = { peerId: string; salt: string | null; hash: string | null };
 
 async function fetchLocked(): Promise<LockedChat[]> {
