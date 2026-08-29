@@ -44,6 +44,7 @@ export function LongVideoCard({
   onDeleted,
 }: Props) {
   const { following, toggleFollow } = useYw();
+  const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
   const [src, setSrc] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
