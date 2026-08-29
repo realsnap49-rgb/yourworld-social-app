@@ -359,7 +359,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       };
       return pc;
     },
-    [signal, attachStreams, teardown],
+    [signal, attachStreams, teardown, logCallOutcome],
   );
 
   const flushIce = useCallback(async () => {
@@ -425,7 +425,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           if (status === "SUBSCRIBED") resolve();
         });
       }),
-    [createPeer, flushIce, getMedia, signal, teardown],
+    [createPeer, flushIce, getMedia, signal, teardown, logCallOutcome],
   );
 
   /* ---------- incoming ring listener (per user) ---------- */
