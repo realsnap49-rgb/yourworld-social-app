@@ -451,14 +451,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 onBack={() => setMenu("root")}
               />
             )}
-            {menu === "fit" && (
-              <OptionList
-                title="Screen fit"
-                options={[...FITS]}
-                active={fit}
-                onPick={(o) => { setFit(o as (typeof FITS)[number]); setMenu(null); }}
-              />
-            )}
             {menu === "captions" && (
               <OptionList
                 title="Captions"
