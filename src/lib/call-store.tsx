@@ -519,6 +519,61 @@ export function CallProvider({ children }: { children: ReactNode }) {
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   const callRef = useRef<CallState | null>(null);
   useEffect(() => { callRef.current = call; }, [call]);
+  const meRef = useRef<string | null>(null);
+  useEffect(() => { meRef.current = me; }, [me]);
+  const isGuestRef = useRef(true);
+  useEffect(() => { isGuestRef.current = isGuest; }, [isGuest]);
+
+  /**
+   * Writes a permanent call-log entry into the chat so both sides can see who
+   * called, whether it was answered (with duration) or missed/declined. Only
+   * the caller writes it, and only once per call — the other side receives it
+   * through the normal chat realtime subscription.
+   */
+  const logCallOutcome = useCallback(
+    async (outcome: "answered" | "missed" | "declined") => {
+      const c = callRef.current;
+      const meId = meRef.current;
+      if (!c || c.incoming || !meId || isGuestRef.current) return;
+      if (c.peerId.startsWith("guest-")) return;
+      if (loggedCall.current === c.callId) return;
+      loggedCall.current = c.callId;
+      const durMs = connectedAt.current ? Date.now() - connectedAt.current : null;
+      connectedAt.current = null;
+      const fmtDur = (ms: number) => {
+        const s = Math.max(1, Math.round(ms / 1000));
+        return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+      };
+      const label = c.mode === "video" ? "Video" : "Voice";
+      const icon = c.mode === "video" ? "📹" : "📞";
+      const text =
+        outcome === "answered" && durMs != null
+          ? `${icon} ${label} call · ${fmtDur(durMs)}`
+          : outcome === "declined"
+            ? `${icon} ${label} call declined`
+            : `${icon} Missed ${label.toLowerCase()} call`;
+      try {
+        if (c.threadId) {
+          await supabase.from("direct_messages").insert({
+            thread_id: c.threadId,
+            sender_id: meId,
+            content: text,
+            media_type: "system",
+          });
+        } else {
+          await supabase.from("orbit_messages").insert({
+            sender_id: meId,
+            recipient_id: c.peerId,
+            kind: "system",
+            text,
+          });
+        }
+      } catch (err) {
+        console.error("[call] log insert failed", err);
+      }
+    },
+    [],
+  );
 
   /* ---------- durable ring listener (database, works app-wide) ---------- */
   useEffect(() => {
