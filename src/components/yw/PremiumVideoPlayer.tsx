@@ -414,15 +414,23 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         </div>
       )}
 
-      {/* lock overlay */}
+      {/* lock overlay — blocks every player-area touch (back, seek, tap zones) */}
       {locked && (
-        <button
-          onClick={() => { setLocked(false); flash("Unlocked"); }}
-          className="absolute left-3 top-1/2 z-30 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur"
-          aria-label="Unlock controls"
+        <div
+          className="absolute inset-0 z-[55]"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
         >
-          <Unlock size={18} />
-        </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setLocked(false); flash("Unlocked"); }}
+            className="absolute left-3 top-1/2 z-[70] -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur"
+            aria-label="Unlock controls"
+          >
+            <Unlock size={18} />
+          </button>
+        </div>
       )}
 
       {!locked && (
