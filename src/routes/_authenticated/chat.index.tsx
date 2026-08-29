@@ -39,7 +39,8 @@ function ChatListPage() {
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<DiscoverProfile[]>([]);
   const [peopleLoading, setPeopleLoading] = useState(false);
-  const [, setMe] = useState<string | null>(null);
+  const [me, setMe] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [hidden, setHidden] = useState<string[]>(() => hiddenThreadIds());
