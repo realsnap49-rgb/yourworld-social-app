@@ -50,6 +50,126 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_earnings: {
+        Row: {
+          created_at: string
+          description: string | null
+          gross_amount: number
+          id: string
+          payout_id: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          gross_amount: number
+          id?: string
+          payout_id?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          gross_amount?: number
+          id?: string
+          payout_id?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creator_payout_details: {
+        Row: {
+          account_holder: string | null
+          bank_account: string | null
+          created_at: string
+          creator_email: string | null
+          ifsc_code: string | null
+          pan_number: string | null
+          updated_at: string
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          account_holder?: string | null
+          bank_account?: string | null
+          created_at?: string
+          creator_email?: string | null
+          ifsc_code?: string | null
+          pan_number?: string | null
+          updated_at?: string
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          account_holder?: string | null
+          bank_account?: string | null
+          created_at?: string
+          creator_email?: string | null
+          ifsc_code?: string | null
+          pan_number?: string | null
+          updated_at?: string
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creator_payouts: {
+        Row: {
+          ads_gross: number
+          course_gross: number
+          created_at: string
+          email_sent: boolean
+          gross_amount: number
+          gst_amount: number
+          id: string
+          net_amount: number
+          pan_number: string | null
+          platform_share: number
+          statement_id: string
+          status: string
+          tds_amount: number
+          user_id: string
+          vip_gross: number
+        }
+        Insert: {
+          ads_gross?: number
+          course_gross?: number
+          created_at?: string
+          email_sent?: boolean
+          gross_amount?: number
+          gst_amount?: number
+          id?: string
+          net_amount?: number
+          pan_number?: string | null
+          platform_share?: number
+          statement_id: string
+          status?: string
+          tds_amount?: number
+          user_id: string
+          vip_gross?: number
+        }
+        Update: {
+          ads_gross?: number
+          course_gross?: number
+          created_at?: string
+          email_sent?: boolean
+          gross_amount?: number
+          gst_amount?: number
+          id?: string
+          net_amount?: number
+          pan_number?: string | null
+          platform_share?: number
+          statement_id?: string
+          status?: string
+          tds_amount?: number
+          user_id?: string
+          vip_gross?: number
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           content: string

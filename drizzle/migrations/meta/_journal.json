@@ -36,6 +36,13 @@
       "when": 1787988861305,
       "tag": "0004_add_realtime_follow_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788016925879,
+      "tag": "0005_create_monetization_wallet",
+      "breakpoints": true
     }
   ]
 }
