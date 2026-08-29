@@ -23,7 +23,7 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-type PanelId = "account" | "privacy" | "notifications" | "appearance" | "help" | "about";
+type PanelId = "privacy" | "notifications" | "appearance" | "help" | "about";
 
 export function SettingsPage() {
   const navigate = useNavigate();
