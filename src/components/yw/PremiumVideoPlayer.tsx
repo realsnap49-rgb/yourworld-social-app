@@ -50,7 +50,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [locked, setLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [showUI, setShowUI] = useState(true);
-  const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "fit" | "captions" | "audio">(null);
+  const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "captions" | "audio">(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [viewPortrait, setViewPortrait] = useState(!!portrait);
   const [rotation, setRotation] = useState(0);
