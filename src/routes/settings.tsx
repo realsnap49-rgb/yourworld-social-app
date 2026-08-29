@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { User, Megaphone, Orbit, Lock, Bell, Palette, HelpCircle, Info, LogOut, ChevronRight, ArrowLeft, X } from "lucide-react";
+import { useAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -27,6 +29,8 @@ type PanelId = "privacy" | "notifications" | "appearance" | "help" | "about";
 
 export function SettingsPage() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const queryClient = useQueryClient();
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     privateAccount: false,
@@ -42,6 +46,13 @@ export function SettingsPage() {
     compact: false,
   });
   const flip = (k: string) => setToggles((t) => ({ ...t, [k]: !t[k] }));
+
+  const handleLogout = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", search: { redirect: undefined }, replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white p-4 font-sans select-none">
@@ -177,10 +188,13 @@ export function SettingsPage() {
         </div>
 
         {/* Logout */}
-        <div className="border-t border-zinc-800/80 pt-2 p-3.5 flex items-center gap-4 text-red-500 cursor-pointer hover:bg-red-950/20 rounded-xl">
+        <button
+          onClick={handleLogout}
+          className="border-t border-zinc-800/80 pt-2 p-3.5 flex w-full items-center gap-4 text-red-500 cursor-pointer hover:bg-red-950/20 rounded-xl"
+        >
           <LogOut size={20} />
           <span className="font-semibold text-sm">Log Out</span>
-        </div>
+        </button>
 
       </div>
 
