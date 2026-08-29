@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { OrbitMoodId } from "@/lib/orbit-mood";
 import {
   orbitById,
-  orbitProfiles as demoProfiles,
   registerOrbitProfiles,
   type OrbitProfile,
 } from "@/lib/orbit-data";
@@ -104,7 +103,7 @@ export function rowToDraft(row: OrbitProfileRow): OrbitProfileDraft {
 
 /** Live discovery feed: every other user with Orbit on and a visible profile. */
 export function useOrbitProfiles() {
-  const [profiles, setProfiles] = useState<OrbitProfile[]>(demoProfiles);
+  const [profiles, setProfiles] = useState<OrbitProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -126,7 +125,7 @@ export function useOrbitProfiles() {
         .filter((r) => r.user_id !== me)
         .map(rowToOrbitProfile);
       registerOrbitProfiles(list);
-      setProfiles(list.length ? list : demoProfiles);
+      setProfiles(list);
       setLoading(false);
     };
 
