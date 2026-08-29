@@ -512,27 +512,27 @@ function Row({ icon, label, value, onClick }: { icon: React.ReactNode; label: st
 
 function OptionList({ title, options, active, onPick, emptyHint, onBack }: { title: string; options: string[]; active: string; onPick: (o: string) => void; emptyHint?: string; onBack?: () => void }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1 px-1 pb-1 pt-1">
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-2 px-4 pb-1 pt-2">
         {onBack && (
-          <button type="button" onClick={onBack} aria-label="Back to settings" className="grid h-8 w-8 place-items-center rounded-full text-zinc-300 hover:bg-white/10">
-            <ChevronLeft size={18} />
+          <button type="button" onClick={onBack} aria-label="Back to settings" className="grid h-8 w-8 place-items-center rounded-full text-white/80 hover:bg-white/10">
+            <ChevronLeft size={20} />
           </button>
         )}
-        <p className="px-2 text-xs font-bold uppercase tracking-wide text-zinc-400">{title}</p>
+        <p className="text-[15px] font-medium text-white">{title}</p>
       </div>
-      {emptyHint && <p className="px-3 pb-2 text-xs text-zinc-500">{emptyHint}</p>}
+      {emptyHint && <p className="px-4 pb-2 text-xs text-white/50">{emptyHint}</p>}
       {options.map((o) => (
         <button
           key={o}
           onClick={() => onPick(o)}
           className={cn(
-            "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-white/5",
-            o === active && "bg-white/10 font-bold text-pink-400",
+            "flex w-full items-center justify-between px-4 py-3 text-[15px] transition-colors hover:bg-white/10",
+            o === active ? "text-white" : "text-white/90",
           )}
         >
           {o}
-          {o === active && <span className="text-xs">✓</span>}
+          {o === active && <span className="text-white"><Check size={18} /></span>}
         </button>
       ))}
     </div>
