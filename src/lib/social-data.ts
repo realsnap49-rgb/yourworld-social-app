@@ -644,8 +644,8 @@ export async function resolveThreadPeer(
     peerId = (msgs ?? []).map((m) => m.sender_id).find((id) => id !== me) ?? null;
   }
 
-  // A thread id can also simply be the peer's user id (deep link / new chat).
-  if (!peerId && /^[0-9a-f-]{36}$/i.test(threadId) && threadId !== me) peerId = threadId;
+  // A thread id can also simply be the peer's user id (legacy deep link).
+  if (!peerId && UUID_RE.test(threadId) && threadId !== me) peerId = threadId;
 
   if (!peerId) return { peerId: null, peerName: "Unknown user", avatarUrl: null };
 
