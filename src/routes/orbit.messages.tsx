@@ -124,20 +124,56 @@ function OrbitMessagesPage() {
 
   const byId = useMemo(() => new Map(visible.map((p) => [p.id, p])), [visible]);
 
+  const chatIds = useMemo(
+    () => [
+      ...new Set<string>([
+        ...Object.keys(orbit.connected).filter((id) => orbit.connected[id]),
+        ...Object.keys(previews),
+        ...Object.entries(orbit.requests)
+          .filter(([, r]) => r.status === "accepted")
+          .map(([id]) => id),
+      ]),
+    ],
+    [orbit.connected, orbit.requests, previews],
+  );
+
+  // A peer can message us while their Orbit profile is hidden from discovery —
+  // fall back to their public account so the conversation never disappears.
+  const missingIds = useMemo(
+    () => chatIds.filter((id) => !byId.has(id)),
+    [chatIds, byId],
+  );
+  const { get: getProfile } = useProfiles(missingIds);
+
   const chats = useMemo(() => {
-    const ids = new Set<string>([
-      ...Object.keys(orbit.connected).filter((id) => orbit.connected[id]),
-      ...Object.keys(previews),
-      ...Object.entries(orbit.requests)
-        .filter(([, r]) => r.status === "accepted")
-        .map(([id]) => id),
-    ]);
-    return [...ids]
+    return chatIds
       .filter((id) => !hidden.includes(id))
-      .map((id) => byId.get(id))
-      .filter((p): p is OrbitProfile => !!p)
+      .map((id) => {
+        const known = byId.get(id);
+        if (known) return known;
+        const u = getProfile(id);
+        return {
+          id,
+          name: u.name,
+          handle: u.username,
+          age: 0,
+          area: "",
+          country: "",
+          state: "",
+          city: "",
+          gender: "Women",
+          lookingFor: "Everyone",
+          hobbies: [],
+          distanceKm: 0,
+          headline: "",
+          about: "",
+          interests: [],
+          photo: u.avatarUrl ?? "",
+          hue: u.hue,
+        } as unknown as OrbitProfile;
+      })
       .sort((a, b) => (previews[b.id]?.at ?? 0) - (previews[a.id]?.at ?? 0));
-  }, [orbit.connected, orbit.requests, previews, byId, hidden]);
+  }, [chatIds, byId, getProfile, previews, hidden]);
 
   const requests = useMemo(
     () =>
