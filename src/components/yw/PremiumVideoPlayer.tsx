@@ -421,7 +421,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
           className="absolute left-3 top-1/2 z-30 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur"
           aria-label="Unlock controls"
         >
-          <Lock size={18} />
+          <Unlock size={18} />
         </button>
       )}
 
@@ -565,10 +565,13 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
 function IconBtn({ children, label, onClick, big }: { children: React.ReactNode; label: string; onClick: () => void; big?: boolean }) {
   return (
     <button
-      onClick={onClick}
+      type="button"
+      onPointerDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
       aria-label={label}
       className={cn(
-        "grid place-items-center rounded-full bg-black/45 text-white backdrop-blur transition-transform active:scale-90",
+        "pointer-events-auto grid place-items-center rounded-full bg-black/45 text-white backdrop-blur transition-transform active:scale-90",
         big ? "h-11 w-11" : "h-8 w-8",
       )}
     >
