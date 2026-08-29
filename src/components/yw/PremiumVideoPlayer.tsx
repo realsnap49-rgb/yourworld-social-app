@@ -271,6 +271,8 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     const m = touchMid(e.touches);
     gesture.current = null;
     pinch.current = { dist: m.d || 1, cx: m.x, cy: m.y, zoom, pan };
+    setShowZoomBadge(true);
+    if (zoomBadgeTimer.current) window.clearTimeout(zoomBadgeTimer.current);
   };
   const onTouchMove = (e: React.TouchEvent) => {
     const p = pinch.current;
