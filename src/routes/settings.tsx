@@ -188,10 +188,13 @@ export function SettingsPage() {
         </div>
 
         {/* Logout */}
-        <div className="border-t border-zinc-800/80 pt-2 p-3.5 flex items-center gap-4 text-red-500 cursor-pointer hover:bg-red-950/20 rounded-xl">
+        <button
+          onClick={handleLogout}
+          className="border-t border-zinc-800/80 pt-2 p-3.5 flex w-full items-center gap-4 text-red-500 cursor-pointer hover:bg-red-950/20 rounded-xl"
+        >
           <LogOut size={20} />
           <span className="font-semibold text-sm">Log Out</span>
-        </div>
+        </button>
 
       </div>
 
