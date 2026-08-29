@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Volume2, VolumeX, Maximize, Minimize, Settings, Cast,
   Lock, Unlock, Repeat, Gauge, MonitorPlay,
-  Subtitles, Languages, ChevronLeft, Check,
+  Subtitles, Languages, ChevronLeft, Check, Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +61,21 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const hideTimer = useRef<number | null>(null);
   const gesture = useRef<{ x: number; y: number; mode: null | "seek" | "vol" | "bright" | "queue"; t0: number; dy: number } | null>(null);
   const lastTap = useRef(0);
+
+  // fullscreen-only: brightness slider + pinch zoom/pan
+  const [showBrightBar, setShowBrightBar] = useState(false);
+  const brightBarTimer = useRef<number | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pinch = useRef<{ dist: number; cx: number; cy: number; zoom: number; pan: { x: number; y: number } } | null>(null);
+
+  const flashBrightBar = useCallback(() => {
+    setShowBrightBar(true);
+    if (brightBarTimer.current) window.clearTimeout(brightBarTimer.current);
+    brightBarTimer.current = window.setTimeout(() => setShowBrightBar(false), 900);
+  }, []);
+
+  useEffect(() => () => { if (brightBarTimer.current) window.clearTimeout(brightBarTimer.current); }, []);
 
   const flash = useCallback((m: string) => {
     setToastMsg(m);
