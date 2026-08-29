@@ -296,11 +296,7 @@ function RecommendedRow({ video }: { video: LongVideo }) {
     >
       {/* Full-width 16:9 thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-zinc-900">
-        {video.thumbnailUrl ? (
-          <img src={video.thumbnailUrl} alt={video.title} loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
-        )}
+        <VideoPoster thumbnailUrl={video.thumbnailUrl} mediaUrl={video.mediaUrl} alt={video.title} />
         {video.durationSeconds ? (
           <span className="absolute bottom-1.5 right-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
             {formatDuration(video.durationSeconds)}
