@@ -11,6 +11,7 @@ import { deletePost } from "@/lib/post-actions";
 import { PremiumVideoPlayer } from "@/components/yw/PremiumVideoPlayer";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
 import { ShareSheet } from "@/components/yw/ShareSheet";
+import { VideoPoster } from "@/components/yw/VideoPoster";
 import {
   DropdownMenu,
   DropdownMenuContent,
