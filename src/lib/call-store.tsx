@@ -26,6 +26,8 @@ type CallState = {
   peerId: string;
   peerName: string;
   incoming: boolean;
+  /** Social chat thread the call was started from (when known). */
+  threadId?: string | null;
 };
 
 type Ctx = {
@@ -162,6 +164,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteStream = useRef<MediaStream | null>(null);
   /** Call ids we've already reacted to (broadcast + database ring paths). */
   const seenCalls = useRef<Set<string>>(new Set());
+  /** Set when the peer connection reaches "connected" — used for call duration. */
+  const connectedAt = useRef<number | null>(null);
+  /** Ensures the call-log chat message is written exactly once per call. */
+  const loggedCall = useRef<string | null>(null);
 
 
   useRingtone(
