@@ -63,6 +63,8 @@ function ChatListPage() {
     async function loadThreads() {
       const { data: sessionData } = await supabase.auth.getSession();
       const me = sessionData.session?.user.id ?? null;
+      setMe(me);
+
 
       // 1) Find every thread this user participates in.
       let threadIds: string[] = [];
