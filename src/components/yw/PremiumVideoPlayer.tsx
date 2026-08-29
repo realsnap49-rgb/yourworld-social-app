@@ -114,6 +114,11 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
+  // Zoom/pan are fullscreen-only; reset to 100% fit when leaving fullscreen.
+  useEffect(() => {
+    if (!fullscreen) { setZoom(1); setPan({ x: 0, y: 0 }); pinch.current = null; }
+  }, [fullscreen]);
+
   const toggleFullscreen = async () => {
     const el = wrapRef.current;
     if (!el) return;
