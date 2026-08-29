@@ -60,7 +60,7 @@ export function SettingsPage() {
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setPanel("account")}
+          onClick={() => navigate({ to: "/account" })}
           className="flex items-center justify-between p-3.5 hover:bg-zinc-800/50 rounded-xl cursor-pointer"
         >
           <div className="flex items-center gap-4">
