@@ -15,24 +15,6 @@ import { fetchMyFollowing, isRealUserId, setFollow } from "@/lib/follow-data";
 
 type Toggles = Record<string, boolean>;
 
-function load(key: string): Toggles {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as Toggles) : {};
-  } catch {
-    return {};
-  }
-}
-
-function persist(key: string, value: Toggles) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* ignore quota / private mode */
-  }
-}
-
 type Store = {
   liked: Toggles;
   saved: Toggles;
@@ -58,31 +40,21 @@ export type Draft = {
 const StoreContext = createContext<Store | null>(null);
 
 export function YwStoreProvider({ children }: { children: ReactNode }) {
-  const [liked, setLiked] = useState<Toggles>(() => load("yw:liked"));
-  const [saved, setSaved] = useState<Toggles>(() => load("yw:saved"));
-  const [following, setFollowing] = useState<Toggles>(() => load("yw:following"));
+  const [liked, setLiked] = useState<Toggles>({});
+  const [saved, setSaved] = useState<Toggles>({});
+  const [following, setFollowing] = useState<Toggles>({});
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const meRef = useRef<string | null>(null);
 
 
-  useEffect(() => persist("yw:liked", liked), [liked]);
-  useEffect(() => persist("yw:saved", saved), [saved]);
-  useEffect(() => persist("yw:following", following), [following]);
-
-  // Hydrate real follows / likes / saves from the database (and on auth change).
+  // Database state is authoritative for follows, likes, and saves.
   useEffect(() => {
     let cancelled = false;
     const sync = async () => {
       try {
         const ids = await fetchMyFollowing();
         if (cancelled) return;
-        setFollowing((prev) => {
-          const next: Toggles = {};
-          // keep demo-only (non-uuid) toggles local, replace real ones with DB truth
-          for (const [k, v] of Object.entries(prev)) if (v && !isRealUserId(k)) next[k] = true;
-          for (const id of ids) next[id] = true;
-          return next;
-        });
+        setFollowing(Object.fromEntries(ids.map((id) => [id, true])));
       } catch {
         /* offline / signed out */
       }
@@ -90,29 +62,36 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
         const { data: auth } = await supabase.auth.getUser();
         const me = auth.user?.id ?? null;
         meRef.current = me;
-        if (!me || cancelled) return;
+        if (!me || cancelled) {
+          setLiked({});
+          setSaved({});
+          return;
+        }
         const [likes, saves] = await Promise.all([
           supabase.from("post_likes").select("post_id").eq("user_id", me),
           supabase.from("post_saves").select("post_id").eq("user_id", me),
         ]);
         if (cancelled) return;
-        const merge = (rows: { post_id: string }[] | null) => (prev: Toggles) => {
-          const next: Toggles = {};
-          for (const [k, v] of Object.entries(prev)) if (v && !isRealUserId(k)) next[k] = true;
-          for (const r of rows ?? []) next[r.post_id] = true;
-          return next;
-        };
-        setLiked(merge(likes.data as { post_id: string }[] | null));
-        setSaved(merge(saves.data as { post_id: string }[] | null));
+        const toToggles = (rows: { post_id: string }[] | null) =>
+          Object.fromEntries((rows ?? []).map((row) => [row.post_id, true]));
+        setLiked(toToggles(likes.data as { post_id: string }[] | null));
+        setSaved(toToggles(saves.data as { post_id: string }[] | null));
       } catch {
         /* offline / signed out */
       }
     };
     void sync();
     const { data: sub } = supabase.auth.onAuthStateChange(() => void sync());
+    const channel = supabase
+      .channel("yw-interactions")
+      .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, () => void sync())
+      .on("postgres_changes", { event: "*", schema: "public", table: "post_saves" }, () => void sync())
+      .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => void sync())
+      .subscribe();
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, []);
 
@@ -125,7 +104,10 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
       on: boolean,
       revert: (v: boolean) => void,
     ) => {
-      if (!isRealUserId(postId)) return;
+      if (!isRealUserId(postId)) {
+        revert(false);
+        return;
+      }
       const me = meRef.current ?? (await supabase.auth.getUser()).data.user?.id ?? null;
       meRef.current = me;
       if (!me) {
@@ -134,7 +116,10 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       const { error } = on
-        ? await supabase.from(table).insert({ post_id: postId, user_id: me })
+        ? await supabase.from(table).upsert(
+            { post_id: postId, user_id: me },
+            { onConflict: "post_id,user_id", ignoreDuplicates: true },
+          )
         : await supabase.from(table).delete().eq("post_id", postId).eq("user_id", me);
       if (error && !(on && error.code === "23505")) {
         revert(!on);
@@ -173,7 +158,10 @@ export function YwStoreProvider({ children }: { children: ReactNode }) {
       next = !p[id];
       return { ...p, [id]: next };
     });
-    if (!isRealUserId(id)) return;
+    if (!isRealUserId(id)) {
+      setFollowing((p) => ({ ...p, [id]: false }));
+      return;
+    }
     void setFollow(id, next).catch((e: unknown) => {
       setFollowing((p) => ({ ...p, [id]: !next }));
       toast.error(e instanceof Error ? e.message : "Couldn't update follow");

@@ -192,9 +192,15 @@ const isUuid = (v: string) =>
 
 export async function setOrbitLikeRemote(targetId: string, liked: boolean) {
   const id = await uid();
-  if (!id || !isUuid(targetId)) return;
-  if (liked) await supabase.from("orbit_likes").insert({ user_id: id, target_id: targetId } as never);
-  else await supabase.from("orbit_likes").delete().eq("user_id", id).eq("target_id", targetId);
+  if (!id) throw new Error("Sign in to continue");
+  if (!isUuid(targetId)) throw new Error("Invalid Orbit profile");
+  const { error } = liked
+    ? await supabase.from("orbit_likes").upsert(
+        { user_id: id, target_id: targetId } as never,
+        { onConflict: "user_id,target_id", ignoreDuplicates: true },
+      )
+    : await supabase.from("orbit_likes").delete().eq("user_id", id).eq("target_id", targetId);
+  if (error) throw error;
 }
 
 export async function setOrbitConnectionRemote(targetId: string, connected: boolean) {

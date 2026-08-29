@@ -19,7 +19,7 @@ import {
 import { YwAvatar } from "@/components/yw/Avatar";
 import { ShareSheet } from "@/components/yw/ShareSheet";
 import { CommentsSheet } from "@/components/yw/CommentsSheet";
-import { byId, formatCount, posts, reels, type Reel, type User } from "@/lib/yw-data";
+import { byId, formatCount, type Reel, type User } from "@/lib/yw-data";
 import { getLocalMedia, resolveMediaUrl, useSocialPosts } from "@/lib/social-data";
 import { useDoubleTapLike, useYw } from "@/lib/yw-store";
 import { downloadWithWatermark } from "@/lib/yw-download";
@@ -81,16 +81,7 @@ function ReelsList() {
     mediaType: p.media_type,
   }));
 
-  const items = live.length
-    ? live
-    : reels.map((reel) => ({
-        reel,
-        author: undefined as User | undefined,
-        likedByMe: undefined,
-        mediaUrl: reel.poster,
-        mediaType: "image",
-      }));
-  const usingLive = live.length > 0;
+  const items = live;
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -128,7 +119,7 @@ function ReelsList() {
               likedByMe={likedByMe}
               mediaUrl={mediaUrl}
               mediaType={mediaType}
-              onDbLike={usingLive ? () => void toggleDbLike(reel.id) : undefined}
+              onDbLike={() => void toggleDbLike(reel.id)}
             />
           ) : null}
         </section>
@@ -254,15 +245,14 @@ function ReelItem({
   onDbLike?: () => void;
 }) {
   const user = author ?? byId(reel.userId);
-  const { liked, saved, following, toggleLike, toggleSave, toggleFollow } = useYw();
+  const { saved, following, toggleSave, toggleFollow } = useYw();
   const { burst, onDoubleTap } = useDoubleTapLike(reel.id);
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [muted, setMuted] = useState(false);
   const lastTap = useRef(0);
-  const isLiked = onDbLike ? !!likedByMe : !!liked[reel.id];
+  const isLiked = !!likedByMe;
   const isSaved = !!saved[reel.id];
-  const commentSeed = posts[0].comments;
 
   // ---- playback timeline -------------------------------------------------
   const [progress, setProgress] = useState(0); // 0..1
@@ -509,8 +499,8 @@ function ReelItem({
 
       <div className="absolute bottom-14 right-2 flex flex-col items-center gap-2.5">
         <Action
-          onClick={() => (onDbLike ? onDbLike() : toggleLike(reel.id))}
-          label={formatCount(onDbLike ? reel.likes : reel.likes + (isLiked ? 1 : 0))}
+          onClick={() => onDbLike?.()}
+          label={formatCount(reel.likes)}
           active={isLiked}
         >
           <Heart
@@ -520,8 +510,7 @@ function ReelItem({
         </Action>
 
         <CommentsSheet
-          postId={onDbLike ? reel.id : null}
-          fallbackComments={commentSeed}
+          postId={reel.id}
         >
           <Action label={formatCount(reel.commentCount)}>
             <MessageCircle strokeWidth={1.8} className="h-[18px] w-[18px]" />

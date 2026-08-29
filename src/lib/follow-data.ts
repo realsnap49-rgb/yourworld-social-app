@@ -32,7 +32,10 @@ export async function setFollow(targetId: string, on: boolean) {
   if (on) {
     const { error } = await supabase
       .from("follows")
-      .upsert({ follower_id: uid, following_id: targetId }, { onConflict: "follower_id,following_id" });
+      .upsert(
+        { follower_id: uid, following_id: targetId },
+        { onConflict: "follower_id,following_id", ignoreDuplicates: true },
+      );
     if (error) throw new Error(error.message);
   } else {
     const { error } = await supabase
@@ -62,12 +65,10 @@ export function useFollowCounts(userId: string | null) {
   useEffect(() => {
     void reload();
     if (!userId) return;
-    // Unique topic per hook instance — a shared topic across two mounted
-    // components throws "cannot add postgres_changes callbacks after subscribe()".
     let ch: ReturnType<typeof supabase.channel> | null = null;
     try {
       ch = supabase
-        .channel(`follows:${userId}:${Math.random().toString(36).slice(2)}`)
+        .channel(`follows:${userId}:${crypto.randomUUID()}`)
         .on("postgres_changes", { event: "*", schema: "public", table: "follows" }, () => void reload())
         .subscribe();
     } catch (err) {

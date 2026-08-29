@@ -46,7 +46,14 @@ export function usePostSaves() {
   useEffect(() => {
     void load();
     const { data: sub } = supabase.auth.onAuthStateChange(() => void load());
-    return () => sub.subscription.unsubscribe();
+    const channel = supabase
+      .channel(`post-saves:${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "post_saves" }, () => void load())
+      .subscribe();
+    return () => {
+      sub.subscription.unsubscribe();
+      void supabase.removeChannel(channel);
+    };
   }, [load]);
 
   const toggleSave = useCallback(async (postId: string) => {
@@ -58,7 +65,10 @@ export function usePostSaves() {
       return { ...prev, [postId]: next };
     });
     const { error } = next
-      ? await supabase.from("post_saves").insert({ post_id: postId, user_id: me })
+      ? await supabase.from("post_saves").upsert(
+          { post_id: postId, user_id: me },
+          { onConflict: "post_id,user_id", ignoreDuplicates: true },
+        )
       : await supabase.from("post_saves").delete().eq("post_id", postId).eq("user_id", me);
     if (error) {
       setSaved((prev) => ({ ...prev, [postId]: !next }));

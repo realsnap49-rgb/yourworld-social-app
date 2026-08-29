@@ -339,6 +339,11 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
         { event: "*", schema: "public", table: "orbit_connections" },
         () => void pull(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orbit_likes" },
+        () => void pull(),
+      )
       .subscribe();
     return () => {
       cancelled = true;
@@ -488,12 +493,14 @@ export function OrbitProvider({ children }: { children: ReactNode }) {
           },
         }));
       },
-      toggleLike: (id) =>
-        setState((s) => {
-          const next = !s.liked[id];
-          void setOrbitLikeRemote(id, next);
-          return { ...s, liked: { ...s.liked, [id]: next } };
-        }),
+      toggleLike: (id) => {
+        const previous = !!state.liked[id];
+        const next = !previous;
+        setState((s) => ({ ...s, liked: { ...s.liked, [id]: next } }));
+        void setOrbitLikeRemote(id, next).catch(() => {
+          setState((s) => ({ ...s, liked: { ...s.liked, [id]: previous } }));
+        });
+      },
       toggleConnect: (id) =>
         setState((s) => {
           const next = !s.connected[id];
