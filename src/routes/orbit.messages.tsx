@@ -20,6 +20,7 @@ import type { OrbitProfile } from "@/lib/orbit-data";
 import { cn } from "@/lib/utils";
 import { useChatNames } from "@/lib/chat-names";
 import { useSecretChats } from "@/lib/secret-chats";
+import { useProfiles } from "@/lib/profiles-map";
 
 export const Route = createFileRoute("/orbit/messages")({
   head: () => ({
