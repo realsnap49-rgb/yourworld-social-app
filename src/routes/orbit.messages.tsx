@@ -138,66 +138,79 @@ function OrbitMessagesPage() {
     [orbit.connected, orbit.requests, previews],
   );
 
-  // A peer can message us while their Orbit profile is hidden from discovery —
-  // fall back to their public account so the conversation never disappears.
+  const requestIds = useMemo(
+    () =>
+      Object.entries(orbit.requests)
+        .filter(([, r]) => r.status === "pending")
+        .map(([id]) => id),
+    [orbit.requests],
+  );
+
+  const matchIds = useMemo(
+    () =>
+      [...new Set<string>([...mutual, ...likesMe, ...likedByMe])].filter(
+        (id) =>
+          !orbit.privacy.blocked.includes(id) && !orbit.privacy.hiddenFrom.includes(id),
+      ),
+    [mutual, likesMe, likedByMe, orbit.privacy.blocked, orbit.privacy.hiddenFrom],
+  );
+
+  // A peer can message / like us while their Orbit profile is hidden from
+  // discovery — fall back to their public account so nothing disappears.
   const missingIds = useMemo(
-    () => chatIds.filter((id) => !byId.has(id)),
-    [chatIds, byId],
+    () => [...new Set([...chatIds, ...requestIds, ...matchIds])].filter((id) => !byId.has(id)),
+    [chatIds, requestIds, matchIds, byId],
   );
   const { get: getProfile } = useProfiles(missingIds);
+
+  const resolve = useCallback(
+    (id: string): OrbitProfile => {
+      const known = byId.get(id);
+      if (known) return known;
+      const u = getProfile(id);
+      return {
+        id,
+        name: u.name,
+        handle: u.username,
+        age: 0,
+        area: "",
+        country: "",
+        state: "",
+        city: "",
+        gender: "Women",
+        lookingFor: "Everyone",
+        hobbies: [],
+        distanceKm: 0,
+        headline: "",
+        about: "",
+        interests: [],
+        photo: u.avatarUrl ?? "",
+        hue: u.hue,
+      } as unknown as OrbitProfile;
+    },
+    [byId, getProfile],
+  );
 
   const chats = useMemo(() => {
     return chatIds
       .filter((id) => !hidden.includes(id))
-      .map((id) => {
-        const known = byId.get(id);
-        if (known) return known;
-        const u = getProfile(id);
-        return {
-          id,
-          name: u.name,
-          handle: u.username,
-          age: 0,
-          area: "",
-          country: "",
-          state: "",
-          city: "",
-          gender: "Women",
-          lookingFor: "Everyone",
-          hobbies: [],
-          distanceKm: 0,
-          headline: "",
-          about: "",
-          interests: [],
-          photo: u.avatarUrl ?? "",
-          hue: u.hue,
-        } as unknown as OrbitProfile;
-      })
+      .map(resolve)
       .sort((a, b) => (previews[b.id]?.at ?? 0) - (previews[a.id]?.at ?? 0));
-  }, [chatIds, byId, getProfile, previews, hidden]);
+  }, [chatIds, resolve, previews, hidden]);
 
   const requests = useMemo(
-    () =>
-      Object.entries(orbit.requests)
-        .filter(([, r]) => r.status === "pending")
-        .map(([id, r]) => ({ p: byId.get(id), r }))
-        .filter((x): x is { p: OrbitProfile; r: (typeof orbit.requests)[string] } => !!x.p),
-    [orbit.requests, byId],
+    () => requestIds.map((id) => ({ p: resolve(id), r: orbit.requests[id]! })),
+    [requestIds, orbit.requests, resolve],
   );
 
   const matches = useMemo(() => {
     const set = new Set(mutual);
     const likeSet = new Set(likesMe);
-    const mineSet = new Set(likedByMe);
-    return visible
-      .filter((p) => set.has(p.id) || likeSet.has(p.id) || mineSet.has(p.id))
-      .map((p) => ({
-        p,
-        mutual: set.has(p.id),
-        theyLiked: likeSet.has(p.id),
-      }))
+    return matchIds
+      .map((id) => ({ p: resolve(id), mutual: set.has(id), theyLiked: likeSet.has(id) }))
       .sort((a, b) => Number(b.mutual) - Number(a.mutual) || Number(b.theyLiked) - Number(a.theyLiked));
-  }, [visible, mutual, likesMe, likedByMe]);
+  }, [matchIds, mutual, likesMe, resolve]);
+
 
   const { nameFor } = useChatNames();
   const { isHidden } = useSecretChats(q);
