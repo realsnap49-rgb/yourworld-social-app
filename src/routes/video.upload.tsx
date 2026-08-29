@@ -33,8 +33,10 @@ export const Route = createFileRoute("/video/upload")({
   }),
   component: VideoUploadPage,
 });
+const MIN_DURATION = 90;
 
 function VideoUploadPage() {
+
   const navigate = useNavigate();
   const { startUpload } = useUploads();
   const videoRef = useRef<HTMLVideoElement | null>(null);
