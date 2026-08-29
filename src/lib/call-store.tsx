@@ -746,9 +746,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
       void httpBroadcast(`rtc-${call.callId}`, "signal", { type: "end" });
       void httpBroadcast(`calls-user-${call.peerId}`, "cancel", { callId: call.callId });
       void supabase.from("calls").update({ status: "ended" }).eq("call_id", call.callId);
+      // Caller hanging up: answered calls log the duration, unanswered rings
+      // become a missed-call entry in the chat.
+      void logCallOutcome(connectedAt.current ? "answered" : "missed");
     }
     teardown();
-  }, [call, phase, signal, teardown, httpBroadcast]);
+  }, [call, phase, signal, teardown, httpBroadcast, logCallOutcome]);
 
 
 
