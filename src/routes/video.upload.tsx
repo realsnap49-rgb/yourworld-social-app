@@ -172,8 +172,9 @@ function VideoUploadPage() {
             </div>
             <p className="font-semibold">Select a long video</p>
             <p className="text-xs text-zinc-400">
-              Horizontal (16:9) or vertical (9:16) · 1 minute to several hours
+              Horizontal (16:9) or vertical (9:16) · 90 seconds to several hours
             </p>
+
           </button>
         ) : (
           <div className="space-y-2">
