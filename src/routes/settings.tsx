@@ -184,13 +184,6 @@ export function SettingsPage() {
 
       </div>
 
-      {panel === "account" && (
-        <Panel title="Account" onClose={() => setPanel(null)}>
-          <Row label="Account details" hint="Email & phone" onClick={() => navigate({ to: "/account" })} />
-          <Row label="Password" hint="Change your password" onClick={() => navigate({ to: "/reset-password" })} />
-        </Panel>
-      )}
-
       {panel === "privacy" && (
         <Panel title="Privacy & Downloads" onClose={() => setPanel(null)}>
           <Toggle label="Private account" hint="Only approved followers can see your posts" on={toggles.privateAccount} onClick={() => flip("privateAccount")} />
