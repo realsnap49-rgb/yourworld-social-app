@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
-  ArrowLeft, Eye, Heart, MessageCircle, Send, Bookmark, Download, Clock,
+  ArrowLeft, Heart, MessageCircle, Send, Bookmark, Download, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
