@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
-  Lock, Unlock, RotateCw, Repeat, Sun, Gauge, MonitorPlay, RotateCcw,
+  Lock, Unlock, RotateCw, Repeat, Gauge, MonitorPlay,
   Subtitles, Languages, ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,7 +50,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [locked, setLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [showUI, setShowUI] = useState(true);
-  const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "fit" | "captions" | "audio">(null);
+  const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "captions" | "audio">(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [viewPortrait, setViewPortrait] = useState(!!portrait);
   const [rotation, setRotation] = useState(0);
@@ -359,6 +359,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
             <p className="line-clamp-1 pt-1 text-xs font-semibold text-white/90">{title}</p>
             <div className="flex items-center gap-1">
               <IconBtn label="Lock screen" onClick={() => { setLocked(true); flash("Locked"); }}><Unlock size={16} /></IconBtn>
+              <IconBtn label="Fit screen" onClick={() => setFit((f) => { const i = FITS.indexOf(f); const n = FITS[(i + 1) % FITS.length]; flash(`Fit · ${n}`); return n; })}><Maximize size={16} /></IconBtn>
               <IconBtn label="Rotate" onClick={rotate}><RotateCw size={16} /></IconBtn>
               <IconBtn label="Picture in picture" onClick={togglePip}><PictureInPicture2 size={16} /></IconBtn>
               <IconBtn label="Settings" onClick={() => setMenu(menu ? null : "root")}><Settings size={16} /></IconBtn>
@@ -416,9 +417,9 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
 
       {/* settings sheet */}
       {menu && !locked && (
-        <div className="absolute inset-0 z-30 flex items-end bg-black/50 backdrop-blur-sm" onClick={() => setMenu(null)}>
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-sm" onClick={() => setMenu(null)}>
           <div
-            className="max-h-full w-full overflow-y-auto rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
+            className="max-h-[70vh] w-full overflow-y-auto rounded-t-3xl border-t border-white/10 bg-zinc-950/95 p-3 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {menu === "root" && (
@@ -427,10 +428,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 <Row icon={<MonitorPlay size={16} />} label="Quality" value={quality} onClick={() => setMenu("quality")} />
                 <Row icon={<Subtitles size={16} />} label="Captions" value={caption} onClick={() => setMenu("captions")} />
                 <Row icon={<Languages size={16} />} label="Audio track" value={audio} onClick={() => setMenu("audio")} />
-                <Row icon={<Maximize size={16} />} label="Screen fit" value={fit} onClick={() => setMenu("fit")} />
-                <Row icon={<Sun size={16} />} label="Brightness" value={`${Math.round(brightness * 100)}%`} onClick={() => setBrightness((b) => (b >= 1.6 ? 0.5 : b + 0.25))} />
-                <Row icon={<Repeat size={16} />} label="Loop" value={loop ? "On" : "Off"} onClick={() => setLoop((l) => !l)} />
-                <Row icon={<RotateCcw size={16} />} label="Restart" value="" onClick={() => { const v = vidRef.current; if (v) v.currentTime = 0; setMenu(null); }} />
               </div>
             )}
             {menu === "speed" && (
@@ -452,14 +449,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                   flash(`Quality · ${option}`);
                 }}
                 onBack={() => setMenu("root")}
-              />
-            )}
-            {menu === "fit" && (
-              <OptionList
-                title="Screen fit"
-                options={[...FITS]}
-                active={fit}
-                onPick={(o) => { setFit(o as (typeof FITS)[number]); setMenu(null); }}
               />
             )}
             {menu === "captions" && (
