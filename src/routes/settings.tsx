@@ -29,6 +29,8 @@ type PanelId = "privacy" | "notifications" | "appearance" | "help" | "about";
 
 export function SettingsPage() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const queryClient = useQueryClient();
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     privateAccount: false,
@@ -44,6 +46,13 @@ export function SettingsPage() {
     compact: false,
   });
   const flip = (k: string) => setToggles((t) => ({ ...t, [k]: !t[k] }));
+
+  const handleLogout = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    navigate({ to: "/auth", search: { redirect: undefined }, replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white p-4 font-sans select-none">
