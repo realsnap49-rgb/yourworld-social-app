@@ -602,6 +602,19 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
   );
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Deterministic thread id for a 1:1 chat — identical for both users. */
+export function dmThreadId(a: string, b: string) {
+  return `dm_${[a, b].sort().join("_")}`;
+}
+
+/** Reads the two user ids out of a canonical thread id. */
+export function dmThreadPair(threadId: string): [string, string] | null {
+  const m = /^dm_([0-9a-f-]{36})_([0-9a-f-]{36})$/i.exec(threadId);
+  return m ? [m[1]!, m[2]!] : null;
+}
+
 /** Resolves the other participant of a DM thread (id + display name). */
 export async function resolveThreadPeer(
   threadId: string,
@@ -609,11 +622,17 @@ export async function resolveThreadPeer(
 ): Promise<{ peerId: string | null; peerName: string; avatarUrl: string | null }> {
   let peerId: string | null = null;
 
-  const { data: parts } = await supabase
-    .from("thread_participants")
-    .select("user_id")
-    .eq("thread_id", threadId);
-  peerId = (parts ?? []).map((p) => p.user_id).find((id) => id !== me) ?? null;
+  // Canonical thread ids carry both user ids — no extra round trip needed.
+  const pair = dmThreadPair(threadId);
+  if (pair) peerId = pair.find((id) => id !== me) ?? pair[0];
+
+  if (!peerId) {
+    const { data: parts } = await supabase
+      .from("thread_participants")
+      .select("user_id")
+      .eq("thread_id", threadId);
+    peerId = (parts ?? []).map((p) => p.user_id).find((id) => id !== me) ?? null;
+  }
 
   if (!peerId) {
     // Fall back to whoever has sent a message in this thread.
