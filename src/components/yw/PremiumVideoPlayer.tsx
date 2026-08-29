@@ -52,8 +52,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [showUI, setShowUI] = useState(true);
   const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "captions" | "audio">(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const [viewPortrait, setViewPortrait] = useState(!!portrait);
-  const [rotation, setRotation] = useState(0);
+  const [viewPortrait] = useState(!!portrait);
   const [captionTracks, setCaptionTracks] = useState<Array<{ index: number; label: string }>>([]);
   const [caption, setCaption] = useState("Off");
   const [audioTracks, setAudioTracks] = useState<Array<{ index: number; label: string }>>([]);
@@ -285,20 +284,12 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         autoPlay={autoPlay}
         playsInline
         preload="auto"
-        style={{
-          filter: `brightness(${brightness})`,
-          transform: rotation ? `translate(-50%, -50%) rotate(${rotation}deg)` : undefined,
-          ...(rotation % 180 !== 0 && box.w && box.h
-            ? { width: box.h, height: box.w }
-            : {}),
-        }}
+        style={{ filter: `brightness(${brightness})` }}
         className={cn(
-          rotation % 180 !== 0
-            ? "absolute left-1/2 top-1/2 max-w-none"
-            : rotation
-              ? "absolute left-1/2 top-1/2 h-full w-full"
-              : "h-full w-full",
-          fit === "Fit" ? "object-contain" : fit === "Fill" ? "object-cover" : "object-fill",
+          "h-full w-full",
+          fullscreen
+            ? "object-contain"
+            : fit === "Fit" ? "object-contain" : fit === "Fill" ? "object-cover" : "object-fill",
         )}
         onPlay={() => { setPlaying(true); poke(); }}
         onPause={() => { setPlaying(false); setShowUI(true); }}
