@@ -186,7 +186,6 @@ export function SettingsPage() {
 
       {panel === "account" && (
         <Panel title="Account" onClose={() => setPanel(null)}>
-          <Row label="Edit profile" hint="Name, username, bio" onClick={() => navigate({ to: "/profile" })} />
           <Row label="Account details" hint="Email & phone" onClick={() => navigate({ to: "/account" })} />
           <Row label="Password" hint="Change your password" onClick={() => navigate({ to: "/reset-password" })} />
         </Panel>
