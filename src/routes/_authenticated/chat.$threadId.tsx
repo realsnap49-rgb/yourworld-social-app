@@ -21,7 +21,7 @@ import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
 import { useChatNames, saveChatDisplayName } from "@/lib/chat-names";
 import { useChatSettings } from "@/lib/chat-settings";
-import { hashPin, randomPinSalt } from "@/lib/secret-chats";
+import { hashPin, randomPinSalt, saveSecretChatLock } from "@/lib/secret-chats";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ChatThreadPage,
@@ -223,6 +223,11 @@ export function ChatThreadPage() {
   const [chatUnlocked, setChatUnlocked] = useState(false);
   const [unlockPin, setUnlockPin] = useState("");
   const toggleSecretLock = async () => {
+    const peerId = peer.peerId;
+    if (!peerId) {
+      pushSystem("Chat is still loading");
+      return;
+    }
     if (secretLock) {
       const pin = window.prompt("Enter the chat PIN to remove Secret Lock:");
       const salt = settings.secretPinSalt;
@@ -231,6 +236,7 @@ export function ChatThreadPage() {
         pushSystem("Incorrect PIN");
         return;
       }
+      await saveSecretChatLock(peerId, false, null, null);
       patch({ secretLock: false, secretPinSalt: null, secretPinHash: null });
       setChatUnlocked(true);
       pushSystem("Secret lock disabled");
@@ -242,7 +248,9 @@ export function ChatThreadPage() {
       return;
     }
     const salt = randomPinSalt();
-    patch({ secretLock: true, secretPinSalt: salt, secretPinHash: await hashPin(salt, pin) });
+    const hash = await hashPin(salt, pin);
+    await saveSecretChatLock(peerId, true, salt, hash);
+    patch({ secretLock: true, secretPinSalt: salt, secretPinHash: hash });
     setChatUnlocked(true);
     pushSystem("Secret lock enabled");
   };
