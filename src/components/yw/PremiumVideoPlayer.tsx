@@ -16,6 +16,8 @@ type Props = {
   onOrientationChange?: (portrait: boolean) => void;
   /** Fullscreen-only swipe to the next/previous video of the same orientation. */
   onSwipeQueue?: (dir: 1 | -1, portrait: boolean) => void;
+  /** When true (inline feed cards), hide the Loop and Fullscreen buttons in the bottom-right. */
+  hideAuxControls?: boolean;
 };
 
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
