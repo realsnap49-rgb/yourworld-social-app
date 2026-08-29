@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
-  Lock, Unlock, RotateCw, Repeat, Gauge, MonitorPlay,
+  Volume2, VolumeX, Maximize, Minimize, Settings, Cast,
+  Lock, Unlock, Repeat, Gauge, MonitorPlay,
   Subtitles, Languages, ChevronLeft, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -119,9 +119,27 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     const el = wrapRef.current;
     if (!el) return;
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await el.requestFullscreen();
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        try { (screen.orientation as unknown as { unlock?: () => void }).unlock?.(); } catch { /* ignore */ }
+      } else {
+        await el.requestFullscreen();
+        // Cinematic landscape mode for landscape videos (best-effort, mobile only).
+        if (!viewPortrait) {
+          try {
+            await (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.("landscape");
+          } catch { /* unsupported */ }
+        }
+      }
     } catch { /* ignore */ }
+  };
+
+  const cast = async () => {
+    const v = vidRef.current as (HTMLVideoElement & { remote?: { prompt?: () => Promise<unknown> } }) | null;
+    try {
+      if (v?.remote?.prompt) { await v.remote.prompt(); return; }
+      flash("Cast not supported");
+    } catch { flash("Cast unavailable"); }
   };
 
   const togglePip = async () => {
