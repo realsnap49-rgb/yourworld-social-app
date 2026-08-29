@@ -1,6 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Trailing debounce so a burst of realtime rows triggers a single refetch. */
+function debounced(fn: () => void, ms: number) {
+  let t: ReturnType<typeof setTimeout> | null = null;
+  const run = () => {
+    if (t) clearTimeout(t);
+    t = setTimeout(fn, ms);
+  };
+  run.cancel = () => {
+    if (t) clearTimeout(t);
+    t = null;
+  };
+  return run;
+}
+
 const isUuid = (v: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
@@ -50,15 +64,15 @@ export function useOrbitMatches(): OrbitMatchState {
 
     void load();
 
+    const reload = debounced(() => void load(), 800);
     const channel = supabase
       .channel("orbit-likes-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orbit_likes" }, () => {
-        void load();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orbit_likes" }, reload)
       .subscribe();
 
     return () => {
       cancelled = true;
+      reload.cancel();
       void supabase.removeChannel(channel);
     };
   }, [tick]);
@@ -173,15 +187,15 @@ export function useOrbitThreadPreviews() {
 
     void load();
 
+    const reload = debounced(() => void load(), 800);
     const channel = supabase
       .channel("orbit-thread-previews")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orbit_messages" }, () => {
-        void load();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orbit_messages" }, reload)
       .subscribe();
 
     return () => {
       cancelled = true;
+      reload.cancel();
       void supabase.removeChannel(channel);
     };
   }, []);

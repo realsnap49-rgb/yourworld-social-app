@@ -132,15 +132,19 @@ export function useOrbitProfiles() {
 
     void load();
 
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void load(), 1000);
+    };
     const channel = supabase
       .channel("orbit-profiles-feed")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orbit_profiles" }, () => {
-        void load();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orbit_profiles" }, reload)
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
       void supabase.removeChannel(channel);
     };
   }, []);
