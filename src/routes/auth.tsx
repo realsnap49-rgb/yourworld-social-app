@@ -31,6 +31,15 @@ function AuthPage() {
     return () => clearTimeout(t);
   }, [resendIn]);
 
+  // Persistent auth: a valid stored session skips the login screen entirely.
+  useEffect(() => {
+    let alive = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (alive && data.session) navigate({ to: "/", replace: true });
+    });
+    return () => { alive = false; };
+  }, [navigate]);
+
   // Social Logins
   const handleSocialLogin = async (provider: 'google' | 'apple') => {
     setLoading(true);
