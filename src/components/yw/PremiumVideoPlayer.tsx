@@ -472,14 +472,16 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 </button>
                 <span className="tabular-nums">{fmt(time)} / {fmt(dur)}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setLoop((l) => !l)} aria-label="Loop">
-                  <Repeat size={16} className={loop ? "text-pink-400" : ""} />
-                </button>
-                <button onClick={toggleFullscreen} aria-label="Fullscreen">
-                  {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-                </button>
-              </div>
+              {hideAuxControls ? null : (
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setLoop((l) => !l)} aria-label="Loop">
+                    <Repeat size={16} className={loop ? "text-pink-400" : ""} />
+                  </button>
+                  <button onClick={toggleFullscreen} aria-label="Fullscreen">
+                    {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
