@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Search, SquarePen, MessageSquare, X, Check, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveThreadPeer } from "@/lib/social-data";
+import { resolveThreadPeer, dmThreadId } from "@/lib/social-data";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { deleteDirectThreads, hiddenThreadIds } from "@/lib/chat-delete";
 import { useChatNames } from "@/lib/chat-names";
@@ -39,7 +39,8 @@ function ChatListPage() {
   const [peopleQuery, setPeopleQuery] = useState("");
   const [people, setPeople] = useState<DiscoverProfile[]>([]);
   const [peopleLoading, setPeopleLoading] = useState(false);
-  const [, setMe] = useState<string | null>(null);
+  const [me, setMe] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [hidden, setHidden] = useState<string[]>(() => hiddenThreadIds());
@@ -62,6 +63,8 @@ function ChatListPage() {
     async function loadThreads() {
       const { data: sessionData } = await supabase.auth.getSession();
       const me = sessionData.session?.user.id ?? null;
+      setMe(me);
+
 
       // 1) Find every thread this user participates in.
       let threadIds: string[] = [];
@@ -391,12 +394,20 @@ function ChatListPage() {
               <p className="py-6 text-center text-sm text-gray-500">No accounts found.</p>
             ) : (
               people.map((p) => (
-                <Link
+                <button
                   key={p.id}
-                  to="/chat/$threadId"
-                  params={{ threadId: p.id }}
-                  onClick={() => setNewChatOpen(false)}
-                  className="flex items-center gap-3 rounded-xl p-3 hover:bg-zinc-900"
+                  type="button"
+                  onClick={async () => {
+                    const uid =
+                      me ?? (await supabase.auth.getSession()).data.session?.user.id ?? null;
+                    if (!uid) return;
+                    setNewChatOpen(false);
+                    void navigate({
+                      to: "/chat/$threadId",
+                      params: { threadId: dmThreadId(uid, p.id) },
+                    });
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-zinc-900"
                 >
                   {p.avatar_url ? (
                     <img
@@ -417,7 +428,8 @@ function ChatListPage() {
                       <p className="truncate text-xs text-gray-400">@{p.username}</p>
                     ) : null}
                   </div>
-                </Link>
+                </button>
+
               ))
             )}
           </div>

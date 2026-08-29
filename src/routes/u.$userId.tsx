@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, Grid3x3, Play } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { dmThreadId } from "@/lib/social-data";
 import { resolveMediaUrl, type DbPost } from "@/lib/social-data";
 import { useResolvedMedia } from "@/lib/profile-data";
 import { useFollowCounts, setFollow, isRealUserId } from "@/lib/follow-data";
@@ -216,9 +217,19 @@ function PublicProfilePage() {
           >
             {isFollowing ? "Following" : "Follow"}
           </button>
-          <Link to="/chat" className="flex-1 rounded-xl bg-zinc-800 py-2 text-center text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              if (!me) return;
+              void navigate({
+                to: "/chat/$threadId",
+                params: { threadId: dmThreadId(me, userId) },
+              });
+            }}
+            className="flex-1 rounded-xl bg-zinc-800 py-2 text-center text-xs font-bold"
+          >
             Message
-          </Link>
+          </button>
         </div>
       </section>
 

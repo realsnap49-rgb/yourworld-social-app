@@ -15,7 +15,8 @@ import { LazyImage } from "@/components/yw/LazyImage";
 import { compressImageFile } from "@/lib/image-compress";
 import { useCaptureDetect } from "@/lib/capture-detect";
 import { currentUser } from "@/lib/yw-data";
-import { useThreadMessages, useThreadPeer } from "@/lib/social-data";
+import { useThreadMessages, useThreadPeer, dmThreadId } from "@/lib/social-data";
+import { supabase } from "@/integrations/supabase/client";
 import { useThreadPresence } from "@/lib/presence";
 import { useCall } from "@/lib/call-store";
 import { useChatNames, saveChatDisplayName } from "@/lib/chat-names";
@@ -104,6 +105,26 @@ export function ChatThreadPage() {
     setTextDraft("");
   };
   const { threadId } = Route.useParams();
+
+  // Legacy links used the peer's user id as the thread id, which split the
+  // conversation in two. Send those straight to the shared canonical thread.
+  useEffect(() => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(threadId)) return;
+    let alive = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id;
+      if (!alive || !uid || uid === threadId) return;
+      void navigate({
+        to: "/chat/$threadId",
+        params: { threadId: dmThreadId(uid, threadId) },
+        replace: true,
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [threadId, navigate]);
+
   const { startCall } = useCall();
   const {
     messages: dbMessages,
