@@ -60,6 +60,16 @@ function VideoUploadPage() {
 
   const [busy, setBusy] = useState(false);
 
+  const [access, setAccess] = useState<AccessOption>("public");
+  const [price, setPrice] = useState("");
+  const [accessOpen, setAccessOpen] = useState(false);
+
+  const accessOptions: { value: AccessOption; label: string; hint: string }[] = [
+    { value: "public", label: "Public (Free)", hint: "Anyone can watch for free" },
+    { value: "vip", label: "VIP Members Only", hint: "Only VIP members can watch" },
+    { value: "paid", label: "Paid Course / Single Video", hint: "Charge a one-time fee" },
+  ];
+
   const pickVideo = (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("video/")) {
