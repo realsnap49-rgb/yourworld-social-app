@@ -324,6 +324,61 @@ function VideoUploadPage() {
           </div>
         </Field>
 
+        {/* ACCESS CONTROL & PRICING */}
+        <Field label="Access Control & Pricing">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setAccessOpen((o) => !o)}
+              className="flex h-11 w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 text-sm text-white active:scale-[0.99]"
+            >
+              <span className="font-medium">
+                {accessOptions.find((o) => o.value === access)?.label}
+              </span>
+              <ChevronDown
+                size={16}
+                className={`text-zinc-400 transition-transform ${accessOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {accessOpen && (
+              <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-zinc-800 bg-[#1a1a1d] shadow-xl">
+                {accessOptions.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => {
+                      setAccess(o.value);
+                      setAccessOpen(false);
+                    }}
+                    className={`flex w-full flex-col items-start gap-0.5 px-3.5 py-2.5 text-left transition-colors ${
+                      access === o.value ? "bg-zinc-800/70" : "hover:bg-zinc-800/40"
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">{o.label}</span>
+                    <span className="text-[11px] text-zinc-400">{o.hint}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {access === "paid" && (
+            <div className="mt-3">
+              <label className="pb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                Course Price (₹)
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Enter amount in ₹"
+                className="h-11 rounded-xl border-zinc-800 bg-zinc-900/60 placeholder:text-zinc-500"
+              />
+            </div>
+          )}
+        </Field>
+
         {/* SCHEDULE */}
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
           <div className="flex items-center justify-between">
