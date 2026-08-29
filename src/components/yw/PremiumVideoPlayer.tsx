@@ -239,7 +239,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     } else {
       const nb = Math.max(0.25, Math.min(1.6, brightness - dy / 250));
       setBrightness(nb);
-      flash(`Brightness ${Math.round(nb * 100)}%`);
+      if (fullscreen) flashBrightBar(); else flash(`Brightness ${Math.round(nb * 100)}%`);
     }
   };
   const onPointerUp = () => {
@@ -248,6 +248,33 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     if (g?.mode === "queue" && Math.abs(g.dy) > 90) {
       onSwipeQueue?.(g.dy < 0 ? 1 : -1, viewPortrait);
     }
+  };
+
+  // ---- fullscreen-only pinch to zoom (up to 300%) + two-finger pan ----
+  const touchMid = (t: React.TouchList) => ({
+    x: (t[0].clientX + t[1].clientX) / 2,
+    y: (t[0].clientY + t[1].clientY) / 2,
+    d: Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY),
+  });
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!fullscreen || locked || e.touches.length !== 2) return;
+    const m = touchMid(e.touches);
+    gesture.current = null;
+    pinch.current = { dist: m.d || 1, cx: m.x, cy: m.y, zoom, pan };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const p = pinch.current;
+    if (!p || !fullscreen || e.touches.length !== 2) return;
+    e.preventDefault();
+    const m = touchMid(e.touches);
+    const next = Math.max(1, Math.min(3, p.zoom * (m.d / p.dist)));
+    setZoom(next);
+    const limit = (v: number) => Math.max(-400, Math.min(400, v));
+    setPan({ x: limit(p.pan.x + (m.x - p.cx)), y: limit(p.pan.y + (m.y - p.cy)) });
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinch.current = null;
+    if (zoom <= 1.01) setPan({ x: 0, y: 0 });
   };
 
   const onTapZone = (side: "l" | "c" | "r") => {
