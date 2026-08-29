@@ -400,9 +400,9 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         </div>
       )}
 
-      {/* zoom indicator */}
-      {fullscreen && zoom > 1.01 && (
-        <div className="pointer-events-none absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
+      {/* zoom indicator — only visible while actively pinch-zooming */}
+      {fullscreen && zoom > 1.01 && showZoomBadge && (
+        <div className="pointer-events-none absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur transition-opacity duration-300">
           {Math.round(zoom * 100)}%
         </div>
       )}
