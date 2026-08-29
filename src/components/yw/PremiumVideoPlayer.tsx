@@ -477,6 +477,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
                 emptyHint={audioTracks.length === 0 ? "No alternate language track was uploaded" : undefined}
               />
             )}
+            </div>
           </div>
         </div>
       )}
