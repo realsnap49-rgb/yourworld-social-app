@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, Grid3x3, Play } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { dmThreadId } from "@/lib/social-data";
 import { resolveMediaUrl, type DbPost } from "@/lib/social-data";
 import { useResolvedMedia } from "@/lib/profile-data";
 import { useFollowCounts, setFollow, isRealUserId } from "@/lib/follow-data";
