@@ -502,10 +502,10 @@ function IconBtn({ children, label, onClick, big }: { children: React.ReactNode;
 
 function Row({ icon, label, value, onClick }: { icon: React.ReactNode; label: string; value: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-white/5">
-      <span className="text-zinc-400">{icon}</span>
-      <span className="flex-1 font-medium">{label}</span>
-      <span className="text-xs text-zinc-400">{value}</span>
+    <button onClick={onClick} className="flex w-full items-center gap-4 px-4 py-3.5 text-left text-[15px] text-white transition-colors hover:bg-white/10">
+      <span className="text-white/70">{icon}</span>
+      <span className="flex-1 font-normal">{label}</span>
+      <span className="text-sm text-white/60">{value}</span>
     </button>
   );
 }
