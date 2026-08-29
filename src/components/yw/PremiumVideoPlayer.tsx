@@ -208,15 +208,18 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     const dx = e.clientX - g.x;
     const dy = e.clientY - g.y;
     g.dy = dy;
+    if (pinch.current) return;
     if (!g.mode) {
       if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
       const rect = wrapRef.current?.getBoundingClientRect();
       const rightHalf = rect ? e.clientX - rect.left > rect.width / 2 : true;
       const vertical = Math.abs(dy) >= Math.abs(dx);
-      // In fullscreen a vertical swipe pages through the queue (reels style).
+      // Fullscreen: left half = brightness (MX Player), right half = queue paging / volume.
       g.mode = vertical
-        ? fullscreen && onSwipeQueue
-          ? "queue"
+        ? fullscreen
+          ? rightHalf
+            ? onSwipeQueue ? "queue" : "vol"
+            : "bright"
           : rightHalf ? "vol" : "bright"
         : "seek";
     }
