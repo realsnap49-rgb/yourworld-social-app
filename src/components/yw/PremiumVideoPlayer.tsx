@@ -142,28 +142,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     } catch { flash("Cast unavailable"); }
   };
 
-  const togglePip = async () => {
-    const v = vidRef.current as (HTMLVideoElement & { requestPictureInPicture?: () => Promise<unknown> }) | null;
-    if (!v?.requestPictureInPicture) { flash("PiP not supported"); return; }
-    try {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture();
-      else await v.requestPictureInPicture();
-    } catch { flash("PiP not supported"); }
-  };
-
-  const rotate = () => {
-    const nextDeg = (rotation + 90) % 360;
-    setRotation(nextDeg);
-    const v = vidRef.current;
-    const vw = v?.videoWidth || 16;
-    const vh = v?.videoHeight || 9;
-    // after a 90/270° turn the dimensions swap
-    const effPortrait = nextDeg % 180 !== 0 ? vw > vh : vh >= vw;
-    setViewPortrait(effPortrait);
-    onOrientationChange?.(effPortrait);
-    setMenu(null);
-    flash(`Rotate ${nextDeg}°`);
-  };
 
   const readMediaTracks = useCallback(() => {
     const video = vidRef.current;
@@ -293,8 +271,10 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       ref={wrapRef}
       onMouseMove={poke}
       className={cn(
-        "relative w-full overflow-hidden rounded-2xl bg-black select-none",
-        viewPortrait ? "aspect-[9/16]" : "aspect-video",
+        "relative w-full overflow-hidden bg-black select-none",
+        fullscreen
+          ? "h-full w-full rounded-none"
+          : cn("rounded-2xl", viewPortrait ? "aspect-[9/16]" : "aspect-video"),
         className,
       )}
     >
