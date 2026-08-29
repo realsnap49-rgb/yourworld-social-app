@@ -94,15 +94,25 @@ function VideoUploadPage() {
     setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const scheduledAt = scheduled && date && time ? new Date(`${date}T${time}`) : null;
+  const tooShort = duration !== null && duration < MIN_DURATION;
   const canPublish =
-    !!fileUrl && title.trim().length >= 2 && (!scheduled || !!scheduledAt) && !busy;
+    !!fileUrl &&
+    !tooShort &&
+    title.trim().length >= 2 &&
+    (!scheduled || !!scheduledAt) &&
+    !busy;
 
   const submit = () => {
     if (!fileUrl) return;
+    if (duration === null || duration < MIN_DURATION) {
+      toast.error("Long videos must be at least 90 seconds.");
+      return;
+    }
     if (scheduled && scheduledAt && scheduledAt.getTime() <= Date.now()) {
       toast.error("Pick a future date and time to schedule");
       return;
     }
+
     setBusy(true);
 
     // Upload keeps running in the background while the user browses the app.
