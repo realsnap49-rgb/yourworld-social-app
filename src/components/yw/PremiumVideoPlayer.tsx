@@ -151,10 +151,15 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   };
 
   const cast = async () => {
-    const v = vidRef.current as (HTMLVideoElement & { remote?: { prompt?: () => Promise<unknown> } }) | null;
+    const v = vidRef.current as (HTMLVideoElement & {
+      remote?: { prompt?: () => Promise<unknown> };
+      webkitShowPlaybackTargetPicker?: () => void;
+    }) | null;
+    if (!v) { flash("Cast unavailable"); return; }
     try {
-      if (v?.remote?.prompt) { await v.remote.prompt(); return; }
-      flash("Cast not supported");
+      if (v.remote?.prompt) { await v.remote.prompt(); return; }
+      if (v.webkitShowPlaybackTargetPicker) { v.webkitShowPlaybackTargetPicker(); return; }
+      flash("Cast not supported on this device");
     } catch { flash("Cast unavailable"); }
   };
 
