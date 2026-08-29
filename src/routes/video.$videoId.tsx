@@ -270,9 +270,9 @@ function WatchPage() {
           </div>
 
           {/* Recommended videos */}
-          <div className="mt-4">
-            <h2 className="mb-2 text-sm font-semibold text-zinc-300">Recommended</h2>
-            <div className="space-y-3">
+          <div className="mt-5 px-4">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-300">Recommended</h2>
+            <div className="space-y-4">
               {recommended.map((r) => (
                 <RecommendedRow key={r.id} video={r} />
               ))}
