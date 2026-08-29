@@ -33,7 +33,7 @@ function fmt(t: number) {
 }
 
 /** Premium player: YouTube-style controls + MX Player gestures (seek, volume, brightness, lock, fit). */
-export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className, onOrientationChange, onSwipeQueue }: Props) {
+export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, className, onOrientationChange, onSwipeQueue, hideAuxControls }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const vidRef = useRef<HTMLVideoElement | null>(null);
 
