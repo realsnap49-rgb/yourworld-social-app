@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Volume2, VolumeX, Maximize, Minimize, Settings, Cast,
   Lock, Unlock, Repeat, Gauge, MonitorPlay,
-  Subtitles, Languages, ChevronLeft, Check,
+  Subtitles, Languages, ChevronLeft, Check, Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +62,21 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const gesture = useRef<{ x: number; y: number; mode: null | "seek" | "vol" | "bright" | "queue"; t0: number; dy: number } | null>(null);
   const lastTap = useRef(0);
 
+  // fullscreen-only: brightness slider + pinch zoom/pan
+  const [showBrightBar, setShowBrightBar] = useState(false);
+  const brightBarTimer = useRef<number | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pinch = useRef<{ dist: number; cx: number; cy: number; zoom: number; pan: { x: number; y: number } } | null>(null);
+
+  const flashBrightBar = useCallback(() => {
+    setShowBrightBar(true);
+    if (brightBarTimer.current) window.clearTimeout(brightBarTimer.current);
+    brightBarTimer.current = window.setTimeout(() => setShowBrightBar(false), 900);
+  }, []);
+
+  useEffect(() => () => { if (brightBarTimer.current) window.clearTimeout(brightBarTimer.current); }, []);
+
   const flash = useCallback((m: string) => {
     setToastMsg(m);
     window.setTimeout(() => setToastMsg((c) => (c === m ? null : c)), 700);
@@ -98,6 +113,11 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
+
+  // Zoom/pan are fullscreen-only; reset to 100% fit when leaving fullscreen.
+  useEffect(() => {
+    if (!fullscreen) { setZoom(1); setPan({ x: 0, y: 0 }); pinch.current = null; }
+  }, [fullscreen]);
 
   const toggleFullscreen = async () => {
     const el = wrapRef.current;
@@ -188,15 +208,18 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     const dx = e.clientX - g.x;
     const dy = e.clientY - g.y;
     g.dy = dy;
+    if (pinch.current) return;
     if (!g.mode) {
       if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
       const rect = wrapRef.current?.getBoundingClientRect();
       const rightHalf = rect ? e.clientX - rect.left > rect.width / 2 : true;
       const vertical = Math.abs(dy) >= Math.abs(dx);
-      // In fullscreen a vertical swipe pages through the queue (reels style).
+      // Fullscreen: left half = brightness (MX Player), right half = queue paging / volume.
       g.mode = vertical
-        ? fullscreen && onSwipeQueue
-          ? "queue"
+        ? fullscreen
+          ? rightHalf
+            ? onSwipeQueue ? "queue" : "vol"
+            : "bright"
           : rightHalf ? "vol" : "bright"
         : "seek";
     }
@@ -216,7 +239,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     } else {
       const nb = Math.max(0.25, Math.min(1.6, brightness - dy / 250));
       setBrightness(nb);
-      flash(`Brightness ${Math.round(nb * 100)}%`);
+      if (fullscreen) flashBrightBar(); else flash(`Brightness ${Math.round(nb * 100)}%`);
     }
   };
   const onPointerUp = () => {
@@ -225,6 +248,33 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     if (g?.mode === "queue" && Math.abs(g.dy) > 90) {
       onSwipeQueue?.(g.dy < 0 ? 1 : -1, viewPortrait);
     }
+  };
+
+  // ---- fullscreen-only pinch to zoom (up to 300%) + two-finger pan ----
+  const touchMid = (t: React.TouchList) => ({
+    x: (t[0].clientX + t[1].clientX) / 2,
+    y: (t[0].clientY + t[1].clientY) / 2,
+    d: Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY),
+  });
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!fullscreen || locked || e.touches.length !== 2) return;
+    const m = touchMid(e.touches);
+    gesture.current = null;
+    pinch.current = { dist: m.d || 1, cx: m.x, cy: m.y, zoom, pan };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const p = pinch.current;
+    if (!p || !fullscreen || e.touches.length !== 2) return;
+    e.preventDefault();
+    const m = touchMid(e.touches);
+    const next = Math.max(1, Math.min(3, p.zoom * (m.d / p.dist)));
+    setZoom(next);
+    const limit = (v: number) => Math.max(-400, Math.min(400, v));
+    setPan({ x: limit(p.pan.x + (m.x - p.cx)), y: limit(p.pan.y + (m.y - p.cy)) });
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinch.current = null;
+    if (zoom <= 1.01) setPan({ x: 0, y: 0 });
   };
 
   const onTapZone = (side: "l" | "c" | "r") => {
@@ -269,7 +319,12 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         autoPlay={autoPlay}
         playsInline
         preload="auto"
-        style={{ filter: `brightness(${brightness})` }}
+        style={{
+          filter: `brightness(${brightness})`,
+          transform: fullscreen && zoom > 1 ? `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` : undefined,
+          transformOrigin: "center center",
+          transition: pinch.current ? "none" : "transform 120ms ease-out",
+        }}
         className={cn(
           "h-full w-full",
           fullscreen
@@ -294,10 +349,15 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       {/* gesture surface */}
       <div
         className="absolute inset-0 flex"
+        style={{ touchAction: fullscreen ? "none" : undefined }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
       >
         <div className="h-full flex-1" onClick={() => onTapZone("l")} />
         <div className="h-full flex-1" onClick={() => onTapZone("c")} />
@@ -307,6 +367,27 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       {toastMsg && (
         <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-black/70 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
           {toastMsg}
+        </div>
+      )}
+
+      {/* fullscreen brightness slider (left side, MX Player style) */}
+      {fullscreen && showBrightBar && !locked && (
+        <div className="pointer-events-none absolute left-6 top-1/2 z-30 flex -translate-y-1/2 flex-col items-center gap-2 rounded-full bg-black/60 px-2 py-3 backdrop-blur">
+          <Sun size={16} className="text-white" />
+          <div className="relative h-32 w-1.5 overflow-hidden rounded-full bg-white/25">
+            <div
+              className="absolute bottom-0 w-full rounded-full bg-white transition-[height] duration-100"
+              style={{ height: `${Math.round(((brightness - 0.25) / 1.35) * 100)}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-semibold tabular-nums text-white">{Math.round(brightness * 100)}%</span>
+        </div>
+      )}
+
+      {/* zoom indicator */}
+      {fullscreen && zoom > 1.01 && (
+        <div className="pointer-events-none absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
+          {Math.round(zoom * 100)}%
         </div>
       )}
 
