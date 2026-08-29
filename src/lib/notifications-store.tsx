@@ -4,7 +4,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -22,6 +21,7 @@ import {
   Bell,
   type LucideIcon,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useOrbitAppPrefs } from "@/lib/orbit-prefs";
 
 export type NotificationKind =
@@ -78,44 +78,29 @@ export const ORBIT_KINDS: NotificationKind[] = ["orbit", "connection", "match"];
 export const kindMeta = (k: NotificationKind) =>
   NOTIFICATION_KINDS.find((m) => m.id === k) ?? NOTIFICATION_KINDS[NOTIFICATION_KINDS.length - 1];
 
-const MIN = 60_000;
-const now = Date.now();
-
-const seed: NotificationItem[] = [
-  { id: "n1", kind: "like", title: "Riko Tan and 2.1K others liked your reel", body: "3am in Kabukicho, nobody around but the signs", at: now - 2 * MIN, read: false, to: "/reels" },
-  { id: "n2", kind: "comment", title: "Mara Vega commented on your post", body: "This palette is unreal 🔥", at: now - 9 * MIN, read: false, to: "/" },
-  { id: "n3", kind: "message", title: "New message from Riko Tan", body: "sending the raw files tonight", at: now - 14 * MIN, read: false, to: "/chat" },
-  { id: "n4", kind: "match", title: "You matched with Ada Kim", body: "You both picked 📸 Photography Partner", at: now - 41 * MIN, read: false, to: "/orbit" },
-  { id: "n5", kind: "connection", title: "Kai Oduya accepted your connection", at: now - 70 * MIN, read: true, to: "/orbit" },
-  { id: "n6", kind: "orbit", title: "3 new people near you in Orbit", body: "Approximate area only — exact location is never shared", at: now - 3 * 60 * MIN, read: true, to: "/orbit" },
-  { id: "n7", kind: "follower", title: "moss.club started following you", at: now - 5 * 60 * MIN, read: true, to: "/profile" },
-  { id: "n8", kind: "channel", title: "Your channel gained 240 subscribers today", at: now - 8 * 60 * MIN, read: true, to: "/channel" },
-  { id: "n9", kind: "verification", title: "Verification request under review", body: "We'll notify you within 48 hours", at: now - 26 * 60 * MIN, read: true, to: "/profile" },
-  { id: "n10", kind: "monetization", title: "You're 68% to monetization eligibility", body: "680 / 1,000 subscribers", at: now - 30 * 60 * MIN, read: true, to: "/channel/monetization" },
-  { id: "n11", kind: "system", title: "Screenshot protection is on", body: "Orbit content is obscured when the app loses focus", at: now - 48 * 60 * MIN, read: true, to: "/orbit/privacy" },
-];
-
-/** Templates used by the live stream so new events feel real. */
-const liveTemplates: Omit<NotificationItem, "id" | "at" | "read">[] = [
-  { kind: "like", title: "sea.salt liked your post", to: "/" },
-  { kind: "comment", title: "spinsolo commented", body: "frame of the year", to: "/" },
-  { kind: "follower", title: "wavelen started following you", to: "/profile" },
-  { kind: "message", title: "New message in Night Shooters", body: "Kai: meet at the crossing at 9", to: "/chat" },
-  { kind: "orbit", title: "Someone new joined your Orbit area", to: "/orbit" },
-  { kind: "connection", title: "Ines Roth sent a connection request", to: "/orbit" },
-  { kind: "match", title: "New match — same ☕ Coffee Chat mood", to: "/orbit" },
-  { kind: "channel", title: "Your latest reel crossed 100K views", to: "/channel" },
-  { kind: "monetization", title: "Estimated earnings updated", body: "+$12.40 in the last 24h", to: "/channel/monetization" },
-  { kind: "system", title: "New device signed in", body: "Review it in Settings if this wasn't you", to: "/settings" },
-];
-
 export type NotificationPrefs = Record<NotificationKind, boolean>;
 
 const defaultPrefs = Object.fromEntries(
   NOTIFICATION_KINDS.map((k) => [k.id, true]),
 ) as NotificationPrefs;
 
-const KEY = "yw.notifications.v1";
+const KEY = "yw.notifications.v2";
+
+type Persisted = {
+  prefs?: Partial<NotificationPrefs>;
+  live?: boolean;
+  read?: string[];
+  removed?: string[];
+};
+
+function loadPersisted(): Persisted {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(KEY) ?? "{}") as Persisted;
+  } catch {
+    return {};
+  }
+}
 
 type Ctx = {
   items: NotificationItem[];
@@ -137,70 +122,331 @@ type Ctx = {
 
 const NotificationsContext = createContext<Ctx | null>(null);
 
+const ts = (v: string) => new Date(v).getTime();
+
+/** Builds the whole notification feed from real database activity. */
+async function fetchEvents(): Promise<Omit<NotificationItem, "read">[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  const me = auth.user?.id;
+  if (!me) return [];
+
+  const { data: myPostRows } = await supabase.from("posts").select("id,kind").eq("user_id", me);
+  const myPosts = (myPostRows ?? []) as { id: string; kind: string }[];
+  const postIds = myPosts.map((p) => p.id);
+
+  const { data: threadRows } = await supabase
+    .from("thread_participants")
+    .select("thread_id")
+    .eq("user_id", me);
+  const threadIds = [...new Set(((threadRows ?? []) as { thread_id: string }[]).map((t) => t.thread_id))];
+
+  const [likes, comments, follows, dms, orbitMsgs, orbitLikes, myOrbitLikes, requests, connections] =
+    await Promise.all([
+      postIds.length
+        ? supabase
+            .from("post_likes")
+            .select("id,post_id,user_id,created_at")
+            .in("post_id", postIds)
+            .neq("user_id", me)
+            .order("created_at", { ascending: false })
+            .limit(40)
+        : Promise.resolve({ data: [] }),
+      postIds.length
+        ? supabase
+            .from("post_comments")
+            .select("id,post_id,user_id,body,created_at")
+            .in("post_id", postIds)
+            .neq("user_id", me)
+            .order("created_at", { ascending: false })
+            .limit(40)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("follows")
+        .select("id,follower_id,created_at")
+        .eq("following_id", me)
+        .order("created_at", { ascending: false })
+        .limit(40),
+      threadIds.length
+        ? supabase
+            .from("direct_messages")
+            .select("id,thread_id,sender_id,content,media_type,created_at")
+            .in("thread_id", threadIds)
+            .neq("sender_id", me)
+            .order("created_at", { ascending: false })
+            .limit(40)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("orbit_messages")
+        .select("id,sender_id,kind,text,created_at")
+        .eq("recipient_id", me)
+        .order("created_at", { ascending: false })
+        .limit(40),
+      supabase
+        .from("orbit_likes")
+        .select("id,user_id,created_at")
+        .eq("target_id", me)
+        .order("created_at", { ascending: false })
+        .limit(40),
+      supabase.from("orbit_likes").select("target_id").eq("user_id", me),
+      supabase
+        .from("orbit_chat_requests")
+        .select("id,requester_id,intro,status,created_at")
+        .eq("addressee_id", me)
+        .order("created_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("orbit_connections")
+        .select("id,requester_id,addressee_id,status,updated_at")
+        .or(`requester_id.eq.${me},addressee_id.eq.${me}`)
+        .order("updated_at", { ascending: false })
+        .limit(30),
+    ]);
+
+  const rows = {
+    likes: (likes.data ?? []) as { id: string; post_id: string; user_id: string; created_at: string }[],
+    comments: (comments.data ?? []) as {
+      id: string;
+      post_id: string;
+      user_id: string;
+      body: string;
+      created_at: string;
+    }[],
+    follows: (follows.data ?? []) as { id: string; follower_id: string; created_at: string }[],
+    dms: (dms.data ?? []) as {
+      id: string;
+      thread_id: string;
+      sender_id: string;
+      content: string;
+      media_type: string;
+      created_at: string;
+    }[],
+    orbitMsgs: (orbitMsgs.data ?? []) as {
+      id: string;
+      sender_id: string;
+      kind: string;
+      text: string | null;
+      created_at: string;
+    }[],
+    orbitLikes: (orbitLikes.data ?? []) as { id: string; user_id: string; created_at: string }[],
+    requests: (requests.data ?? []) as {
+      id: string;
+      requester_id: string;
+      intro: string | null;
+      status: string;
+      created_at: string;
+    }[],
+    connections: (connections.data ?? []) as {
+      id: string;
+      requester_id: string;
+      addressee_id: string;
+      status: string;
+      updated_at: string;
+    }[],
+  };
+
+  const likedByMe = new Set(
+    ((myOrbitLikes.data ?? []) as { target_id: string }[]).map((r) => r.target_id),
+  );
+
+  const peerIds = [
+    ...new Set([
+      ...rows.likes.map((r) => r.user_id),
+      ...rows.comments.map((r) => r.user_id),
+      ...rows.follows.map((r) => r.follower_id),
+      ...rows.dms.map((r) => r.sender_id),
+      ...rows.orbitMsgs.map((r) => r.sender_id),
+      ...rows.orbitLikes.map((r) => r.user_id),
+      ...rows.requests.map((r) => r.requester_id),
+      ...rows.connections.map((r) => (r.requester_id === me ? r.addressee_id : r.requester_id)),
+    ]),
+  ];
+
+  const names: Record<string, string> = {};
+  if (peerIds.length) {
+    const { data } = await supabase.rpc("get_public_profiles", { ids: peerIds });
+    for (const p of (data ?? []) as {
+      id: string;
+      username: string | null;
+      display_name: string | null;
+    }[]) {
+      names[p.id] = p.display_name ?? p.username ?? "Someone";
+    }
+  }
+  const nameOf = (id: string) => names[id] ?? "Someone";
+  const postKind = new Map(myPosts.map((p) => [p.id, p.kind]));
+  const postLink = (id: string) => (postKind.get(id) === "reel" ? "/reels" : "/");
+
+  const out: Omit<NotificationItem, "read">[] = [];
+
+  for (const r of rows.likes)
+    out.push({
+      id: `like-${r.id}`,
+      kind: "like",
+      title: `${nameOf(r.user_id)} liked your post`,
+      at: ts(r.created_at),
+      to: postLink(r.post_id),
+    });
+
+  for (const r of rows.comments)
+    out.push({
+      id: `comment-${r.id}`,
+      kind: "comment",
+      title: `${nameOf(r.user_id)} commented on your post`,
+      body: r.body,
+      at: ts(r.created_at),
+      to: postLink(r.post_id),
+    });
+
+  for (const r of rows.follows)
+    out.push({
+      id: `follow-${r.id}`,
+      kind: "follower",
+      title: `${nameOf(r.follower_id)} started following you`,
+      at: ts(r.created_at),
+      to: `/u/${r.follower_id}`,
+    });
+
+  for (const r of rows.dms)
+    out.push({
+      id: `dm-${r.id}`,
+      kind: "message",
+      title: `New message from ${nameOf(r.sender_id)}`,
+      body: r.media_type && r.media_type !== "text" ? "Sent an attachment" : r.content,
+      at: ts(r.created_at),
+      to: `/chat/${r.thread_id}`,
+    });
+
+  for (const r of rows.orbitMsgs)
+    out.push({
+      id: `om-${r.id}`,
+      kind: "message",
+      title: `Orbit message from ${nameOf(r.sender_id)}`,
+      body: r.kind === "text" ? (r.text ?? "") : "Sent an attachment",
+      at: ts(r.created_at),
+      to: `/orbit/chat/${r.sender_id}`,
+    });
+
+  for (const r of rows.orbitLikes) {
+    const mutual = likedByMe.has(r.user_id);
+    out.push({
+      id: `olike-${r.id}`,
+      kind: mutual ? "match" : "orbit",
+      title: mutual
+        ? `You matched with ${nameOf(r.user_id)}`
+        : `${nameOf(r.user_id)} liked your Orbit profile`,
+      at: ts(r.created_at),
+      to: mutual ? `/orbit/chat/${r.user_id}` : "/orbit/messages",
+    });
+  }
+
+  for (const r of rows.requests)
+    out.push({
+      id: `req-${r.id}`,
+      kind: "connection",
+      title:
+        r.status === "accepted"
+          ? `You accepted ${nameOf(r.requester_id)}'s chat request`
+          : `${nameOf(r.requester_id)} sent you a chat request`,
+      body: r.intro ?? undefined,
+      at: ts(r.created_at),
+      to: "/orbit/messages",
+    });
+
+  for (const r of rows.connections) {
+    if (r.status !== "accepted") continue;
+    const peer = r.requester_id === me ? r.addressee_id : r.requester_id;
+    out.push({
+      id: `conn-${r.id}`,
+      kind: "connection",
+      title: `You and ${nameOf(peer)} are connected`,
+      at: ts(r.updated_at),
+      to: `/orbit/chat/${peer}`,
+    });
+  }
+
+  return out.sort((a, b) => b.at - a.at).slice(0, 120);
+}
+
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<NotificationItem[]>(seed);
+  const [events, setEvents] = useState<Omit<NotificationItem, "read">[]>([]);
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
   const [live, setLive] = useState(true);
+  const [readIds, setReadIds] = useState<string[]>([]);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const { hideOrbitNotifications } = useOrbitAppPrefs();
-  const cursor = useRef(0);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { items?: NotificationItem[]; prefs?: Partial<NotificationPrefs>; live?: boolean };
-        if (parsed.items?.length) setItems(parsed.items);
-        setPrefs({ ...defaultPrefs, ...(parsed.prefs ?? {}) });
-        if (typeof parsed.live === "boolean") setLive(parsed.live);
-      }
-    } catch {
-      /* ignore corrupt storage */
-    }
+    const p = loadPersisted();
+    setPrefs({ ...defaultPrefs, ...(p.prefs ?? {}) });
+    if (typeof p.live === "boolean") setLive(p.live);
+    setReadIds(p.read ?? []);
+    setRemovedIds(p.removed ?? []);
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(KEY, JSON.stringify({ items: items.slice(0, 80), prefs, live }));
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ prefs, live, read: readIds.slice(0, 500), removed: removedIds.slice(0, 500) }),
+      );
     } catch {
       /* storage unavailable */
     }
-  }, [items, prefs, live, hydrated]);
+  }, [prefs, live, readIds, removedIds, hydrated]);
 
-  // Lightweight "real-time" stream: paused when the tab is hidden so it never
-  // burns cycles in the background.
+  const load = useCallback(async () => {
+    try {
+      setEvents(await fetchEvents());
+    } catch {
+      /* offline or signed out */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    void load();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => void load());
+    return () => sub.subscription.unsubscribe();
+  }, [hydrated, load]);
+
+  // Live updates straight from the database.
   useEffect(() => {
     if (!hydrated || !live) return;
-    let timer: number | undefined;
-
-    const schedule = () => {
-      timer = window.setTimeout(() => {
-        if (document.visibilityState === "visible") {
-          const t = liveTemplates[cursor.current % liveTemplates.length];
-          cursor.current += 1;
-          setItems((prev) =>
-            prefs[t.kind] && !(hideOrbitNotifications && ORBIT_KINDS.includes(t.kind))
-              ? [{ ...t, id: `live-${Date.now()}`, at: Date.now(), read: false }, ...prev].slice(0, 80)
-              : prev,
-          );
-        }
-        schedule();
-      }, 18_000);
+    const tables = [
+      "post_likes",
+      "post_comments",
+      "follows",
+      "direct_messages",
+      "orbit_messages",
+      "orbit_likes",
+      "orbit_chat_requests",
+      "orbit_connections",
+    ];
+    let channel = supabase.channel("yw-notifications");
+    for (const table of tables) {
+      channel = channel.on("postgres_changes", { event: "*", schema: "public", table }, () => void load());
+    }
+    channel.subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
     };
-    schedule();
-    return () => window.clearTimeout(timer);
-  }, [hydrated, live, prefs, hideOrbitNotifications]);
+  }, [hydrated, live, load]);
 
   const setPref = useCallback((k: NotificationKind, v: boolean) => {
     setPrefs((p) => ({ ...p, [k]: v }));
   }, []);
 
   const value = useMemo<Ctx>(() => {
-    const visible = items.filter(
-      (i) => prefs[i.kind] && !(hideOrbitNotifications && ORBIT_KINDS.includes(i.kind)),
-    );
+    const read = new Set(readIds);
+    const removed = new Set(removedIds);
+    const visible = events
+      .filter((i) => !removed.has(i.id))
+      .filter((i) => prefs[i.kind] && !(hideOrbitNotifications && ORBIT_KINDS.includes(i.kind)))
+      .map((i) => ({ ...i, read: read.has(i.id) }));
+
     const unreadByKind = Object.fromEntries(
       NOTIFICATION_KINDS.map((k) => [k.id, visible.filter((i) => i.kind === k.id && !i.read).length]),
     ) as Record<NotificationKind, number>;
@@ -215,12 +461,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       live,
       setLive,
       setPref,
-      markRead: (id) => setItems((p) => p.map((i) => (i.id === id ? { ...i, read: true } : i))),
-      markAllRead: () => setItems((p) => p.map((i) => ({ ...i, read: true }))),
-      remove: (id) => setItems((p) => p.filter((i) => i.id !== id)),
-      clearAll: () => setItems([]),
+      markRead: (id) => setReadIds((p) => (p.includes(id) ? p : [id, ...p])),
+      markAllRead: () => setReadIds((p) => [...new Set([...events.map((e) => e.id), ...p])]),
+      remove: (id) => setRemovedIds((p) => (p.includes(id) ? p : [id, ...p])),
+      clearAll: () => setRemovedIds((p) => [...new Set([...events.map((e) => e.id), ...p])]),
     };
-  }, [items, prefs, live, setPref, hideOrbitNotifications]);
+  }, [events, prefs, live, setPref, hideOrbitNotifications, readIds, removedIds]);
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }
