@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Volume2, VolumeX, Maximize, Minimize, Settings, PictureInPicture2,
-  Lock, Unlock, RotateCw, Repeat, Gauge, MonitorPlay,
+  Volume2, VolumeX, Maximize, Minimize, Settings, Cast,
+  Lock, Unlock, Repeat, Gauge, MonitorPlay,
   Subtitles, Languages, ChevronLeft, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,8 +52,7 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const [showUI, setShowUI] = useState(true);
   const [menu, setMenu] = useState<null | "root" | "speed" | "quality" | "captions" | "audio">(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const [viewPortrait, setViewPortrait] = useState(!!portrait);
-  const [rotation, setRotation] = useState(0);
+  const [viewPortrait] = useState(!!portrait);
   const [captionTracks, setCaptionTracks] = useState<Array<{ index: number; label: string }>>([]);
   const [caption, setCaption] = useState("Off");
   const [audioTracks, setAudioTracks] = useState<Array<{ index: number; label: string }>>([]);
@@ -62,21 +61,6 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   const hideTimer = useRef<number | null>(null);
   const gesture = useRef<{ x: number; y: number; mode: null | "seek" | "vol" | "bright" | "queue"; t0: number; dy: number } | null>(null);
   const lastTap = useRef(0);
-  const [box, setBox] = useState({ w: 0, h: 0 });
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const update = () => setBox({ w: el.clientWidth, h: el.clientHeight });
-    update();
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", update);
-      return () => window.removeEventListener("resize", update);
-    }
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   const flash = useCallback((m: string) => {
     setToastMsg(m);
@@ -119,33 +103,29 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
     const el = wrapRef.current;
     if (!el) return;
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await el.requestFullscreen();
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        try { (screen.orientation as unknown as { unlock?: () => void }).unlock?.(); } catch { /* ignore */ }
+      } else {
+        await el.requestFullscreen();
+        // Cinematic landscape mode for landscape videos (best-effort, mobile only).
+        if (!viewPortrait) {
+          try {
+            await (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.("landscape");
+          } catch { /* unsupported */ }
+        }
+      }
     } catch { /* ignore */ }
   };
 
-  const togglePip = async () => {
-    const v = vidRef.current as (HTMLVideoElement & { requestPictureInPicture?: () => Promise<unknown> }) | null;
-    if (!v?.requestPictureInPicture) { flash("PiP not supported"); return; }
+  const cast = async () => {
+    const v = vidRef.current as (HTMLVideoElement & { remote?: { prompt?: () => Promise<unknown> } }) | null;
     try {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture();
-      else await v.requestPictureInPicture();
-    } catch { flash("PiP not supported"); }
+      if (v?.remote?.prompt) { await v.remote.prompt(); return; }
+      flash("Cast not supported");
+    } catch { flash("Cast unavailable"); }
   };
 
-  const rotate = () => {
-    const nextDeg = (rotation + 90) % 360;
-    setRotation(nextDeg);
-    const v = vidRef.current;
-    const vw = v?.videoWidth || 16;
-    const vh = v?.videoHeight || 9;
-    // after a 90/270° turn the dimensions swap
-    const effPortrait = nextDeg % 180 !== 0 ? vw > vh : vh >= vw;
-    setViewPortrait(effPortrait);
-    onOrientationChange?.(effPortrait);
-    setMenu(null);
-    flash(`Rotate ${nextDeg}°`);
-  };
 
   const readMediaTracks = useCallback(() => {
     const video = vidRef.current;
@@ -275,8 +255,10 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
       ref={wrapRef}
       onMouseMove={poke}
       className={cn(
-        "relative w-full overflow-hidden rounded-2xl bg-black select-none",
-        viewPortrait ? "aspect-[9/16]" : "aspect-video",
+        "relative w-full overflow-hidden bg-black select-none",
+        fullscreen
+          ? "h-full w-full rounded-none"
+          : cn("rounded-2xl", viewPortrait ? "aspect-[9/16]" : "aspect-video"),
         className,
       )}
     >
@@ -287,20 +269,12 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         autoPlay={autoPlay}
         playsInline
         preload="auto"
-        style={{
-          filter: `brightness(${brightness})`,
-          transform: rotation ? `translate(-50%, -50%) rotate(${rotation}deg)` : undefined,
-          ...(rotation % 180 !== 0 && box.w && box.h
-            ? { width: box.h, height: box.w }
-            : {}),
-        }}
+        style={{ filter: `brightness(${brightness})` }}
         className={cn(
-          rotation % 180 !== 0
-            ? "absolute left-1/2 top-1/2 max-w-none"
-            : rotation
-              ? "absolute left-1/2 top-1/2 h-full w-full"
-              : "h-full w-full",
-          fit === "Fit" ? "object-contain" : fit === "Fill" ? "object-cover" : "object-fill",
+          "h-full w-full",
+          fullscreen
+            ? "object-contain"
+            : fit === "Fit" ? "object-contain" : fit === "Fill" ? "object-cover" : "object-fill",
         )}
         onPlay={() => { setPlaying(true); poke(); }}
         onPause={() => { setPlaying(false); setShowUI(true); }}
@@ -355,13 +329,10 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
           )}
         >
           {/* top bar */}
-          <div className="pointer-events-auto flex items-start justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent p-3">
-            <p className="line-clamp-1 pt-1 text-xs font-semibold text-white/90">{title}</p>
+          <div className="pointer-events-auto flex items-start justify-end gap-2 bg-gradient-to-b from-black/80 to-transparent p-3">
             <div className="flex items-center gap-1">
               <IconBtn label="Lock screen" onClick={() => { setLocked(true); flash("Locked"); }}><Unlock size={16} /></IconBtn>
-              <IconBtn label="Fit screen" onClick={() => setFit((f) => { const i = FITS.indexOf(f); const n = FITS[(i + 1) % FITS.length]; flash(`Fit · ${n}`); return n; })}><Maximize size={16} /></IconBtn>
-              <IconBtn label="Rotate" onClick={rotate}><RotateCw size={16} /></IconBtn>
-              <IconBtn label="Picture in picture" onClick={togglePip}><PictureInPicture2 size={16} /></IconBtn>
+              <IconBtn label="Cast" onClick={cast}><Cast size={16} /></IconBtn>
               <IconBtn label="Settings" onClick={() => setMenu(menu ? null : "root")}><Settings size={16} /></IconBtn>
             </div>
           </div>
