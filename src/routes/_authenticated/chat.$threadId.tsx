@@ -104,6 +104,26 @@ export function ChatThreadPage() {
     setTextDraft("");
   };
   const { threadId } = Route.useParams();
+
+  // Legacy links used the peer's user id as the thread id, which split the
+  // conversation in two. Send those straight to the shared canonical thread.
+  useEffect(() => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(threadId)) return;
+    let alive = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id;
+      if (!alive || !uid || uid === threadId) return;
+      void navigate({
+        to: "/chat/$threadId",
+        params: { threadId: dmThreadId(uid, threadId) },
+        replace: true,
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [threadId, navigate]);
+
   const { startCall } = useCall();
   const {
     messages: dbMessages,
