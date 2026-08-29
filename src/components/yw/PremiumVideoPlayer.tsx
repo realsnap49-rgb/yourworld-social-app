@@ -151,10 +151,15 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
   };
 
   const cast = async () => {
-    const v = vidRef.current as (HTMLVideoElement & { remote?: { prompt?: () => Promise<unknown> } }) | null;
+    const v = vidRef.current as (HTMLVideoElement & {
+      remote?: { prompt?: () => Promise<unknown> };
+      webkitShowPlaybackTargetPicker?: () => void;
+    }) | null;
+    if (!v) { flash("Cast unavailable"); return; }
     try {
-      if (v?.remote?.prompt) { await v.remote.prompt(); return; }
-      flash("Cast not supported");
+      if (v.remote?.prompt) { await v.remote.prompt(); return; }
+      if (v.webkitShowPlaybackTargetPicker) { v.webkitShowPlaybackTargetPicker(); return; }
+      flash("Cast not supported on this device");
     } catch { flash("Cast unavailable"); }
   };
 
@@ -409,29 +414,37 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
         </div>
       )}
 
-      {/* lock overlay */}
+      {/* lock overlay — blocks every player-area touch (back, seek, tap zones) */}
       {locked && (
-        <button
-          onClick={() => { setLocked(false); flash("Unlocked"); }}
-          className="absolute left-3 top-1/2 z-30 -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur"
-          aria-label="Unlock controls"
+        <div
+          className="absolute inset-0 z-[55]"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
         >
-          <Lock size={18} />
-        </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setLocked(false); flash("Unlocked"); }}
+            className="absolute left-3 top-1/2 z-[70] -translate-y-1/2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white backdrop-blur"
+            aria-label="Unlock controls"
+          >
+            <Unlock size={18} />
+          </button>
+        </div>
       )}
 
       {!locked && (
         <div
           className={cn(
-            "pointer-events-none absolute inset-0 z-20 transition-opacity duration-200",
+            "pointer-events-none absolute inset-0 z-40 transition-opacity duration-200",
             showUI || !playing ? "opacity-100" : "opacity-0",
           )}
         >
           {/* top bar */}
           <div className="pointer-events-auto flex items-start justify-end gap-2 bg-gradient-to-b from-black/80 to-transparent p-3">
-            <div className="flex items-center gap-1">
-              <IconBtn label="Lock screen" onClick={() => { setLocked(true); flash("Locked"); }}><Unlock size={16} /></IconBtn>
-              <IconBtn label="Cast" onClick={cast}><Cast size={16} /></IconBtn>
+            <div className="relative z-10 flex items-center gap-1">
+              <IconBtn label="Lock screen" onClick={() => { setLocked(true); flash("Locked"); }}><Lock size={16} /></IconBtn>
+              <IconBtn label="Cast" onClick={() => { void cast(); }}><Cast size={16} /></IconBtn>
               <IconBtn label="Settings" onClick={() => setMenu(menu ? null : "root")}><Settings size={16} /></IconBtn>
             </div>
           </div>
@@ -560,10 +573,13 @@ export function PremiumVideoPlayer({ src, poster, title, portrait, autoPlay, cla
 function IconBtn({ children, label, onClick, big }: { children: React.ReactNode; label: string; onClick: () => void; big?: boolean }) {
   return (
     <button
-      onClick={onClick}
+      type="button"
+      onPointerDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
       aria-label={label}
       className={cn(
-        "grid place-items-center rounded-full bg-black/45 text-white backdrop-blur transition-transform active:scale-90",
+        "pointer-events-auto grid place-items-center rounded-full bg-black/45 text-white backdrop-blur transition-transform active:scale-90",
         big ? "h-11 w-11" : "h-8 w-8",
       )}
     >
