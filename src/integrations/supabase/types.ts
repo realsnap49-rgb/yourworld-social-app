@@ -96,7 +96,10 @@ export type Database = {
           reason: string | null
           reported_moment_id: string | null
           reported_post_id: string | null
+          reporter_flagged: boolean
+          reporter_full_name: string | null
           reporter_user_id: string
+          resolved_at: string | null
           status: string
         }
         Insert: {
@@ -108,7 +111,10 @@ export type Database = {
           reason?: string | null
           reported_moment_id?: string | null
           reported_post_id?: string | null
+          reporter_flagged?: boolean
+          reporter_full_name?: string | null
           reporter_user_id: string
+          resolved_at?: string | null
           status?: string
         }
         Update: {
@@ -120,7 +126,10 @@ export type Database = {
           reason?: string | null
           reported_moment_id?: string | null
           reported_post_id?: string | null
+          reporter_flagged?: boolean
+          reporter_full_name?: string | null
           reporter_user_id?: string
+          resolved_at?: string | null
           status?: string
         }
         Relationships: [
