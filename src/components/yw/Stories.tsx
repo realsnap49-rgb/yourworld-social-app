@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { cn } from "@/lib/utils";
-import { Plus, X, Download, Music2, Eye } from "lucide-react";
+import { Plus, X, Download, Music2, Eye, Volume2, VolumeX } from "lucide-react";
 import { useMoments, aiFilterCss, type MyMoment } from "@/lib/moment-store";
 import { currentUser } from "@/lib/yw-data";
 import { downloadMomentMedia } from "@/lib/yw-download";
