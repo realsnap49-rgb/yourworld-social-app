@@ -289,12 +289,21 @@ export function useLongVideos() {
     };
   }, [load]);
 
+  // Track posts this user already viewed in this session so re-watches
+  // never hit the database (and never bump the counter) again.
+  const viewedRef = useRef(new Set<string>());
+
   const countView = useCallback(async (id: string) => {
-    setVideos((prev) => prev.map((v) => (v.id === id ? { ...v, views: v.views + 1 } : v)));
+    if (viewedRef.current.has(id)) return; // one view per user, not per watch
+    viewedRef.current.add(id);
     const { data: sessionData } = await supabase.auth.getSession();
     const uid = sessionData.session?.user.id;
     if (!uid) return; // views are only logged for signed-in users
-    await supabase.from("post_views").insert({ post_id: id, viewer_id: uid });
+    const { error } = await supabase.from("post_views").insert({ post_id: id, viewer_id: uid });
+    // 23505 = unique violation: this user already viewed this post before,
+    // so the DB rejected the duplicate and the counter must not move.
+    if (error) return;
+    setVideos((prev) => prev.map((v) => (v.id === id ? { ...v, views: v.views + 1 } : v)));
   }, []);
 
   const toggleLike = useCallback(
