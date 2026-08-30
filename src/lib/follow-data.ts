@@ -48,11 +48,10 @@ export async function setFollow(targetId: string, on: boolean) {
 }
 
 async function counts(userId: string): Promise<FollowCounts> {
-  const { data: row } = await supabase
-    .from("follow_counts")
-    .select("followers,following")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // Public counts go through the security-definer RPC; direct table reads are
+  // RLS-restricted to the row owner only.
+  const { data: rows } = await supabase.rpc("get_follow_counts", { ids: [userId] });
+  const row = (rows ?? [])[0];
   return { followers: Number(row?.followers ?? 0), following: Number(row?.following ?? 0) };
 }
 
@@ -70,11 +69,18 @@ export function useFollowCounts(userId: string | null) {
     if (!userId) return;
     let ch: ReturnType<typeof supabase.channel> | null = null;
     try {
+      // follow_counts direct reads are owner-only now; watch the publicly
+      // readable follows table instead and refetch counts via the RPC.
       ch = supabase
         .channel(`follows:${userId}:${crypto.randomUUID()}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "follow_counts", filter: `user_id=eq.${userId}` },
+          { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${userId}` },
+          () => void reload(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${userId}` },
           () => void reload(),
         )
         .subscribe();
