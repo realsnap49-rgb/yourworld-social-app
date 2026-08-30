@@ -668,7 +668,7 @@ function MomentViewRoute() {
                   {[...current.viewers]
                     .sort((a, b) => b.at - a.at)
                     .map((v) => {
-                      const p = viewerProfiles[v.userId];
+                      const p = viewerProfiles.get(v.userId);
                       return (
                         <li key={v.userId} className="flex items-center gap-3">
                           <div className="h-9 w-9 overflow-hidden rounded-full bg-neutral-700">
