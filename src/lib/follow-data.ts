@@ -69,11 +69,18 @@ export function useFollowCounts(userId: string | null) {
     if (!userId) return;
     let ch: ReturnType<typeof supabase.channel> | null = null;
     try {
+      // follow_counts direct reads are owner-only now; watch the publicly
+      // readable follows table instead and refetch counts via the RPC.
       ch = supabase
         .channel(`follows:${userId}:${crypto.randomUUID()}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "follow_counts", filter: `user_id=eq.${userId}` },
+          { event: "*", schema: "public", table: "follows", filter: `following_id=eq.${userId}` },
+          () => void reload(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "follows", filter: `follower_id=eq.${userId}` },
           () => void reload(),
         )
         .subscribe();
