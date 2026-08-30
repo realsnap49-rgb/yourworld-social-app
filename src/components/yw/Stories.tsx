@@ -361,7 +361,7 @@ function StoryPlayer({
       {/* header */}
       <div
         className={cn(
-          "absolute inset-x-3 top-6 z-20 flex items-center gap-2.5 transition-opacity duration-200",
+          "absolute inset-x-3 top-6 z-[1001] flex items-center gap-2.5 transition-opacity duration-200",
           holding && "pointer-events-none opacity-0",
         )}
       >
@@ -428,7 +428,7 @@ function StoryPlayer({
         params={{ momentId: moment.id }}
         onClick={onClose}
         className={cn(
-          "absolute inset-x-0 bottom-3 z-20 mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md transition-opacity duration-200",
+          "absolute inset-x-0 bottom-3 z-[1001] mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md transition-opacity duration-200",
           holding && "pointer-events-none opacity-0",
         )}
       >
