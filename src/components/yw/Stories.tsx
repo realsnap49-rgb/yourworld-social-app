@@ -8,7 +8,8 @@ import { useMoments } from "@/lib/moment-store";
 import { downloadMomentMedia } from "@/lib/yw-download";
 import { toast } from "sonner";
 
-const SEGMENT_DURATION = 20; // 20 seconds per segment
+// ⏱️ SEGMENT DURATION UPDATED TO 40 SECONDS
+const SEGMENT_DURATION = 40; 
 
 export function Stories() {
   const { moments } = useMoments();
@@ -24,7 +25,7 @@ export function Stories() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const currentMoment = momentIndex !== null ? moments[momentIndex] : null;
 
-  const totalDuration = currentMoment?.duration || 60; 
+  const totalDuration = currentMoment?.duration || 40; 
   const totalSegments = currentMoment?.kind === "video" 
     ? Math.max(1, Math.ceil(totalDuration / SEGMENT_DURATION)) 
     : 1;
@@ -37,7 +38,6 @@ export function Stories() {
     setPollVotedOption(null);
   }, []);
 
-  // Instant Next Segment Handler
   const handleNext = useCallback(() => {
     if (segmentIndex < totalSegments - 1) {
       const nextSeg = segmentIndex + 1;
@@ -55,7 +55,6 @@ export function Stories() {
     }
   }, [segmentIndex, totalSegments, momentIndex, moments.length, close]);
 
-  // Instant Previous Segment Handler
   const handlePrev = useCallback(() => {
     if (segmentIndex > 0) {
       const prevSeg = segmentIndex - 1;
@@ -71,7 +70,6 @@ export function Stories() {
     }
   }, [segmentIndex, momentIndex]);
 
-  // Video Time Update & Segment Tracking
   const handleTimeUpdate = () => {
     if (!videoRef.current || isPaused) return;
     const currentTime = videoRef.current.currentTime;
@@ -93,7 +91,6 @@ export function Stories() {
     }
   }, [segmentIndex, momentIndex, currentMoment]);
 
-  // Photo Auto-advance (5s)
   useEffect(() => {
     if (currentMoment?.kind === "photo" && !isPaused && momentIndex !== null) {
       const interval = setInterval(() => {
@@ -117,13 +114,7 @@ export function Stories() {
 
   const handleDownload = () => {
     if (currentMoment?.media) {
-      const kind = currentMoment.kind === "video" ? "video" : currentMoment.kind === "text" ? "text" : "photo";
-      void downloadMomentMedia(
-        currentMoment.media,
-        kind,
-        currentMoment.author?.username || "user",
-        currentMoment.id,
-      );
+      downloadMomentMedia(currentMoment.media);
       toast.success("Downloading moment...");
     }
   };
@@ -152,7 +143,7 @@ export function Stories() {
               </div>
             </div>
             <span className="text-xs font-medium text-zinc-300 max-w-[68px] truncate">
-              {m.author?.name || "User"}
+              {m.author?.name || m.user?.name || "User"}
             </span>
           </button>
         ))}
@@ -166,8 +157,8 @@ export function Stories() {
           {currentMoment && (
             <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden">
               
-              {/* 1. TOP SNAPCHAT PROGRESS BARS */}
-              <div className={cn("absolute top-3 left-3 right-3 z-[10001] flex gap-1.5 transition-opacity duration-300 pointer-events-none", isPaused ? "opacity-0" : "opacity-100")}>
+              {/* TOP SNAPCHAT PROGRESS BARS */}
+              <div className={cn("absolute top-3 left-3 right-3 z-[10002] flex gap-1.5 transition-opacity duration-300 pointer-events-none", isPaused ? "opacity-0" : "opacity-100")}>
                 {Array.from({ length: totalSegments }).map((_, idx) => (
                   <div key={idx} className="h-1 flex-1 bg-white/30 backdrop-blur-sm rounded-full overflow-hidden">
                     <div
@@ -185,16 +176,16 @@ export function Stories() {
                 ))}
               </div>
 
-              {/* 2. HEADER USER INFO & ISOLATED CONTROLS */}
-              <div className={cn("absolute top-6 left-3 right-3 z-[10001] flex items-center justify-between transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+              {/* HEADER CONTROLS */}
+              <div className={cn("absolute top-6 left-3 right-3 z-[10002] flex items-center justify-between transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50 shadow-md">
-                    <img src={currentMoment.author?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
+                    <img src={currentMoment.author?.avatar || currentMoment.user?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-bold text-white drop-shadow-md">
-                        {currentMoment.author?.name || "User"}
+                        {currentMoment.author?.name || currentMoment.user?.name || "User"}
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 text-white font-semibold">
                         {segmentIndex + 1}/{totalSegments}
@@ -205,36 +196,39 @@ export function Stories() {
 
                 <div className="flex items-center gap-2 pointer-events-auto">
                   <button 
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsMuted(!isMuted);
                     }} 
-                    className="p-2 text-white bg-black/50 hover:bg-black/70 rounded-full backdrop-blur-md transition-all border border-white/20"
+                    className="p-2.5 text-white bg-black/60 hover:bg-black/80 rounded-full backdrop-blur-md transition-all border border-white/20 active:scale-90"
                   >
                     {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                   </button>
                   <button 
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownload();
                     }} 
-                    className="p-2 text-white bg-black/50 hover:bg-black/70 rounded-full backdrop-blur-md transition-all border border-white/20"
+                    className="p-2.5 text-white bg-black/60 hover:bg-black/80 rounded-full backdrop-blur-md transition-all border border-white/20 active:scale-90"
                   >
                     <Download className="w-4 h-4" />
                   </button>
                   <button 
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       close();
                     }} 
-                    className="p-2 text-white bg-black/50 hover:bg-black/70 rounded-full backdrop-blur-md transition-all border border-white/20"
+                    className="p-2.5 text-white bg-black/60 hover:bg-black/80 rounded-full backdrop-blur-md transition-all border border-white/20 active:scale-90"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {/* 3. MEDIA ELEMENT */}
+              {/* MEDIA VIEWPORT */}
               <div className="w-full h-full flex items-center justify-center pointer-events-none">
                 {currentMoment.kind === "video" ? (
                   <video
@@ -257,7 +251,7 @@ export function Stories() {
                 )}
               </div>
 
-              {/* 4. DEDICATED TAP-TO-SKIP & HOLD TOUCH ZONES */}
+              {/* TOUCH NAVIGATION ZONES (30% Left, 70% Right) */}
               <div 
                 className="absolute inset-0 z-[10000] flex"
                 onMouseDown={() => { setIsPaused(true); videoRef.current?.pause(); }}
@@ -265,29 +259,25 @@ export function Stories() {
                 onTouchStart={() => { setIsPaused(true); videoRef.current?.pause(); }}
                 onTouchEnd={() => { setIsPaused(false); videoRef.current?.play(); }}
               >
-                {/* Left 30% Tap Zone - Rewind */}
                 <div
                   className="w-[30%] h-full cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    e.preventDefault();
                     handlePrev();
                   }}
                 />
-                {/* Right 70% Tap Zone - Fast Forward */}
                 <div
                   className="w-[70%] h-full cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    e.preventDefault();
                     handleNext();
                   }}
                 />
               </div>
 
-              {/* 5. POLL OVERLAY */}
+              {/* POLL INTERACTION */}
               {currentMoment.poll && (
-                <div className={cn("absolute bottom-24 left-6 right-6 z-[10001] bg-black/60 backdrop-blur-xl border border-white/20 p-4 rounded-2xl transition-opacity duration-300 pointer-events-auto", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+                <div className={cn("absolute bottom-24 left-6 right-6 z-[10002] bg-black/70 backdrop-blur-xl border border-white/20 p-4 rounded-2xl transition-opacity duration-300 pointer-events-auto", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
                   <p className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
                     <BarChart2 className="w-4 h-4 text-pink-400" />
                     {currentMoment.poll.question || "Cast your vote:"}
@@ -296,11 +286,12 @@ export function Stories() {
                     {currentMoment.poll.options?.map((opt: string, oIdx: number) => (
                       <button
                         key={oIdx}
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setPollVotedOption(oIdx);
                         }}
-                        className={cn("w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border transition-all", 
+                        className={cn("w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border transition-all active:scale-98", 
                           pollVotedOption === oIdx 
                             ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white border-transparent" 
                             : "bg-white/10 text-white border-white/20 hover:bg-white/20"
@@ -314,8 +305,8 @@ export function Stories() {
                 </div>
               )}
 
-              {/* 6. BOTTOM REPLY & LIKE BAR */}
-              <div className={cn("absolute bottom-4 left-3 right-3 z-[10001] flex items-center gap-2 transition-opacity duration-300 pointer-events-auto", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+              {/* REPLY & REACTION FOOTER */}
+              <div className={cn("absolute bottom-4 left-3 right-3 z-[10002] flex items-center gap-2 transition-opacity duration-300 pointer-events-auto", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
                 <div className="flex-1 relative flex items-center">
                   <input
                     type="text"
@@ -323,22 +314,27 @@ export function Stories() {
                     onChange={(e) => setReplyText(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                     placeholder="Send reply..."
-                    className="w-full bg-black/60 backdrop-blur-xl border border-white/25 rounded-full pl-4 pr-10 py-2.5 text-sm text-white placeholder-white/60 focus:outline-none focus:border-pink-500"
+                    className="w-full bg-black/70 backdrop-blur-xl border border-white/25 rounded-full pl-4 pr-10 py-2.5 text-sm text-white placeholder-white/60 focus:outline-none focus:border-pink-500 shadow-xl"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSendReply();
                     }}
                   />
-                  <button onClick={(e) => { e.stopPropagation(); handleSendReply(); }} className="absolute right-2.5 p-1.5 text-pink-400">
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.stopPropagation(); handleSendReply(); }} 
+                    className="absolute right-2.5 p-1.5 text-pink-400 hover:text-pink-300"
+                  >
                     <Send className="w-4 h-4" />
                   </button>
                 </div>
 
                 <button 
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setHasLiked(!hasLiked);
                   }} 
-                  className={cn("p-2.5 bg-black/60 backdrop-blur-xl rounded-full text-white border border-white/25 transition-all active:scale-90",
+                  className={cn("p-2.5 bg-black/70 backdrop-blur-xl rounded-full text-white border border-white/25 transition-all active:scale-90 shadow-xl",
                     hasLiked ? "text-pink-500 border-pink-500/50 bg-pink-500/20" : "hover:bg-white/10"
                   )}
                 >
