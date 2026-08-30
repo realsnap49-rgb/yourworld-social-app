@@ -285,6 +285,7 @@ function StoryPlayer({
 
       {moment.musicUrl && (
         <audio
+          ref={audioRef}
           key={`a-${moment.id}`}
           src={moment.musicUrl}
           autoPlay
@@ -308,8 +309,29 @@ function StoryPlayer({
         />
       )}
 
+      {/* tap / hold surface */}
+      <div
+        className="absolute inset-0 z-10 select-none"
+        style={{ touchAction: "none" }}
+        onPointerDown={onPressStart}
+        onPointerUp={onPressEnd}
+        onPointerCancel={() => {
+          if (holdTimer.current) window.clearTimeout(holdTimer.current);
+          holdTimer.current = null;
+          if (holding) {
+            setHolding(false);
+            setPaused(false);
+          }
+        }}
+      />
+
       {/* progress bars */}
-      <div className="absolute inset-x-2 top-2 flex gap-1">
+      <div
+        className={cn(
+          "absolute inset-x-2 top-2 z-20 flex gap-1 transition-opacity duration-200",
+          holding && "opacity-0",
+        )}
+      >
         {moments.map((m, i) => (
           <div key={m.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30">
             <div
@@ -321,7 +343,13 @@ function StoryPlayer({
       </div>
 
       {/* header */}
-      <div className="absolute inset-x-3 top-6 flex items-center gap-2.5">
+      <div
+        className={cn(
+          "absolute inset-x-3 top-6 z-20 flex items-center gap-2.5 transition-opacity duration-200",
+          holding && "pointer-events-none opacity-0",
+        )}
+      >
+
         <YwAvatar user={currentUser} size={32} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold">{currentUser.name}</p>
