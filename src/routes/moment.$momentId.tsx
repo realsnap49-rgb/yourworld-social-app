@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
 import { useMoments } from "@/lib/moment-store";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -130,10 +130,10 @@ function MomentViewRoute() {
         <div className={cn("absolute top-6 left-3 right-3 z-[10002] flex items-center justify-between transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50 shadow-md">
-              <img src={currentMoment.author?.avatar || currentMoment.user?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
+              <img src={currentMoment.author?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
             </div>
             <span className="text-sm font-bold text-white drop-shadow-md">
-              {currentMoment.author?.name || currentMoment.user?.name || "User"}
+              {currentMoment.author?.name || currentMoment.author?.username || "User"}
             </span>
           </div>
 
