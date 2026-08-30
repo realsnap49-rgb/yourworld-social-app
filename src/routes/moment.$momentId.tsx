@@ -13,6 +13,8 @@ import {
   Music2,
   Clock,
   Send,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
