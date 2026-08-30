@@ -130,7 +130,7 @@ export function CommentsSheet({
   };
 
   return (
-    <Drawer>
+    <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{children}</DrawerTrigger>
       <DrawerContent className="border-border bg-popover">
         <div className="mx-auto flex h-[70vh] w-full max-w-lg flex-col">
