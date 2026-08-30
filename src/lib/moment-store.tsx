@@ -506,8 +506,20 @@ export function MomentProvider({ children }: { children: ReactNode }) {
         return optimistic;
       },
       deleteMoment: (id) => {
+        // Optimistic removal — instantly drops from feed bar, lists, viewer queue & archive
         setMoments((p) => p.filter((m) => m.id !== id));
-        void supabase.from("moments").delete().eq("id", id);
+        void (async () => {
+          // Remove child rows first so the delete never fails on FK constraints
+          await supabase.from("moment_replies").delete().eq("moment_id", id);
+          await supabase.from("moment_views").delete().eq("moment_id", id);
+          const { error } = await supabase.from("moments").delete().eq("id", id);
+          if (error) {
+            toast.error("Couldn't delete this moment");
+            await load(); // restore truthful state
+            return;
+          }
+          await load(); // invalidate & refetch so it never re-appears
+        })();
       },
       archiveMoment: (id) => {
         patch(id, (m) => ({ ...m, archived: true }));
