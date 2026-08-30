@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
   Mic, Send, Smile, Play, Pause, X, MicOff,
@@ -72,6 +72,7 @@ function MenuItem({
 
 export function ChatThreadPage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [protectionWarning, setProtectionWarning] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
@@ -214,6 +215,16 @@ export function ChatThreadPage() {
   const { settings, patch } = useChatSettings(peer.peerId);
   const { nameFor } = useChatNames();
   const displayName = nameFor(peer.peerId, settings.displayName ?? peer.peerName ?? "");
+  const openPeerProfile = {
+    preload: () => {
+      if (!peer.peerId) return;
+      void router.preloadRoute({ to: "/u/$userId", params: { userId: peer.peerId } }).catch(() => {});
+    },
+    go: () => {
+      if (!peer.peerId) return;
+      void navigate({ to: "/u/$userId", params: { userId: peer.peerId } });
+    },
+  };
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const setDisplayName = (n: string) => {
@@ -476,9 +487,13 @@ export function ChatThreadPage() {
             <ArrowLeft size={22} />
           </button>
           
-          <div className="relative">
+          <div
+            className="relative cursor-pointer"
+            onPointerDown={openPeerProfile.preload}
+            onClick={openPeerProfile.go}
+          >
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md">
-              U
+              {(displayName || "U").charAt(0).toUpperCase()}
             </div>
             <span
               className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${
@@ -488,7 +503,11 @@ export function ChatThreadPage() {
           </div>
 
           <div className="flex flex-col">
-            <span className="font-bold text-sm leading-tight text-white flex items-center gap-1">
+            <span
+              className="font-bold text-sm leading-tight text-white flex items-center gap-1 cursor-pointer"
+              onPointerDown={openPeerProfile.preload}
+              onClick={openPeerProfile.go}
+            >
               {displayName}
               {secretLock && <Lock size={12} className="text-purple-400" />}
               {muted && <BellOff size={12} className="text-zinc-500" />}

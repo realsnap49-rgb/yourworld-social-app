@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Link, useRouter } from "@tanstack/react-router";
 import {
   Drawer,
   DrawerContent,
@@ -72,6 +73,17 @@ export function CommentsSheet({
   const real = usePostComments(postId ?? null);
   const [local, setLocal] = useState<Comment[]>(fallbackComments);
   const [draft, setDraft] = useState("");
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  const isRealUser = (id: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  // Warm the profile route so the tap feels instant.
+  const prefetchProfile = (id: string) => {
+    if (!isRealUser(id)) return;
+    void router.preloadRoute({ to: "/u/$userId", params: { userId: id } }).catch(() => {});
+  };
 
   const useReal = !!postId;
 
@@ -118,7 +130,7 @@ export function CommentsSheet({
   };
 
   return (
-    <Drawer>
+    <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{children}</DrawerTrigger>
       <DrawerContent className="border-border bg-popover">
         <div className="mx-auto flex h-[70vh] w-full max-w-lg flex-col">
@@ -131,10 +143,38 @@ export function CommentsSheet({
           <ul className="flex-1 space-y-4 overflow-y-auto px-4 pb-4">
             {list.map((c) => (
               <li key={c.id} className="flex gap-3">
-                <CommentAvatar user={c.user} url={c.avatarUrl} />
+                {isRealUser(c.user.id) && !c.mine ? (
+                  <Link
+                    to="/u/$userId"
+                    params={{ userId: c.user.id }}
+                    onClick={() => setOpen(false)}
+                    onPointerEnter={() => prefetchProfile(c.user.id)}
+                    onPointerDown={() => prefetchProfile(c.user.id)}
+                    className="shrink-0"
+                    aria-label={`Open @${c.user.username} profile`}
+                  >
+                    <CommentAvatar user={c.user} url={c.avatarUrl} />
+                  </Link>
+                ) : (
+                  <CommentAvatar user={c.user} url={c.avatarUrl} />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">
-                    @{c.user.username} · {c.time}
+                    {isRealUser(c.user.id) && !c.mine ? (
+                      <Link
+                        to="/u/$userId"
+                        params={{ userId: c.user.id }}
+                        onClick={() => setOpen(false)}
+                        onPointerEnter={() => prefetchProfile(c.user.id)}
+                        onPointerDown={() => prefetchProfile(c.user.id)}
+                        className="font-semibold text-foreground transition-opacity active:opacity-60"
+                      >
+                        @{c.user.username}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold text-foreground">@{c.user.username}</span>
+                    )}{" "}
+                    · {c.time}
                   </p>
                   <p className="text-sm">{c.body}</p>
                 </div>
