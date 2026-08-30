@@ -156,7 +156,7 @@ function StoryPlayer({
           src={moment.media}
           autoPlay
           playsInline
-          muted={!!moment.musicUrl}
+          muted={muted}
           style={{ filter }}
           className="h-full w-full object-cover"
           onLoadedMetadata={(e) => {
