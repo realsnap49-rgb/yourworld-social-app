@@ -69,6 +69,7 @@ function MomentViewer() {
   );
   const [reply, setReply] = useState("");
   const [tab, setTab] = useState<"viewers" | "replies">("viewers");
+  const [detailMuted, setDetailMuted] = useState(false);
   const people = useProfiles(
     useMemo(
       () => [
