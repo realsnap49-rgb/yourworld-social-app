@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_compliance_flags: {
+        Row: {
+          created_at: string
+          excerpt: string | null
+          id: string
+          matched_terms: string[]
+          message_id: string | null
+          peer_id: string | null
+          surface: string
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          matched_terms?: string[]
+          message_id?: string | null
+          peer_id?: string | null
+          surface: string
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          matched_terms?: string[]
+          message_id?: string | null
+          peer_id?: string | null
+          surface?: string
+          thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       creator_earnings: {
         Row: {
           created_at: string
@@ -836,6 +872,9 @@ export type Database = {
           media_type: string
           media_url: string
           orientation: string
+          paid_promotion: boolean
+          review_note: string | null
+          review_status: string
           scheduled_at: string | null
           tagged_user_ids: string[]
           thumbnail_url: string | null
@@ -860,6 +899,9 @@ export type Database = {
           media_type?: string
           media_url?: string
           orientation?: string
+          paid_promotion?: boolean
+          review_note?: string | null
+          review_status?: string
           scheduled_at?: string | null
           tagged_user_ids?: string[]
           thumbnail_url?: string | null
@@ -884,6 +926,9 @@ export type Database = {
           media_type?: string
           media_url?: string
           orientation?: string
+          paid_promotion?: boolean
+          review_note?: string | null
+          review_status?: string
           scheduled_at?: string | null
           tagged_user_ids?: string[]
           thumbnail_url?: string | null

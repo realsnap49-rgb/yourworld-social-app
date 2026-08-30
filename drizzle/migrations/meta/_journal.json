@@ -50,6 +50,13 @@
       "when": 1788065277406,
       "tag": "0006_add_payout_schedule_and_eligibility",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788067075821,
+      "tag": "0007_compliance_flags_and_paid_promotion",
+      "breakpoints": true
     }
   ]
 }
