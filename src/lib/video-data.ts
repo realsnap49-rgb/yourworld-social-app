@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { rememberLocalMedia, timeAgo, type DbProfile } from "@/lib/social-data";
 import { uploadWithProgress } from "@/lib/storage-upload";
+import { sampleVideoFrames } from "@/lib/video-frames";
+import { scanVideoContent, type ModerationVerdict } from "@/lib/moderation.functions";
+
 
 export const VIDEO_CATEGORIES = [
   "Vlog",
