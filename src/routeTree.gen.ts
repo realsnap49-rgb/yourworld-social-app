@@ -49,6 +49,7 @@ import { Route as ChannelPostsRouteImport } from './routes/channel.posts'
 import { Route as ChannelMonetizationRouteImport } from './routes/channel.monetization'
 import { Route as ChannelCreateRouteImport } from './routes/channel.create'
 import { Route as ChannelAnalyticsRouteImport } from './routes/channel.analytics'
+import { Route as AdminCopyrightReportsRouteImport } from './routes/admin.copyright-reports'
 import { Route as AuthenticatedChatIndexRouteImport } from './routes/_authenticated/chat.index'
 import { Route as OrbitChatUserIdRouteImport } from './routes/orbit.chat.$userId'
 import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
@@ -252,6 +253,11 @@ const ChannelAnalyticsRoute = ChannelAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => ChannelRoute,
 } as any)
+const AdminCopyrightReportsRoute = AdminCopyrightReportsRouteImport.update({
+  id: '/admin/copyright-reports',
+  path: '/admin/copyright-reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
   id: '/chat/',
   path: '/chat/',
@@ -287,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
+  '/admin/copyright-reports': typeof AdminCopyrightReportsRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
   '/channel/monetization': typeof ChannelMonetizationRoute
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
+  '/admin/copyright-reports': typeof AdminCopyrightReportsRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
   '/channel/monetization': typeof ChannelMonetizationRoute
@@ -375,6 +383,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
+  '/admin/copyright-reports': typeof AdminCopyrightReportsRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
   '/channel/monetization': typeof ChannelMonetizationRoute
@@ -421,6 +430,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/wallet'
+    | '/admin/copyright-reports'
     | '/channel/analytics'
     | '/channel/create'
     | '/channel/monetization'
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/wallet'
+    | '/admin/copyright-reports'
     | '/channel/analytics'
     | '/channel/create'
     | '/channel/monetization'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/wallet'
+    | '/admin/copyright-reports'
     | '/channel/analytics'
     | '/channel/create'
     | '/channel/monetization'
@@ -554,6 +566,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRoute
+  AdminCopyrightReportsRoute: typeof AdminCopyrightReportsRoute
   MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
   PostCreateRoute: typeof PostCreateRoute
@@ -845,6 +858,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChannelAnalyticsRouteImport
       parentRoute: typeof ChannelRoute
     }
+    '/admin/copyright-reports': {
+      id: '/admin/copyright-reports'
+      path: '/admin/copyright-reports'
+      fullPath: '/admin/copyright-reports'
+      preLoaderRoute: typeof AdminCopyrightReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/chat/': {
       id: '/_authenticated/chat/'
       path: '/chat'
@@ -950,6 +970,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   WalletRoute: WalletRoute,
+  AdminCopyrightReportsRoute: AdminCopyrightReportsRoute,
   MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
   PostCreateRoute: PostCreateRoute,
