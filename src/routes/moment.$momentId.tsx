@@ -190,8 +190,9 @@ function MomentViewer() {
                 src={moment.media}
                 autoPlay
                 loop
-                muted
+                muted={detailMuted}
                 playsInline
+                onClick={() => setDetailMuted((v) => !v)}
                 style={{ filter }}
                 className="h-full w-full object-cover"
                 onLoadedMetadata={(e) => {
