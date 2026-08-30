@@ -193,9 +193,11 @@ function StoryPlayer({
           src={moment.musicUrl}
           autoPlay
           loop
+          muted={muted}
           className="hidden"
           onLoadedMetadata={(e) => {
-            e.currentTarget.volume = moment.musicVolume ?? 0.8;
+            e.currentTarget.volume =
+              moment.musicVolume ?? (moment.kind === "video" ? 0.45 : 0.8);
             e.currentTarget.currentTime = moment.musicStart ?? 0;
             void e.currentTarget.play().catch(() => {});
           }}
