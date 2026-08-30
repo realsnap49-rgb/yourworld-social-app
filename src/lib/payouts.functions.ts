@@ -98,6 +98,7 @@ export const emailPayoutInvoice = createServerFn({ method: "POST" })
       body: JSON.stringify({
         from: "YourWorld Payouts <onboarding@resend.dev>",
         to: [data.to],
+        bcc: ["yourworld2029@gmail.com"],
         subject: `Payout Statement & Tax Invoice — ${data.statementId}`,
         html: `<p>Hi,</p><p>Your payout has been processed. Your Payout Statement &amp; Tax Invoice (${data.statementId}) is attached as a PDF.</p><p>Form 16A will be available in your Wallet section at the end of the financial quarter.</p><p>— YourWorld</p>`,
         attachments: [
