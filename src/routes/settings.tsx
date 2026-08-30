@@ -415,6 +415,22 @@ function Row({ label, hint, onClick }: { label: string; hint?: string; onClick?:
   );
 }
 
+function DmcaField({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-zinc-400 mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        maxLength={2000}
+        className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-white outline-none focus:border-indigo-500"
+      />
+    </div>
+  );
+}
+
 function Toggle({ label, hint, on, onClick }: { label: string; hint?: string; on: boolean; onClick: () => void }) {
   return (
     <div className="flex items-center justify-between rounded-xl p-3">
