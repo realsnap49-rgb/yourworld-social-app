@@ -126,6 +126,20 @@ function HomePage() {
                 <Plus className="w-6 h-6 text-pink-500" />
               )}
             </div>
+            {/* Always-on "add another moment" badge (Snapchat-style) */}
+            {myLatest && (
+              <span
+                role="button"
+                aria-label="Add another moment"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate({ to: "/moment/create" });
+                }}
+                className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-pink-500 border-2 border-black flex items-center justify-center"
+              >
+                <Plus className="w-3.5 h-3.5 text-white" />
+              </span>
+            )}
           </button>
           <span className="text-xs text-neutral-300 font-medium truncate max-w-[68px]">
             Your moment
