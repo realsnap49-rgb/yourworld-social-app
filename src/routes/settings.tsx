@@ -357,10 +357,11 @@ export function SettingsPage() {
               placeholder="Link or ID of the infringing content"
             />
             <DmcaField
-              label="Original Work URL *"
+              label="Original Work / Proof URL *"
+              type="url"
               value={dmca.originalWork}
               onChange={(v) => setDmca((d) => ({ ...d, originalWork: v }))}
-              placeholder="Link to your original work"
+              placeholder="https://link-to-your-original-work"
             />
             <div>
               <label className="block text-xs font-semibold text-zinc-400 mb-1">Description of ownership *</label>
@@ -374,19 +375,38 @@ export function SettingsPage() {
               />
             </div>
             <DmcaField
+              label="Your Full Legal Name *"
+              value={dmca.fullName}
+              onChange={(v) => setDmca((d) => ({ ...d, fullName: v }))}
+              placeholder="Full name of rights owner or agent"
+            />
+            <DmcaField
               label="Contact Email *"
               type="email"
               value={dmca.email}
               onChange={(v) => setDmca((d) => ({ ...d, email: v }))}
               placeholder="you@example.com"
             />
+            <label className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+              <input
+                type="checkbox"
+                checked={dmcaAgree}
+                onChange={(e) => setDmcaAgree(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-500"
+              />
+              <span className="text-[11px] leading-relaxed text-zinc-300">
+                I confirm under penalty of perjury/account termination that I am the rightful owner or authorized agent of
+                this copyrighted content.
+              </span>
+            </label>
             <button
               onClick={submitDmca}
-              disabled={submittingDmca}
+              disabled={submittingDmca || !dmcaAgree}
               className="w-full rounded-xl bg-indigo-500 py-3 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
             >
               {submittingDmca ? "Submitting…" : "Submit DMCA Report"}
             </button>
+
           </div>
         </Panel>
       )}
