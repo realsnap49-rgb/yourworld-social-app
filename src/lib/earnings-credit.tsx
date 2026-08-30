@@ -10,7 +10,7 @@ const netFor = (source: string, gross: number) => {
     course: key === "course" ? gross : 0,
     vip: key === "vip" ? gross : 0,
   });
-  return bd.netPayable;
+  return bd.net;
 };
 
 /** Atomic pop-up whenever earnings land in the creator's wallet. */
