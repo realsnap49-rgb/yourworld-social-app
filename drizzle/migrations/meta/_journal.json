@@ -64,6 +64,13 @@
       "when": 1788067226702,
       "tag": "0008_enable_realtime_creator_earnings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788099553353,
+      "tag": "0009_dedupe_post_views_per_viewer",
+      "breakpoints": true
     }
   ]
 }
