@@ -374,8 +374,13 @@ export function SettingsPage() {
       {panel === "about" && (
         <Panel title="About" onClose={() => setPanel(null)}>
           <Row label="YourWorld" hint="Version 1.0.0" />
-          <Row label="Terms of Service" />
-          <Row label="Privacy Policy" />
+          <Row label="Terms of Service" onClick={() => navigate({ to: "/terms" })} />
+          <Row label="Privacy Policy" onClick={() => navigate({ to: "/privacy" })} />
+          <Row
+            label="Copyright & DMCA Policy"
+            hint="Takedown procedure & Safe Harbor"
+            onClick={() => navigate({ to: "/copyright-policy" })}
+          />
           <Row label="Licenses" />
         </Panel>
       )}
