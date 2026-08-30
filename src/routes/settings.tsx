@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { User, Megaphone, Orbit, Lock, Bell, Palette, HelpCircle, Info, LogOut, ChevronRight, ArrowLeft, X, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-store";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -29,9 +31,49 @@ type PanelId = "privacy" | "notifications" | "appearance" | "help" | "about";
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const queryClient = useQueryClient();
   const [panel, setPanel] = useState<PanelId | null>(null);
+  const [reportStep, setReportStep] = useState<"options" | "dmca" | null>(null);
+  const [dmca, setDmca] = useState({ contentLink: "", originalWork: "", description: "", email: "" });
+  const [submittingDmca, setSubmittingDmca] = useState(false);
+
+  const submitDmca = async () => {
+    const contentLink = dmca.contentLink.trim();
+    const originalWork = dmca.originalWork.trim();
+    const description = dmca.description.trim();
+    const email = dmca.email.trim();
+    if (!contentLink || !originalWork || !description || !email) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid contact email");
+      return;
+    }
+    if (!user) {
+      toast.error("Please sign in to submit a report");
+      return;
+    }
+    setSubmittingDmca(true);
+    const { error } = await supabase.from("copyright_reports").insert({
+      reporter_user_id: user.id,
+      infringing_content_link: contentLink.slice(0, 2000),
+      original_work_link: originalWork.slice(0, 2000),
+      reason: description.slice(0, 2000),
+      contact_email: email.slice(0, 255),
+    });
+    setSubmittingDmca(false);
+    if (error) {
+      toast.error("Could not submit report. Please try again.");
+      return;
+    }
+    toast.success("DMCA report submitted successfully");
+    setDmca({ contentLink: "", originalWork: "", description: "", email: "" });
+    setReportStep(null);
+    setPanel(null);
+  };
+
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     privateAccount: false,
     allowDownloads: true,
@@ -248,9 +290,79 @@ export function SettingsPage() {
       {panel === "help" && (
         <Panel title="Help & Support" onClose={() => setPanel(null)}>
           <Row label="Help center" hint="Guides and troubleshooting" />
-          <Row label="Report a problem" hint="Tell us what went wrong" />
+          <Row label="Report a problem" hint="Tell us what went wrong" onClick={() => setReportStep("options")} />
           <Row label="Community guidelines" />
-          <Row label="Contact support" hint="Yourworld2029@gmail.com" />
+          <Row
+            label="Contact support"
+            hint="Yourworld2029@gmail.com"
+            onClick={() => {
+              window.location.href = "mailto:Yourworld2029@gmail.com";
+            }}
+          />
+        </Panel>
+      )}
+
+      {reportStep === "options" && (
+        <Panel title="Report a problem" onClose={() => setReportStep(null)}>
+          <Row label="Copyright Infringement (DMCA)" hint="Report stolen content" onClick={() => setReportStep("dmca")} />
+          <Row
+            label="Technical Bug"
+            hint="App errors or crashes"
+            onClick={() => {
+              window.location.href = "mailto:Yourworld2029@gmail.com?subject=" + encodeURIComponent("Technical Bug Report");
+            }}
+          />
+          <Row
+            label="Community Violation"
+            hint="Harassment, spam or abuse"
+            onClick={() => {
+              window.location.href = "mailto:Yourworld2029@gmail.com?subject=" + encodeURIComponent("Community Violation Report");
+            }}
+          />
+        </Panel>
+      )}
+
+      {reportStep === "dmca" && (
+        <Panel title="DMCA Takedown Request" onClose={() => setReportStep(null)}>
+          <div className="space-y-3 p-1">
+            <DmcaField
+              label="Content Link / ID *"
+              value={dmca.contentLink}
+              onChange={(v) => setDmca((d) => ({ ...d, contentLink: v }))}
+              placeholder="Link or ID of the infringing content"
+            />
+            <DmcaField
+              label="Original Work URL *"
+              value={dmca.originalWork}
+              onChange={(v) => setDmca((d) => ({ ...d, originalWork: v }))}
+              placeholder="Link to your original work"
+            />
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">Description of ownership *</label>
+              <textarea
+                value={dmca.description}
+                onChange={(e) => setDmca((d) => ({ ...d, description: e.target.value }))}
+                placeholder="Explain that you own the original work"
+                maxLength={2000}
+                rows={4}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-white outline-none focus:border-indigo-500"
+              />
+            </div>
+            <DmcaField
+              label="Contact Email *"
+              type="email"
+              value={dmca.email}
+              onChange={(v) => setDmca((d) => ({ ...d, email: v }))}
+              placeholder="you@example.com"
+            />
+            <button
+              onClick={submitDmca}
+              disabled={submittingDmca}
+              className="w-full rounded-xl bg-indigo-500 py-3 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {submittingDmca ? "Submitting…" : "Submit DMCA Report"}
+            </button>
+          </div>
         </Panel>
       )}
 
@@ -300,6 +412,22 @@ function Row({ label, hint, onClick }: { label: string; hint?: string; onClick?:
       </span>
       <ChevronRight className="text-zinc-600" size={18} />
     </button>
+  );
+}
+
+function DmcaField({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-zinc-400 mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        maxLength={2000}
+        className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-white outline-none focus:border-indigo-500"
+      />
+    </div>
   );
 }
 
