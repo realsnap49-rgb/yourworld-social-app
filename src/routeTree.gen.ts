@@ -19,6 +19,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as CopyrightPolicyRouteImport } from './routes/copyright-policy'
 import { Route as ChannelRouteImport } from './routes/channel'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AccountRouteImport } from './routes/account'
@@ -98,6 +99,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CopyrightPolicyRoute = CopyrightPolicyRouteImport.update({
+  id: '/copyright-policy',
+  path: '/copyright-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChannelRoute = ChannelRouteImport.update({
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/auth': typeof AuthRoute
   '/channel': typeof ChannelRouteWithChildren
+  '/copyright-policy': typeof CopyrightPolicyRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
@@ -296,6 +303,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/auth': typeof AuthRoute
+  '/copyright-policy': typeof CopyrightPolicyRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
@@ -338,6 +346,7 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/auth': typeof AuthRoute
   '/channel': typeof ChannelRouteWithChildren
+  '/copyright-policy': typeof CopyrightPolicyRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/auth'
     | '/channel'
+    | '/copyright-policy'
     | '/create'
     | '/notifications'
     | '/orbit'
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/auth'
+    | '/copyright-policy'
     | '/create'
     | '/notifications'
     | '/profile'
@@ -462,6 +473,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/auth'
     | '/channel'
+    | '/copyright-policy'
     | '/create'
     | '/notifications'
     | '/orbit'
@@ -505,6 +517,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   AuthRoute: typeof AuthRoute
   ChannelRoute: typeof ChannelRouteWithChildren
+  CopyrightPolicyRoute: typeof CopyrightPolicyRoute
   CreateRoute: typeof CreateRoute
   NotificationsRoute: typeof NotificationsRoute
   OrbitRoute: typeof OrbitRouteWithChildren
@@ -594,6 +607,13 @@ declare module '@tanstack/react-router' {
       path: '/create'
       fullPath: '/create'
       preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/copyright-policy': {
+      id: '/copyright-policy'
+      path: '/copyright-policy'
+      fullPath: '/copyright-policy'
+      preLoaderRoute: typeof CopyrightPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/channel': {
@@ -877,6 +897,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   AuthRoute: AuthRoute,
   ChannelRoute: ChannelRouteWithChildren,
+  CopyrightPolicyRoute: CopyrightPolicyRoute,
   CreateRoute: CreateRoute,
   NotificationsRoute: NotificationsRoute,
   OrbitRoute: OrbitRouteWithChildren,
