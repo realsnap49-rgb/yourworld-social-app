@@ -86,6 +86,67 @@ export type Database = {
         }
         Relationships: []
       }
+      copyright_reports: {
+        Row: {
+          contact_email: string | null
+          created_at: string
+          id: string
+          infringing_content_link: string | null
+          original_work_link: string | null
+          reason: string | null
+          reported_moment_id: string | null
+          reported_post_id: string | null
+          reporter_user_id: string
+          status: string
+        }
+        Insert: {
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          infringing_content_link?: string | null
+          original_work_link?: string | null
+          reason?: string | null
+          reported_moment_id?: string | null
+          reported_post_id?: string | null
+          reporter_user_id: string
+          status?: string
+        }
+        Update: {
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          infringing_content_link?: string | null
+          original_work_link?: string | null
+          reason?: string | null
+          reported_moment_id?: string | null
+          reported_post_id?: string | null
+          reporter_user_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copyright_reports_reported_moment_id_fkey"
+            columns: ["reported_moment_id"]
+            isOneToOne: false
+            referencedRelation: "moments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copyright_reports_reported_post_id_fkey"
+            columns: ["reported_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copyright_reports_reporter_user_id_fkey"
+            columns: ["reporter_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_earnings: {
         Row: {
           created_at: string
@@ -1006,6 +1067,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           balance: number
@@ -1084,6 +1163,13 @@ export type Database = {
           username: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       list_follows: {
         Args: { _kind: string; _limit?: number; _user_id: string }
         Returns: {
@@ -1101,7 +1187,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1228,6 +1314,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
