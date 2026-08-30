@@ -392,20 +392,17 @@ function StoryPlayer({
         </button>
       </div>
 
-      {/* tap zones */}
-      <button
-        aria-label="Previous"
-        onClick={prev}
-        className="absolute inset-y-14 left-0 w-1/3 cursor-default"
-      />
-      <button
-        aria-label="Next"
-        onClick={next}
-        className="absolute inset-y-14 right-0 w-1/3 cursor-default"
-      />
+      {/* accessible fallbacks for keyboard / screen readers */}
+      <button aria-label="Previous" onClick={prev} className="sr-only" />
+      <button aria-label="Next" onClick={next} className="sr-only" />
 
       {moment.kind !== "text" && moment.text.trim() && (
-        <p className="pointer-events-none absolute inset-x-4 bottom-14 text-center font-display text-lg font-bold drop-shadow-lg">
+        <p
+          className={cn(
+            "pointer-events-none absolute inset-x-4 bottom-14 z-20 text-center font-display text-lg font-bold drop-shadow-lg transition-opacity duration-200",
+            holding && "opacity-0",
+          )}
+        >
           {moment.text}
         </p>
       )}
@@ -414,10 +411,14 @@ function StoryPlayer({
         to="/moment/$momentId"
         params={{ momentId: moment.id }}
         onClick={onClose}
-        className="absolute inset-x-0 bottom-3 mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md"
+        className={cn(
+          "absolute inset-x-0 bottom-3 z-20 mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md transition-opacity duration-200",
+          holding && "pointer-events-none opacity-0",
+        )}
       >
         View insights
       </Link>
+
     </div>
   );
 }
