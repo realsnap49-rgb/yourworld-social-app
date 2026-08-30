@@ -10,7 +10,7 @@ import {
   PHOTO_FILTERS, TEXT_COLORS, STICKER_EMOJIS, cropImage, renderPhoto,
   type Overlay,
 } from "@/components/yw/chat/photo-editor";
-import { PLATFORM_PROTECTION_NOTICE } from "@/lib/chat-compliance";
+import { needsProtectionWarning, PLATFORM_PROTECTION_WARNING_TITLE, PLATFORM_PROTECTION_WARNING_BODY } from "@/lib/chat-compliance";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { compressImageFile } from "@/lib/image-compress";
@@ -367,9 +367,7 @@ export function ChatThreadPage() {
       },
     ]);
 
-  const handleSend = () => {
-    if (!message.trim() || blocked) return;
-    const currentMsg = message;
+  const doSend = (currentMsg: string) => {
     if (currentUserId) {
       void sendToDb({ content: currentMsg, media_type: "text" });
     } else {
@@ -377,6 +375,15 @@ export function ChatThreadPage() {
     }
     setMessage("");
     setShowEmojis(false);
+  };
+
+  const handleSend = () => {
+    if (!message.trim() || blocked) return;
+    if (needsProtectionWarning(message)) {
+      setProtectionWarning(message);
+      return;
+    }
+    doSend(message);
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -582,10 +589,6 @@ export function ChatThreadPage() {
           </>
         )}
       </div>
-
-      <p className="shrink-0 border-b border-zinc-800/60 bg-zinc-900/60 px-4 py-1.5 text-center text-[10px] leading-snug text-zinc-400">
-        {PLATFORM_PROTECTION_NOTICE}
-      </p>
 
       {/* MESSAGES AREA */}
       {selectMode && (
