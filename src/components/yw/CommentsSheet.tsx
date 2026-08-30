@@ -73,6 +73,17 @@ export function CommentsSheet({
   const real = usePostComments(postId ?? null);
   const [local, setLocal] = useState<Comment[]>(fallbackComments);
   const [draft, setDraft] = useState("");
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  const isRealUser = (id: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  // Warm the profile route so the tap feels instant.
+  const prefetchProfile = (id: string) => {
+    if (!isRealUser(id)) return;
+    void router.preloadRoute({ to: "/u/$userId", params: { userId: id } }).catch(() => {});
+  };
 
   const useReal = !!postId;
 
