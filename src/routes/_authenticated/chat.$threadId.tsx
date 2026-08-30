@@ -214,6 +214,16 @@ export function ChatThreadPage() {
   const { settings, patch } = useChatSettings(peer.peerId);
   const { nameFor } = useChatNames();
   const displayName = nameFor(peer.peerId, settings.displayName ?? peer.peerName ?? "");
+  const openPeerProfile = {
+    preload: () => {
+      if (!peer.peerId) return;
+      void router.preloadRoute({ to: "/u/$userId", params: { userId: peer.peerId } }).catch(() => {});
+    },
+    go: () => {
+      if (!peer.peerId) return;
+      void navigate({ to: "/u/$userId", params: { userId: peer.peerId } });
+    },
+  };
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const setDisplayName = (n: string) => {
