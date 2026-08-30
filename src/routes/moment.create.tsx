@@ -3825,17 +3825,19 @@ function SettingRow({
         </p>
       </div>
 
-      <div
-        className={`w-5 h-5 shrink-0 rounded-md flex items-center justify-center ${
-          checked
-            ? "bg-pink-500"
-            : "border border-zinc-600"
+      <span
+        role="switch"
+        aria-checked={checked}
+        className={`relative h-[26px] w-[46px] shrink-0 rounded-full transition-colors duration-300 ease-out ${
+          checked ? "bg-pink-500" : "bg-zinc-700"
         }`}
       >
-        {checked && (
-          <Check size={13} />
-        )}
-      </div>
+        <span
+          className={`absolute top-[3px] left-[3px] h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-300 ease-out ${
+            checked ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </span>
     </button>
   );
 }
