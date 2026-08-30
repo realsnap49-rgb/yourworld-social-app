@@ -35,7 +35,8 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [reportStep, setReportStep] = useState<"options" | "dmca" | null>(null);
-  const [dmca, setDmca] = useState({ contentLink: "", originalWork: "", description: "", email: "" });
+  const [dmca, setDmca] = useState({ contentLink: "", originalWork: "", description: "", email: "", fullName: "" });
+  const [dmcaAgree, setDmcaAgree] = useState(false);
   const [submittingDmca, setSubmittingDmca] = useState(false);
 
   const submitDmca = async () => {
@@ -43,12 +44,28 @@ export function SettingsPage() {
     const originalWork = dmca.originalWork.trim();
     const description = dmca.description.trim();
     const email = dmca.email.trim();
-    if (!contentLink || !originalWork || !description || !email) {
+    const fullName = dmca.fullName.trim();
+    if (!contentLink || !originalWork || !description || !email || !fullName) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    let validProof = false;
+    try {
+      const u = new URL(originalWork);
+      validProof = u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      validProof = false;
+    }
+    if (!validProof) {
+      toast.error("Please enter a valid proof URL (must start with http:// or https://)");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error("Please enter a valid contact email");
+      return;
+    }
+    if (!dmcaAgree) {
+      toast.error("You must accept the legal declaration to submit");
       return;
     }
     if (!user) {
@@ -58,6 +75,7 @@ export function SettingsPage() {
     setSubmittingDmca(true);
     const { error } = await supabase.from("copyright_reports").insert({
       reporter_user_id: user.id,
+      reporter_full_name: fullName.slice(0, 200),
       infringing_content_link: contentLink.slice(0, 2000),
       original_work_link: originalWork.slice(0, 2000),
       reason: description.slice(0, 2000),
@@ -69,10 +87,12 @@ export function SettingsPage() {
       return;
     }
     toast.success("DMCA report submitted successfully");
-    setDmca({ contentLink: "", originalWork: "", description: "", email: "" });
+    setDmca({ contentLink: "", originalWork: "", description: "", email: "", fullName: "" });
+    setDmcaAgree(false);
     setReportStep(null);
     setPanel(null);
   };
+
 
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     privateAccount: false,
@@ -337,10 +357,11 @@ export function SettingsPage() {
               placeholder="Link or ID of the infringing content"
             />
             <DmcaField
-              label="Original Work URL *"
+              label="Original Work / Proof URL *"
+              type="url"
               value={dmca.originalWork}
               onChange={(v) => setDmca((d) => ({ ...d, originalWork: v }))}
-              placeholder="Link to your original work"
+              placeholder="https://link-to-your-original-work"
             />
             <div>
               <label className="block text-xs font-semibold text-zinc-400 mb-1">Description of ownership *</label>
@@ -354,19 +375,38 @@ export function SettingsPage() {
               />
             </div>
             <DmcaField
+              label="Your Full Legal Name *"
+              value={dmca.fullName}
+              onChange={(v) => setDmca((d) => ({ ...d, fullName: v }))}
+              placeholder="Full name of rights owner or agent"
+            />
+            <DmcaField
               label="Contact Email *"
               type="email"
               value={dmca.email}
               onChange={(v) => setDmca((d) => ({ ...d, email: v }))}
               placeholder="you@example.com"
             />
+            <label className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+              <input
+                type="checkbox"
+                checked={dmcaAgree}
+                onChange={(e) => setDmcaAgree(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-500"
+              />
+              <span className="text-[11px] leading-relaxed text-zinc-300">
+                I confirm under penalty of perjury/account termination that I am the rightful owner or authorized agent of
+                this copyrighted content.
+              </span>
+            </label>
             <button
               onClick={submitDmca}
-              disabled={submittingDmca}
+              disabled={submittingDmca || !dmcaAgree}
               className="w-full rounded-xl bg-indigo-500 py-3 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
             >
               {submittingDmca ? "Submitting…" : "Submit DMCA Report"}
             </button>
+
           </div>
         </Panel>
       )}
