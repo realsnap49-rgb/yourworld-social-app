@@ -1,444 +1,169 @@
-import { createFileRoute, useNavigate, useParams, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  Eye,
-  Heart,
-  MessageCircle,
-  Camera,
-  Download,
-  Archive,
-  Trash2,
-  MapPin,
-  Music2,
-  Clock,
-  Send,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { YwAvatar } from "@/components/yw/Avatar";
-import { currentUser, formatCount } from "@/lib/yw-data";
-import { useProfiles } from "@/lib/profiles-map";
-import { aiFilterCss, useMoments, type MyMoment } from "@/lib/moment-store";
-import { MomentPlayer } from "@/components/yw/MomentPlayer";
-import { downloadWithWatermark } from "@/lib/yw-download";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "@tanstack/react-router";
+import { useMoments } from "@/lib/moment-store";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { X, Heart, Send, Download, Volume2, VolumeX, Check, BarChart2 } from "lucide-react";
+import { downloadMomentMedia } from "@/lib/yw-download";
 import { toast } from "sonner";
 
-/** re-applies the editor's zoom/pan framing, scaled to this viewport width */
-function cropStyle(crop?: {
-  zoom: number;
-  x: number;
-  y: number;
-  frameW: number;
-  frameH: number;
-}): React.CSSProperties | undefined {
-  if (!crop || (crop.zoom <= 1.001 && !crop.x && !crop.y)) return undefined;
-  return {
-    transformOrigin: "0 0",
-    transform: `translate(${(crop.x / (crop.frameW || 1)) * 100}%, ${(crop.y / (crop.frameH || 1)) * 100}%) scale(${crop.zoom})`,
-  };
-}
+// ⏱️ REAL 40 SECONDS DURATION CHUNKING
+const SEGMENT_DURATION = 40;
 
-export const Route = createFileRoute("/moment/$momentId")({
-  head: () => ({
-    meta: [
-      { title: "Moment insights — YourWorld" },
-      {
-        name: "description",
-        content:
-          "See views, viewer list, likes, replies, poll results and screenshot alerts for your moment, and archive or delete it.",
-      },
-      { property: "og:title", content: "Moment insights — YourWorld" },
-      {
-        property: "og:description",
-        content: "Views, viewers, likes, replies, polls and screenshot alerts for your moment.",
-      },
-    ],
-  }),
-  component: MomentViewer,
-});
-
-function MomentViewer() {
-  const { momentId } = useParams({ from: "/moment/$momentId" });
+export default function MomentViewRoute() {
+  const { momentId } = useParams({ strict: false });
   const navigate = useNavigate();
-  const { moments, archive, addReply, votePoll, archiveMoment, deleteMoment, registerScreenshot, registerView } =
-    useMoments();
-  const moment = useMemo(
-    () => [...moments, ...archive].find((m) => m.id === momentId),
-    [moments, archive, momentId],
-  );
-  const [reply, setReply] = useState("");
-  const [tab, setTab] = useState<"viewers" | "replies">("viewers");
-  const [detailMuted, setDetailMuted] = useState(false);
-  const people = useProfiles(
-    useMemo(
-      () => [
-        ...(moment?.viewers ?? []).map((v) => v.userId),
-        ...(moment?.replies ?? []).map((r) => r.userId),
-      ],
-      [moment],
-    ),
-  );
+  const { moments } = useMoments();
 
-  // Count a real view once the moment opens
-  useEffect(() => {
-    if (moment && !moment.mine) registerView(moment.id);
-  }, [moment, registerView]);
+  const momentIndex = moments.findIndex((m) => String(m.id) === String(momentId));
+  const currentMoment = momentIndex !== -1 ? moments[momentIndex] : moments[0];
 
+  const [segmentIndex, setSegmentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [pollVotedOption, setPollVotedOption] = useState<number | null>(null);
 
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Screenshot / capture alert
-  useEffect(() => {
-    if (!moment?.screenshotAlert) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "PrintScreen" || (e.metaKey && e.shiftKey)) {
-        registerScreenshot(moment.id);
-        toast("Screenshot detected — both of you were notified");
+  const totalDuration = currentMoment?.duration || 40;
+  const totalSegments = currentMoment?.kind === "video" 
+    ? Math.max(1, Math.ceil(totalDuration / SEGMENT_DURATION)) 
+    : 1;
+
+  const close = useCallback(() => {
+    navigate({ to: "/" });
+  }, [navigate]);
+
+  const handleNext = useCallback(() => {
+    if (segmentIndex < totalSegments - 1) {
+      const nextSeg = segmentIndex + 1;
+      setSegmentIndex(nextSeg);
+      setProgress(0);
+      if (videoRef.current) {
+        videoRef.current.currentTime = nextSeg * SEGMENT_DURATION;
       }
-    };
-    window.addEventListener("keyup", onKey);
-    return () => window.removeEventListener("keyup", onKey);
-  }, [moment, registerScreenshot]);
-
-  // Someone else's moment → Snapchat-style segmented player for that author
-  if (moment && !moment.mine) {
-    const authorId = moment.author?.id;
-    const segments = authorId
-      ? moments.filter((m) => m.author?.id === authorId && !m.mine)
-      : [moment];
-    const startIndex = Math.max(0, segments.findIndex((m) => m.id === moment.id));
-    return (
-      <MomentPlayer
-        segments={segments.length ? segments : [moment]}
-        startIndex={startIndex}
-        onClose={() => navigate({ to: "/" })}
-        onSegmentChange={(m: MyMoment) => registerView(m.id)}
-      />
-    );
-  }
-
-  if (!moment) {
-    return (
-      <main className="grid min-h-screen place-items-center px-6 text-center">
-        <div>
-          <h1 className="font-display text-xl font-bold">Moment not available</h1>
-          <p className="pt-2 text-sm text-muted-foreground">It expired or was deleted.</p>
-          <Link to="/" className="mt-5 inline-block">
-            <Button className="rounded-full brand-gradient text-primary-foreground">Go home</Button>
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  const views = moment.viewers.length;
-  const likes = moment.viewers.filter((v) => v.liked).length;
-  const shots = moment.viewers.filter((v) => v.screenshot).length;
-  const expiresIn = Math.max(
-    0,
-    Math.round((moment.createdAt + moment.duration * 3600_000 - Date.now()) / 3600_000),
-  );
-  const filter = aiFilterCss(moment.ai, moment.effect);
-
-  const download = async () => {
-    if (!moment.allowDownload) {
-      toast("Downloads are turned off for this moment");
-      return;
+    } else if (momentIndex !== -1 && momentIndex < moments.length - 1) {
+      const nextMoment = moments[momentIndex + 1];
+      setSegmentIndex(0);
+      setProgress(0);
+      navigate({ to: `/moment/${nextMoment.id}` });
+    } else {
+      close();
     }
-    if (moment.kind !== "photo" || !moment.media) {
-      toast("Only photo moments can be saved right now");
-      return;
+  }, [segmentIndex, totalSegments, momentIndex, moments, navigate, close]);
+
+  const handlePrev = useCallback(() => {
+    if (segmentIndex > 0) {
+      const prevSeg = segmentIndex - 1;
+      setSegmentIndex(prevSeg);
+      setProgress(0);
+      if (videoRef.current) {
+        videoRef.current.currentTime = prevSeg * SEGMENT_DURATION;
+      }
+    } else if (momentIndex > 0) {
+      const prevMoment = moments[momentIndex - 1];
+      setSegmentIndex(0);
+      setProgress(0);
+      navigate({ to: `/moment/${prevMoment.id}` });
     }
-    try {
-      await downloadWithWatermark(moment.media, currentUser.username, `yw-moment-${moment.id}.jpg`);
-      toast.success("Saved with the YW watermark");
-    } catch {
-      toast.error("Couldn't save this moment");
+  }, [segmentIndex, momentIndex, moments, navigate]);
+
+  const handleTimeUpdate = () => {
+    if (!videoRef.current || isPaused) return;
+    const currentTime = videoRef.current.currentTime;
+    const segmentStartTime = segmentIndex * SEGMENT_DURATION;
+    const segmentEndTime = Math.min(segmentStartTime + SEGMENT_DURATION, totalDuration);
+    
+    const currentSegmentProgress = ((currentTime - segmentStartTime) / (segmentEndTime - segmentStartTime)) * 100;
+    setProgress(Math.min(100, Math.max(0, currentSegmentProgress)));
+
+    if (currentTime >= segmentEndTime) {
+      handleNext();
     }
   };
 
+  useEffect(() => {
+    if (videoRef.current && currentMoment?.kind === "video") {
+      videoRef.current.currentTime = segmentIndex * SEGMENT_DURATION;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [segmentIndex, momentId, currentMoment]);
+
+  if (!currentMoment) return null;
+
   return (
-    <main className="grain relative min-h-screen pb-10">
-      <div aria-hidden className="ambient-canvas" />
-
-      <header className="header-lux sticky top-0 z-40 flex h-[54px] items-center justify-between gap-3 px-3">
-        <button
-          aria-label="Back"
-          onClick={() => navigate({ to: "/" })}
-          className="icon-pill grid h-9 w-9 place-items-center active:scale-90"
-        >
-          <ArrowLeft className="h-5 w-5" strokeWidth={1.7} />
-        </button>
-        <h1 className="font-ui text-[17px] font-semibold tracking-[-0.02em]">Your Moment</h1>
-        <span className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-          <Clock className="h-3 w-3" /> {expiresIn}h
-        </span>
-      </header>
-
-      <section className="px-4 pt-4">
-        <div
-          className="relative aspect-9/16 w-full overflow-hidden rounded-[28px] border border-border bg-secondary"
-          style={moment.kind === "text" ? { background: moment.textBg } : undefined}
-        >
-          {moment.musicUrl && (
-            <audio
-              key={moment.id}
-              src={moment.musicUrl}
-              autoPlay
-              loop
-              onLoadedMetadata={(e) => {
-                e.currentTarget.volume = moment.musicVolume ?? 0.8;
-                e.currentTarget.currentTime = moment.musicStart ?? 0;
-                void e.currentTarget.play().catch(() => {});
-              }}
-              onTimeUpdate={(e) => {
-                const a = e.currentTarget;
-                const start = moment.musicStart ?? 0;
-                const end = moment.musicEnd ?? 0;
-                if (end > start && (a.currentTime >= end || a.currentTime < start)) {
-                  a.currentTime = start;
-                }
-              }}
-              className="hidden"
-            />
-          )}
-          {moment.kind === "video" && moment.media ? (
-            <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>
-              <video
-                src={moment.media}
-                autoPlay
-                loop
-                muted={detailMuted}
-                playsInline
-                onClick={() => setDetailMuted((v: boolean) => !v)}
-                style={{ filter }}
-                className="h-full w-full object-cover"
-                onLoadedMetadata={(e) => {
-                  if (moment.trim) e.currentTarget.currentTime = moment.trim.start;
-                }}
-                onTimeUpdate={(e) => {
-                  const v = e.currentTarget;
-                  if (!moment.trim) return;
-                  if (v.currentTime >= moment.trim.end || v.currentTime < moment.trim.start) {
-                    v.currentTime = moment.trim.start;
-                  }
+    <div className="fixed inset-0 z-[99999] bg-black flex items-center justify-center select-none">
+      <div className="relative w-full max-w-md h-[94vh] rounded-3xl overflow-hidden bg-black flex items-center justify-center">
+        
+        {/* SNAPCHAT PROGRESS BARS */}
+        <div className={cn("absolute top-3 left-3 right-3 z-[10002] flex gap-1.5 transition-opacity duration-300 pointer-events-none", isPaused ? "opacity-0" : "opacity-100")}>
+          {Array.from({ length: totalSegments }).map((_, idx) => (
+            <div key={idx} className="h-1 flex-1 bg-white/30 backdrop-blur-sm rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white transition-all duration-75 ease-linear rounded-full"
+                style={{
+                  width: idx < segmentIndex ? "100%" : idx === segmentIndex ? `${progress}%` : "0%",
                 }}
               />
-              <button
-                aria-label={detailMuted ? "Unmute" : "Mute"}
-                onClick={() => setDetailMuted((v: boolean) => !v)}
-                className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md active:scale-90"
-              >
-                {detailMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </button>
             </div>
-          ) : moment.kind === "photo" && moment.media ? (
-            <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>
-              <img src={moment.media} alt="Your moment" style={{ filter }} className="h-full w-full object-cover" />
-            </div>
-          ) : (
-            <div className="grid h-full w-full place-items-center p-8">
-              <p className="text-center font-display text-2xl font-bold text-white">{moment.text}</p>
-            </div>
-          )}
+          ))}
+        </div>
 
-          <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-wrap gap-1.5">
-            {moment.music && (
-              <span className="flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[10.5px] font-semibold text-white backdrop-blur-md">
-                <Music2 className="h-3 w-3" /> {moment.music}
-              </span>
-            )}
-            {moment.location && (
-              <span className="flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[10.5px] font-semibold text-white backdrop-blur-md">
-                <MapPin className="h-3 w-3" /> {moment.location}
-              </span>
-            )}
-          </div>
-
-          {moment.stickers.map((s) => (
-            <span
-              key={s.id}
-              style={{ left: `${s.x * 100}%`, top: `${s.y * 100}%` }}
-              className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-3xl drop-shadow-lg"
-            >
-              {s.content}
+        {/* HEADER */}
+        <div className={cn("absolute top-6 left-3 right-3 z-[10002] flex items-center justify-between transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50 shadow-md">
+              <img src={currentMoment.author?.avatar || currentMoment.user?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
+            </div>
+            <span className="text-sm font-bold text-white drop-shadow-md">
+              {currentMoment.author?.name || currentMoment.user?.name || "User"}
             </span>
-          ))}
+          </div>
 
-          {moment.kind !== "text" && moment.text.trim() && (
-            <p className="pointer-events-none absolute inset-x-4 bottom-4 text-center font-display text-lg font-bold text-white drop-shadow-lg">
-              {moment.text}
-            </p>
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <button type="button" onClick={() => setIsMuted(!isMuted)} className="p-2.5 text-white bg-black/60 rounded-full border border-white/20">
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+            <button type="button" onClick={close} className="p-2.5 text-white bg-black/60 rounded-full border border-white/20">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* MEDIA */}
+        <div className="w-full h-full flex items-center justify-center pointer-events-none">
+          {currentMoment.kind === "video" ? (
+            <video
+              ref={videoRef}
+              key={currentMoment.id}
+              src={currentMoment.media}
+              autoPlay
+              playsInline
+              muted={isMuted}
+              onTimeUpdate={handleTimeUpdate}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img key={currentMoment.id} src={currentMoment.media} className="w-full h-full object-cover" alt="" />
           )}
         </div>
-      </section>
 
-      {/* stats */}
-      <section className="grid grid-cols-4 gap-2 px-4 pt-4">
-        <Stat icon={<Eye className="h-4 w-4" />} value={formatCount(views)} label="Views" />
-        <Stat icon={<Heart className="h-4 w-4" />} value={formatCount(likes)} label="Likes" />
-        <Stat
-          icon={<MessageCircle className="h-4 w-4" />}
-          value={formatCount(moment.replies.length)}
-          label="Replies"
-        />
-        <Stat icon={<Camera className="h-4 w-4" />} value={formatCount(shots)} label="Captures" />
-      </section>
-
-      {moment.poll && (
-        <section className="px-4 pt-5">
-          <div className="rounded-2xl bg-secondary/60 p-4">
-            <p className="text-sm font-semibold">{moment.poll.question}</p>
-            <div className="mt-3 space-y-2">
-              {moment.poll.options.map((o, i) => {
-                const total = moment.poll!.votes[0] + moment.poll!.votes[1];
-                const pct = total ? Math.round((moment.poll!.votes[i]! / total) * 100) : 0;
-                return (
-                  <button
-                    key={o}
-                    onClick={() => votePoll(moment.id, i as 0 | 1)}
-                    className="relative w-full overflow-hidden rounded-xl bg-background px-3 py-2.5 text-left active:scale-[0.99]"
-                  >
-                    <span
-                      className="absolute inset-y-0 left-0 bg-primary/25 transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                    <span className="relative flex justify-between text-[13px] font-semibold">
-                      <span>{o}</span>
-                      <span className="text-muted-foreground">{pct}%</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* viewers / replies */}
-      <section className="px-4 pt-5">
-        <div className="grid grid-cols-2 gap-1 rounded-2xl bg-secondary p-1">
-          {(["viewers", "replies"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "rounded-xl py-2 text-[13px] font-semibold capitalize transition-all",
-                tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
-              )}
-            >
-              {t}
-            </button>
-          ))}
+        {/* TAP ZONES (30% Left / 70% Right) */}
+        <div 
+          className="absolute inset-0 z-[10000] flex"
+          onMouseDown={() => { setIsPaused(true); videoRef.current?.pause(); }}
+          onMouseUp={() => { setIsPaused(false); videoRef.current?.play(); }}
+          onTouchStart={() => { setIsPaused(true); videoRef.current?.pause(); }}
+          onTouchEnd={() => { setIsPaused(false); videoRef.current?.play(); }}
+        >
+          <div className="w-[30%] h-full cursor-pointer" onClick={(e) => { e.stopPropagation(); handlePrev(); }} />
+          <div className="w-[70%] h-full cursor-pointer" onClick={(e) => { e.stopPropagation(); handleNext(); }} />
         </div>
 
-        {tab === "viewers" ? (
-          <ul className="space-y-1.5 pt-3">
-            {moment.viewers.map((v) => {
-              const u = people.get(v.userId);
-              return (
-                <li
-                  key={v.userId}
-                  className="flex items-center gap-3 rounded-2xl bg-secondary/60 px-3 py-2.5"
-                >
-                  <YwAvatar user={u} size={36} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">@{u.username}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {Math.max(1, Math.round((Date.now() - v.at) / 60000))}m ago
-                    </p>
-                  </div>
-                  {v.screenshot && moment.screenshotAlert && (
-                    <Camera className="h-4 w-4 text-primary" aria-label="Captured a screenshot" />
-                  )}
-                  {v.liked && <Heart className="h-4 w-4 fill-primary text-primary" />}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div className="pt-3">
-            <ul className="space-y-1.5">
-              {moment.replies.length === 0 && (
-                <li className="rounded-2xl bg-secondary/60 px-3 py-4 text-center text-sm text-muted-foreground">
-                  No replies yet
-                </li>
-              )}
-              {moment.replies.map((r) => (
-                <li key={r.id} className="flex items-center gap-3 rounded-2xl bg-secondary/60 px-3 py-2.5">
-                  <YwAvatar user={people.get(r.userId)} size={32} />
-                  <p className="min-w-0 flex-1 truncate text-sm">{r.text}</p>
-                </li>
-              ))}
-            </ul>
-            <form
-              className="flex gap-2 pt-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!reply.trim()) return;
-                addReply(moment.id, reply.trim());
-                setReply("");
-              }}
-            >
-              <Input
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder="Reply to your moment…"
-                className="h-11 border-0 bg-secondary"
-              />
-              <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-full brand-gradient text-primary-foreground">
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
-        )}
-      </section>
-
-      {/* safety actions */}
-      <section className="space-y-2 px-4 pt-6">
-        <Button variant="secondary" className="h-11 w-full justify-start rounded-2xl" onClick={download}>
-          <Download className="mr-2 h-4 w-4" />
-          {moment.allowDownload ? "Save with watermark" : "Downloads off"}
-        </Button>
-        {moment.mine && (
-          <>
-            <Button
-              variant="secondary"
-              className="h-11 w-full justify-start rounded-2xl"
-              onClick={() => {
-                archiveMoment(moment.id);
-                toast.success("Saved to your archive");
-              }}
-            >
-              <Archive className="mr-2 h-4 w-4" /> Save to archive
-            </Button>
-            <Button
-              variant="secondary"
-              className="h-11 w-full justify-start rounded-2xl text-destructive"
-              onClick={() => {
-                deleteMoment(moment.id);
-                toast.success("Moment deleted successfully");
-                navigate({ to: "/", replace: true });
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Delete moment
-            </Button>
-          </>
-        )}
-      </section>
-    </main>
-  );
-}
-
-function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
-  return (
-    <div className="grid place-items-center gap-1 rounded-2xl bg-secondary/60 py-3">
-      <span className="text-muted-foreground">{icon}</span>
-      <span className="text-sm font-bold leading-none">{value}</span>
-      <span className="text-[10.5px] text-muted-foreground">{label}</span>
+      </div>
     </div>
   );
 }
