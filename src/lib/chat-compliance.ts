@@ -19,9 +19,34 @@ const TERMS = [
   "PhonePe",
 ];
 
-/** Permanent, neutral protection notice shown at the top of brand/creator DMs. */
-export const PLATFORM_PROTECTION_NOTICE =
-  "🛡️ Platform Protection: Use Official In-App Sponsorships for escrow protection and valid tax invoices.";
+/** Warning copy for the Social-only keyword-triggered protection modal. */
+export const PLATFORM_PROTECTION_WARNING_TITLE = "🛡️ Platform Protection Warning";
+export const PLATFORM_PROTECTION_WARNING_BODY =
+  "For escrow protection, secure payouts, and valid tax invoices, please use official In-App Sponsorship deals. Direct off-platform payments are not protected.";
+
+/** Sensitive payment/contact keywords that trigger the Social DM warning modal. */
+const WARN_TERMS = [
+  "account number",
+  "phonepe",
+  "phone pe",
+  "paytm",
+  "google pay",
+  "gpay",
+  "upi",
+  "bank details",
+  "ifsc",
+  "whatsapp",
+  "number",
+];
+
+/** True when a Social DM draft contains sensitive payment/contact hints. */
+export function needsProtectionWarning(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const haystack = text.toLowerCase();
+  if (WARN_TERMS.some((t) => haystack.includes(t))) return true;
+  // Phone-number-like digit runs (7+ digits, ignoring spaces/dashes).
+  return /(?:\d[\s-]?){7,}/.test(haystack);
+}
 
 export function matchComplianceTerms(text: string | null | undefined): string[] {
   if (!text) return [];

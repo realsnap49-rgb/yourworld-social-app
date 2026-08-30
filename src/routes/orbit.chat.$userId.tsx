@@ -1,4 +1,3 @@
-import { PLATFORM_PROTECTION_NOTICE } from "@/lib/chat-compliance";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -759,10 +758,6 @@ function OrbitChatPage() {
           </>
         )}
       </header>
-
-      <p className="shrink-0 border-b border-border/60 bg-muted/40 px-4 py-1.5 text-center text-[10px] leading-snug text-muted-foreground">
-        {PLATFORM_PROTECTION_NOTICE}
-      </p>
 
       {nameDialogOpen && (
         <div className="fixed inset-0 z-[130] grid place-items-center bg-black/60 px-6" onClick={() => setNameDialogOpen(false)}>

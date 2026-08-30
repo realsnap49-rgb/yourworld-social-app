@@ -10,7 +10,7 @@ import {
   PHOTO_FILTERS, TEXT_COLORS, STICKER_EMOJIS, cropImage, renderPhoto,
   type Overlay,
 } from "@/components/yw/chat/photo-editor";
-import { PLATFORM_PROTECTION_NOTICE } from "@/lib/chat-compliance";
+import { needsProtectionWarning, PLATFORM_PROTECTION_WARNING_TITLE, PLATFORM_PROTECTION_WARNING_BODY } from "@/lib/chat-compliance";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { compressImageFile } from "@/lib/image-compress";
@@ -73,6 +73,7 @@ function MenuItem({
 export function ChatThreadPage() {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [protectionWarning, setProtectionWarning] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [isViewOnce, setIsViewOnce] = useState(false);
   const [isHD, setIsHD] = useState(true);
@@ -367,9 +368,7 @@ export function ChatThreadPage() {
       },
     ]);
 
-  const handleSend = () => {
-    if (!message.trim() || blocked) return;
-    const currentMsg = message;
+  const doSend = (currentMsg: string) => {
     if (currentUserId) {
       void sendToDb({ content: currentMsg, media_type: "text" });
     } else {
@@ -377,6 +376,15 @@ export function ChatThreadPage() {
     }
     setMessage("");
     setShowEmojis(false);
+  };
+
+  const handleSend = () => {
+    if (!message.trim() || blocked) return;
+    if (needsProtectionWarning(message)) {
+      setProtectionWarning(message);
+      return;
+    }
+    doSend(message);
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -583,9 +591,28 @@ export function ChatThreadPage() {
         )}
       </div>
 
-      <p className="shrink-0 border-b border-zinc-800/60 bg-zinc-900/60 px-4 py-1.5 text-center text-[10px] leading-snug text-zinc-400">
-        {PLATFORM_PROTECTION_NOTICE}
-      </p>
+      {protectionWarning !== null && (
+        <div className="fixed inset-0 z-[140] grid place-items-center bg-black/70 px-6" onClick={() => setProtectionWarning(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-center">
+            <h3 className="text-sm font-bold text-white">{PLATFORM_PROTECTION_WARNING_TITLE}</h3>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-400">{PLATFORM_PROTECTION_WARNING_BODY}</p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                onClick={() => { setProtectionWarning(null); void navigate({ to: "/wallet" }); }}
+                className="w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground"
+              >
+                Create Official Sponsorship Deal
+              </button>
+              <button
+                onClick={() => { const text = protectionWarning; setProtectionWarning(null); doSend(text); }}
+                className="w-full rounded-xl border border-zinc-700 px-4 py-2.5 text-xs font-semibold text-zinc-300"
+              >
+                Proceed Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MESSAGES AREA */}
       {selectMode && (

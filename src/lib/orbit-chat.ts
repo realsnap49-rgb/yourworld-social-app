@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadOrbitMedia } from "@/lib/orbit-live";
 import { loadCachedThread, saveCachedThread, PAGE_SIZE } from "@/lib/chat-db";
-import { flagChatMessage } from "@/lib/chat-compliance";
 
 export type OrbitMsgKind = "text" | "photo" | "video" | "audio" | "system";
 
@@ -163,13 +162,6 @@ export function useOrbitChat(peerId: string, enabled: boolean, clearedBefore?: s
         .select("id,sender_id,recipient_id,kind,text,url,view_once,expires_at,created_at")
         .maybeSingle();
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      // Silent background compliance monitoring (no UI impact).
-      flagChatMessage({
-        surface: "orbit",
-        text: msg.text,
-        peerId: peerId,
-        messageId: (data as Row | null)?.id ?? null,
-      });
       if (error || !data) return null;
       merge([toMsg(data as Row, me)]);
       return (data as Row).id;
