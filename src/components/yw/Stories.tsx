@@ -97,6 +97,7 @@ function StoryPlayer({
   const moment = moments[index]!;
   const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [muted, setMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const next = useCallback(() => {
