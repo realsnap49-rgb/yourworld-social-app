@@ -239,6 +239,15 @@ function StoryPlayer({
             )}
           </p>
         </div>
+        {(moment.kind === "video" || moment.musicUrl) && (
+          <button
+            aria-label={muted ? "Unmute" : "Mute"}
+            onClick={() => setMuted((v) => !v)}
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/15 backdrop-blur-md active:scale-90"
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        )}
         <button
           aria-label="Save moment"
           onClick={save}
