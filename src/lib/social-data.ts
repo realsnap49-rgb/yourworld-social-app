@@ -553,6 +553,13 @@ export function useThreadMessages(threadId: string, opts: { staleTime?: number }
         media_url: payload.media_url ?? null,
         media_type: payload.media_type ?? "text",
       }).select("*").maybeSingle();
+      // Silent background compliance monitoring (no UI impact).
+      flagChatMessage({
+        surface: "social",
+        text: payload.content,
+        threadId,
+        messageId: (data as DbMessage | null)?.id ?? null,
+      });
       if (error) {
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
       } else if (data) {
