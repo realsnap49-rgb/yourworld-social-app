@@ -17,6 +17,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CreateRouteImport } from './routes/create'
@@ -90,6 +91,11 @@ const ReelsRoute = ReelsRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrbitRoute = OrbitRouteImport.update({
@@ -272,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/copyright-policy': typeof CopyrightPolicyRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/notifications'
     | '/orbit'
+    | '/privacy'
     | '/profile'
     | '/reels'
     | '/reset-password'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/copyright-policy'
     | '/create'
     | '/notifications'
+    | '/privacy'
     | '/profile'
     | '/reels'
     | '/reset-password'
@@ -488,6 +499,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/notifications'
     | '/orbit'
+    | '/privacy'
     | '/profile'
     | '/reels'
     | '/reset-password'
@@ -533,6 +545,7 @@ export interface RootRouteChildren {
   CreateRoute: typeof CreateRoute
   NotificationsRoute: typeof NotificationsRoute
   OrbitRoute: typeof OrbitRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -606,6 +619,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orbit': {
@@ -921,6 +941,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateRoute: CreateRoute,
   NotificationsRoute: NotificationsRoute,
   OrbitRoute: OrbitRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
