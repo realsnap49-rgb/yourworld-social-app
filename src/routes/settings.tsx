@@ -31,9 +31,49 @@ type PanelId = "privacy" | "notifications" | "appearance" | "help" | "about";
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const queryClient = useQueryClient();
   const [panel, setPanel] = useState<PanelId | null>(null);
+  const [reportStep, setReportStep] = useState<"options" | "dmca" | null>(null);
+  const [dmca, setDmca] = useState({ contentLink: "", originalWork: "", description: "", email: "" });
+  const [submittingDmca, setSubmittingDmca] = useState(false);
+
+  const submitDmca = async () => {
+    const contentLink = dmca.contentLink.trim();
+    const originalWork = dmca.originalWork.trim();
+    const description = dmca.description.trim();
+    const email = dmca.email.trim();
+    if (!contentLink || !originalWork || !description || !email) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid contact email");
+      return;
+    }
+    if (!user) {
+      toast.error("Please sign in to submit a report");
+      return;
+    }
+    setSubmittingDmca(true);
+    const { error } = await supabase.from("copyright_reports").insert({
+      reporter_user_id: user.id,
+      infringing_content_link: contentLink.slice(0, 2000),
+      original_work_link: originalWork.slice(0, 2000),
+      reason: description.slice(0, 2000),
+      contact_email: email.slice(0, 255),
+    });
+    setSubmittingDmca(false);
+    if (error) {
+      toast.error("Could not submit report. Please try again.");
+      return;
+    }
+    toast.success("DMCA report submitted successfully");
+    setDmca({ contentLink: "", originalWork: "", description: "", email: "" });
+    setReportStep(null);
+    setPanel(null);
+  };
+
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     privateAccount: false,
     allowDownloads: true,
