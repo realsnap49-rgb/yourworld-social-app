@@ -143,10 +143,38 @@ export function CommentsSheet({
           <ul className="flex-1 space-y-4 overflow-y-auto px-4 pb-4">
             {list.map((c) => (
               <li key={c.id} className="flex gap-3">
-                <CommentAvatar user={c.user} url={c.avatarUrl} />
+                {isRealUser(c.user.id) && !c.mine ? (
+                  <Link
+                    to="/u/$userId"
+                    params={{ userId: c.user.id }}
+                    onClick={() => setOpen(false)}
+                    onPointerEnter={() => prefetchProfile(c.user.id)}
+                    onPointerDown={() => prefetchProfile(c.user.id)}
+                    className="shrink-0"
+                    aria-label={`Open @${c.user.username} profile`}
+                  >
+                    <CommentAvatar user={c.user} url={c.avatarUrl} />
+                  </Link>
+                ) : (
+                  <CommentAvatar user={c.user} url={c.avatarUrl} />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">
-                    @{c.user.username} · {c.time}
+                    {isRealUser(c.user.id) && !c.mine ? (
+                      <Link
+                        to="/u/$userId"
+                        params={{ userId: c.user.id }}
+                        onClick={() => setOpen(false)}
+                        onPointerEnter={() => prefetchProfile(c.user.id)}
+                        onPointerDown={() => prefetchProfile(c.user.id)}
+                        className="font-semibold text-foreground transition-opacity active:opacity-60"
+                      >
+                        @{c.user.username}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold text-foreground">@{c.user.username}</span>
+                    )}{" "}
+                    · {c.time}
                   </p>
                   <p className="text-sm">{c.body}</p>
                 </div>
