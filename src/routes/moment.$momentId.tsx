@@ -106,6 +106,21 @@ function MomentViewRoute() {
     }
   }, [segmentIndex, momentId, currentMoment]);
 
+  // Photo / text moments: 5-second auto-advance timer
+  useEffect(() => {
+    if (!currentMoment || currentMoment.kind === "video" || isPaused) return;
+    const id = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 100) {
+          handleNext();
+          return 0;
+        }
+        return p + 2;
+      });
+    }, 100);
+    return () => clearInterval(id);
+  }, [currentMoment, isPaused, handleNext]);
+
   if (!currentMoment) return null;
 
   return (
