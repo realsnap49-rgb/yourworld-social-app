@@ -188,36 +188,46 @@ function StoryPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moment.id, moment.kind, moment.media, next, paused]);
 
+  const holdFired = useRef(false);
+
   const onPressStart = (e: React.PointerEvent) => {
     pressStart.current = Date.now();
+    holdFired.current = false;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     holdTimer.current = window.setTimeout(() => {
+      holdFired.current = true;
       setHolding(true);
       setPaused(true);
     }, 300);
   };
 
-  const onPressEnd = (e: React.PointerEvent) => {
+  const onPressEnd = () => {
     if (holdTimer.current) {
       window.clearTimeout(holdTimer.current);
       holdTimer.current = null;
     }
-    if (holding) {
+    if (holdFired.current) {
       setHolding(false);
       setPaused(false);
-      return;
     }
-    const host = e.currentTarget as HTMLElement;
-    const rect = host.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / (rect.width || 1);
-    if (ratio > 0.6) {
-      next();
-    } else if (ratio < 0.4) {
-      const elapsed = Date.now() - segmentStart.current;
-      if (elapsed > 2000) restart();
-      else if (index > 0) prev();
-      else restart();
-    }
+  };
+
+  const handleNextSegment = () => {
+    if (holdFired.current) return;
+    const newIndex = index + 1;
+    console.log("Tapped Next Segment", newIndex);
+    if (newIndex < moments.length) onIndex(newIndex);
+    else onClose();
+  };
+
+  const handlePreviousSegment = () => {
+    if (holdFired.current) return;
+    const newIndex = index - 1;
+    console.log("Tapped Previous Segment", newIndex);
+    const elapsed = Date.now() - segmentStart.current;
+    if (elapsed > 2000) restart();
+    else if (newIndex >= 0) onIndex(newIndex);
+    else restart();
   };
 
 
@@ -309,26 +319,32 @@ function StoryPlayer({
         />
       )}
 
-      {/* tap / hold surface */}
+      {/* tap zones — left 35% = previous, right 65% = next */}
       <div
-        className="absolute inset-0 z-10 select-none"
-        style={{ touchAction: "none" }}
+        aria-label="Previous segment"
+        role="button"
+        className="absolute inset-y-0 left-0 z-[999] w-[35%] select-none"
+        style={{ pointerEvents: "auto", touchAction: "none" }}
         onPointerDown={onPressStart}
         onPointerUp={onPressEnd}
-        onPointerCancel={() => {
-          if (holdTimer.current) window.clearTimeout(holdTimer.current);
-          holdTimer.current = null;
-          if (holding) {
-            setHolding(false);
-            setPaused(false);
-          }
-        }}
+        onPointerCancel={onPressEnd}
+        onClick={handlePreviousSegment}
+      />
+      <div
+        aria-label="Next segment"
+        role="button"
+        className="absolute inset-y-0 right-0 z-[999] w-[65%] select-none"
+        style={{ pointerEvents: "auto", touchAction: "none" }}
+        onPointerDown={onPressStart}
+        onPointerUp={onPressEnd}
+        onPointerCancel={onPressEnd}
+        onClick={handleNextSegment}
       />
 
       {/* progress bars */}
       <div
         className={cn(
-          "absolute inset-x-2 top-2 z-20 flex gap-1 transition-opacity duration-200",
+          "flex gap-1 absolute top-2 left-2 right-2 z-[1000] transition-opacity duration-200",
           holding && "opacity-0",
         )}
       >
@@ -345,7 +361,7 @@ function StoryPlayer({
       {/* header */}
       <div
         className={cn(
-          "absolute inset-x-3 top-6 z-20 flex items-center gap-2.5 transition-opacity duration-200",
+          "absolute inset-x-3 top-6 z-[1001] flex items-center gap-2.5 transition-opacity duration-200",
           holding && "pointer-events-none opacity-0",
         )}
       >
@@ -412,7 +428,7 @@ function StoryPlayer({
         params={{ momentId: moment.id }}
         onClick={onClose}
         className={cn(
-          "absolute inset-x-0 bottom-3 z-20 mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md transition-opacity duration-200",
+          "absolute inset-x-0 bottom-3 z-[1001] mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md transition-opacity duration-200",
           holding && "pointer-events-none opacity-0",
         )}
       >
