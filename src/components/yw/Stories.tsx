@@ -117,7 +117,13 @@ export function Stories() {
 
   const handleDownload = () => {
     if (currentMoment?.media) {
-      downloadMomentMedia(currentMoment.media, `moment-${currentMoment.id}`);
+      const kind = currentMoment.kind === "video" ? "video" : currentMoment.kind === "text" ? "text" : "photo";
+      void downloadMomentMedia(
+        currentMoment.media,
+        kind,
+        currentMoment.author?.username || "user",
+        currentMoment.id,
+      );
       toast.success("Downloading moment...");
     }
   };
