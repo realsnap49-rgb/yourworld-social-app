@@ -24,7 +24,8 @@ export const processPayout = createServerFn({ method: "POST" })
       if (key in bySource) bySource[key] += Number(row.gross_amount ?? 0);
     }
     const breakdown = computeBreakdown(bySource);
-    if (breakdown.net <= 0) throw new Error("No pending balance available to withdraw.");
+    if (breakdown.net < 5000)
+      throw new Error("Minimum balance to withdraw instantly is ₹5,000");
 
     const { data: details } = await supabase
       .from("creator_payout_details")

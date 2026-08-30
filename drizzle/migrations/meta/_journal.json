@@ -43,6 +43,13 @@
       "when": 1788016925879,
       "tag": "0005_create_monetization_wallet",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788065277406,
+      "tag": "0006_add_payout_schedule_and_eligibility",
+      "breakpoints": true
     }
   ]
 }

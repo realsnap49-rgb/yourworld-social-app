@@ -87,7 +87,9 @@ export type Database = {
           created_at: string
           creator_email: string | null
           ifsc_code: string | null
+          monetization_eligible: boolean
           pan_number: string | null
+          payout_schedule: string
           updated_at: string
           upi_id: string | null
           user_id: string
@@ -98,7 +100,9 @@ export type Database = {
           created_at?: string
           creator_email?: string | null
           ifsc_code?: string | null
+          monetization_eligible?: boolean
           pan_number?: string | null
+          payout_schedule?: string
           updated_at?: string
           upi_id?: string | null
           user_id: string
@@ -109,7 +113,9 @@ export type Database = {
           created_at?: string
           creator_email?: string | null
           ifsc_code?: string | null
+          monetization_eligible?: boolean
           pan_number?: string | null
+          payout_schedule?: string
           updated_at?: string
           upi_id?: string | null
           user_id?: string
