@@ -582,6 +582,10 @@ export function ChatThreadPage() {
         )}
       </div>
 
+      <p className="shrink-0 border-b border-zinc-800/60 bg-zinc-900/60 px-4 py-1.5 text-center text-[10px] leading-snug text-zinc-400">
+        {PLATFORM_PROTECTION_NOTICE}
+      </p>
+
       {/* MESSAGES AREA */}
       {selectMode && (
         <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800 shrink-0">
