@@ -23,6 +23,7 @@ import { ChannelProvider } from "@/lib/channel-store";
 import { CallProvider } from "@/lib/call-store";
 import { UploadProvider } from "@/lib/upload-progress";
 import { Toaster } from "@/components/ui/sonner";
+import { EarningsCreditWatcher } from "@/lib/earnings-credit";
 import { SafeProvider } from "@/lib/safe-provider";
 
 function NotFoundComponent() {
@@ -201,6 +202,7 @@ function RootComponent() {
                                       {!hideNav && <BottomNav onOpenCreate={() => setCreateOpen(true)} />}
                                       <CreateSheet isOpen={createOpen} onClose={() => setCreateOpen(false)} />
                                     </AuthGate>
+                                    <EarningsCreditWatcher />
                                     <Toaster position="top-center" />
                                   </UploadProvider>
                                 </SafeProvider>
