@@ -293,6 +293,11 @@ export function SettingsPage() {
           <Row label="Report a problem" hint="Tell us what went wrong" onClick={() => setReportStep("options")} />
           <Row label="Community guidelines" />
           <Row
+            label="Copyright & DMCA Policy"
+            hint="Takedown procedure & Safe Harbor"
+            onClick={() => navigate({ to: "/copyright-policy" })}
+          />
+          <Row
             label="Contact support"
             hint="Yourworld2029@gmail.com"
             onClick={() => {
