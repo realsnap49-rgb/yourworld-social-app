@@ -102,6 +102,23 @@ function MomentViewer() {
     return () => window.removeEventListener("keyup", onKey);
   }, [moment, registerScreenshot]);
 
+  // Someone else's moment → Snapchat-style segmented player for that author
+  if (moment && !moment.mine) {
+    const authorId = moment.author?.id;
+    const segments = authorId
+      ? moments.filter((m) => m.author?.id === authorId && !m.mine)
+      : [moment];
+    const startIndex = Math.max(0, segments.findIndex((m) => m.id === moment.id));
+    return (
+      <MomentPlayer
+        segments={segments.length ? segments : [moment]}
+        startIndex={startIndex}
+        onClose={() => navigate({ to: "/" })}
+        onSegmentChange={(m) => registerView(m.id)}
+      />
+    );
+  }
+
   if (!moment) {
     return (
       <main className="grid min-h-screen place-items-center px-6 text-center">
