@@ -115,7 +115,7 @@ function MomentViewer() {
         segments={segments.length ? segments : [moment]}
         startIndex={startIndex}
         onClose={() => navigate({ to: "/" })}
-        onSegmentChange={(m) => registerView(m.id)}
+        onSegmentChange={(m: MyMoment) => registerView(m.id)}
       />
     );
   }
