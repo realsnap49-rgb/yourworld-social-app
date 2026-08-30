@@ -73,6 +73,7 @@ function MenuItem({
 export function ChatThreadPage() {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [protectionWarning, setProtectionWarning] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [isViewOnce, setIsViewOnce] = useState(false);
   const [isHD, setIsHD] = useState(true);
@@ -589,6 +590,29 @@ export function ChatThreadPage() {
           </>
         )}
       </div>
+
+      {protectionWarning !== null && (
+        <div className="fixed inset-0 z-[140] grid place-items-center bg-black/70 px-6" onClick={() => setProtectionWarning(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-5 text-center">
+            <h3 className="text-sm font-bold text-white">{PLATFORM_PROTECTION_WARNING_TITLE}</h3>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-400">{PLATFORM_PROTECTION_WARNING_BODY}</p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                onClick={() => { setProtectionWarning(null); void navigate({ to: "/wallet" }); }}
+                className="w-full rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground"
+              >
+                Create Official Sponsorship Deal
+              </button>
+              <button
+                onClick={() => { const text = protectionWarning; setProtectionWarning(null); doSend(text); }}
+                className="w-full rounded-xl border border-zinc-700 px-4 py-2.5 text-xs font-semibold text-zinc-300"
+              >
+                Proceed Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MESSAGES AREA */}
       {selectMode && (
