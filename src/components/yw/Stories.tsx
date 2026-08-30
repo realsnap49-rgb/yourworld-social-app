@@ -45,10 +45,11 @@ function StoriesBase() {
                   </div>
                 ) : item.kind === "video" ? (
                   <video
-                    src={item.media}
+                    src={`${item.media}${item.media.includes("#") ? "" : "#t=0.1"}`}
                     muted
                     playsInline
-                    className="h-14 w-14 rounded-full object-cover"
+                    preload="metadata"
+                    className="h-14 w-14 rounded-full bg-zinc-900 object-cover"
                   />
                 ) : (
                   <img
