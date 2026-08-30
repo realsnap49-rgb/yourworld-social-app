@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
@@ -54,6 +55,11 @@ import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authent
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -272,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
@@ -312,6 +319,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/terms'
     | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
@@ -440,6 +450,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/terms'
     | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/terms'
     | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
@@ -527,6 +539,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRoute
   MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
@@ -544,6 +557,13 @@ declare module '@tanstack/react-router' {
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -907,6 +927,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
   WalletRoute: WalletRoute,
   MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
