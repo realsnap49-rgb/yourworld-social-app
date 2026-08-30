@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { loadCachedThread, saveCachedThread, PAGE_SIZE } from "@/lib/chat-db";
 import { uploadWithProgress } from "@/lib/storage-upload";
+import { flagChatMessage } from "@/lib/chat-compliance";
 import type { User } from "@/lib/yw-data";
 
 export type DbProfile = {
