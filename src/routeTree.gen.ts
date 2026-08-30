@@ -10,12 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OrbitRouteImport } from './routes/orbit'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CreateRouteImport } from './routes/create'
@@ -56,6 +58,11 @@ const WalletRoute = WalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -84,6 +91,11 @@ const ReelsRoute = ReelsRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrbitRoute = OrbitRouteImport.update({
@@ -266,12 +278,14 @@ export interface FileRoutesByFullPath {
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
@@ -306,12 +320,14 @@ export interface FileRoutesByTo {
   '/copyright-policy': typeof CopyrightPolicyRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
@@ -350,12 +366,14 @@ export interface FileRoutesById {
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
   '/orbit': typeof OrbitRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reels': typeof ReelsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/wallet': typeof WalletRoute
   '/channel/analytics': typeof ChannelAnalyticsRoute
   '/channel/create': typeof ChannelCreateRoute
@@ -394,12 +412,14 @@ export interface FileRouteTypes {
     | '/create'
     | '/notifications'
     | '/orbit'
+    | '/privacy'
     | '/profile'
     | '/reels'
     | '/reset-password'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/terms'
     | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
@@ -434,12 +454,14 @@ export interface FileRouteTypes {
     | '/copyright-policy'
     | '/create'
     | '/notifications'
+    | '/privacy'
     | '/profile'
     | '/reels'
     | '/reset-password'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/terms'
     | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
@@ -477,12 +499,14 @@ export interface FileRouteTypes {
     | '/create'
     | '/notifications'
     | '/orbit'
+    | '/privacy'
     | '/profile'
     | '/reels'
     | '/reset-password'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/terms'
     | '/wallet'
     | '/channel/analytics'
     | '/channel/create'
@@ -521,12 +545,14 @@ export interface RootRouteChildren {
   CreateRoute: typeof CreateRoute
   NotificationsRoute: typeof NotificationsRoute
   OrbitRoute: typeof OrbitRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ReelsRoute: typeof ReelsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
   WalletRoute: typeof WalletRoute
   MomentMomentIdRoute: typeof MomentMomentIdRoute
   MomentCreateRoute: typeof MomentCreateRoute
@@ -544,6 +570,13 @@ declare module '@tanstack/react-router' {
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -586,6 +619,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orbit': {
@@ -901,12 +941,14 @@ const rootRouteChildren: RootRouteChildren = {
   CreateRoute: CreateRoute,
   NotificationsRoute: NotificationsRoute,
   OrbitRoute: OrbitRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ReelsRoute: ReelsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
   WalletRoute: WalletRoute,
   MomentMomentIdRoute: MomentMomentIdRoute,
   MomentCreateRoute: MomentCreateRoute,
