@@ -71,6 +71,13 @@
       "when": 1788099553353,
       "tag": "0009_dedupe_post_views_per_viewer",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788101987052,
+      "tag": "0010_create_copyright_reports",
+      "breakpoints": true
     }
   ]
 }
