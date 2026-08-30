@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/moment_create")({
+export const Route = createFileRoute("/moment/create")({
   component: MomentCreateScreen,
 });
 
