@@ -54,6 +54,7 @@ function VideoUploadPage() {
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
+  const [paidPromotion, setPaidPromotion] = useState(false);
   const [scheduled, setScheduled] = useState(false);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -142,6 +143,7 @@ function VideoUploadPage() {
           orientation,
           durationSeconds: duration,
           scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
+          paidPromotion,
           onProgress,
         }),
     ).then(({ error }) => {
@@ -378,6 +380,17 @@ function VideoUploadPage() {
             </div>
           )}
         </Field>
+
+        {/* PAID PROMOTION DISCLOSURE */}
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Includes Paid Promotion</p>
+              <p className="text-[11px] text-zinc-400">Required for IT &amp; Brand Disclosure Compliance</p>
+            </div>
+            <Switch checked={paidPromotion} onCheckedChange={setPaidPromotion} />
+          </div>
+        </div>
 
         {/* SCHEDULE */}
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
