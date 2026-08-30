@@ -188,36 +188,46 @@ function StoryPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moment.id, moment.kind, moment.media, next, paused]);
 
+  const holdFired = useRef(false);
+
   const onPressStart = (e: React.PointerEvent) => {
     pressStart.current = Date.now();
+    holdFired.current = false;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     holdTimer.current = window.setTimeout(() => {
+      holdFired.current = true;
       setHolding(true);
       setPaused(true);
     }, 300);
   };
 
-  const onPressEnd = (e: React.PointerEvent) => {
+  const onPressEnd = () => {
     if (holdTimer.current) {
       window.clearTimeout(holdTimer.current);
       holdTimer.current = null;
     }
-    if (holding) {
+    if (holdFired.current) {
       setHolding(false);
       setPaused(false);
-      return;
     }
-    const host = e.currentTarget as HTMLElement;
-    const rect = host.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / (rect.width || 1);
-    if (ratio > 0.6) {
-      next();
-    } else if (ratio < 0.4) {
-      const elapsed = Date.now() - segmentStart.current;
-      if (elapsed > 2000) restart();
-      else if (index > 0) prev();
-      else restart();
-    }
+  };
+
+  const handleNextSegment = () => {
+    if (holdFired.current) return;
+    const newIndex = index + 1;
+    console.log("Tapped Next Segment", newIndex);
+    if (newIndex < moments.length) onIndex(newIndex);
+    else onClose();
+  };
+
+  const handlePreviousSegment = () => {
+    if (holdFired.current) return;
+    const newIndex = index - 1;
+    console.log("Tapped Previous Segment", newIndex);
+    const elapsed = Date.now() - segmentStart.current;
+    if (elapsed > 2000) restart();
+    else if (newIndex >= 0) onIndex(newIndex);
+    else restart();
   };
 
 
