@@ -35,7 +35,8 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [reportStep, setReportStep] = useState<"options" | "dmca" | null>(null);
-  const [dmca, setDmca] = useState({ contentLink: "", originalWork: "", description: "", email: "" });
+  const [dmca, setDmca] = useState({ contentLink: "", originalWork: "", description: "", email: "", fullName: "" });
+  const [dmcaAgree, setDmcaAgree] = useState(false);
   const [submittingDmca, setSubmittingDmca] = useState(false);
 
   const submitDmca = async () => {
@@ -43,12 +44,28 @@ export function SettingsPage() {
     const originalWork = dmca.originalWork.trim();
     const description = dmca.description.trim();
     const email = dmca.email.trim();
-    if (!contentLink || !originalWork || !description || !email) {
+    const fullName = dmca.fullName.trim();
+    if (!contentLink || !originalWork || !description || !email || !fullName) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    let validProof = false;
+    try {
+      const u = new URL(originalWork);
+      validProof = u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      validProof = false;
+    }
+    if (!validProof) {
+      toast.error("Please enter a valid proof URL (must start with http:// or https://)");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error("Please enter a valid contact email");
+      return;
+    }
+    if (!dmcaAgree) {
+      toast.error("You must accept the legal declaration to submit");
       return;
     }
     if (!user) {
@@ -58,6 +75,7 @@ export function SettingsPage() {
     setSubmittingDmca(true);
     const { error } = await supabase.from("copyright_reports").insert({
       reporter_user_id: user.id,
+      reporter_full_name: fullName.slice(0, 200),
       infringing_content_link: contentLink.slice(0, 2000),
       original_work_link: originalWork.slice(0, 2000),
       reason: description.slice(0, 2000),
@@ -69,10 +87,12 @@ export function SettingsPage() {
       return;
     }
     toast.success("DMCA report submitted successfully");
-    setDmca({ contentLink: "", originalWork: "", description: "", email: "" });
+    setDmca({ contentLink: "", originalWork: "", description: "", email: "", fullName: "" });
+    setDmcaAgree(false);
     setReportStep(null);
     setPanel(null);
   };
+
 
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     privateAccount: false,
