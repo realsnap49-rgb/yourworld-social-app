@@ -152,7 +152,7 @@ export function Stories() {
               </div>
             </div>
             <span className="text-xs font-medium text-zinc-300 max-w-[68px] truncate">
-              {m.user?.name || "User"}
+              {m.author?.name || "User"}
             </span>
           </button>
         ))}
@@ -189,12 +189,12 @@ export function Stories() {
               <div className={cn("absolute top-6 left-3 right-3 z-[10001] flex items-center justify-between transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50 shadow-md">
-                    <img src={currentMoment.user?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
+                    <img src={currentMoment.author?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-bold text-white drop-shadow-md">
-                        {currentMoment.user?.name || "User"}
+                        {currentMoment.author?.name || "User"}
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 text-white font-semibold">
                         {segmentIndex + 1}/{totalSegments}
