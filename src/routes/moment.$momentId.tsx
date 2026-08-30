@@ -17,6 +17,7 @@ import {
   MapPin,
   ChevronUp,
   Music2,
+  Plus,
 } from "lucide-react";
 import { downloadMomentMedia } from "@/lib/yw-download";
 import { toast } from "sonner";
@@ -620,6 +621,14 @@ function MomentViewRoute() {
               <Heart className="h-4 w-4" /> {likeCount}
             </button>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Add another moment"
+                onClick={() => navigate({ to: "/moment/create" })}
+                className="rounded-full border border-white/20 bg-pink-500/80 p-2.5 text-white backdrop-blur-md active:scale-90"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
               <button
                 type="button"
                 aria-label="Archive moment"
