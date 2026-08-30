@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { cacheGet, cacheSet } from "@/lib/local-cache";
 import { rememberLocalMedia, timeAgo, type DbProfile } from "@/lib/social-data";
 import { uploadWithProgress } from "@/lib/storage-upload";
+import { sampleVideoFrames } from "@/lib/video-frames";
+import { scanVideoContent, type ModerationVerdict } from "@/lib/moderation.functions";
+
 
 export const VIDEO_CATEGORIES = [
   "Vlog",
@@ -124,13 +127,41 @@ export async function publishLongVideo(opts: {
     thumb = await uploadToStorage(thumb, uid, "jpg", "image/jpeg");
   }
 
+  // Automated content scan (safety + brand/sponsorship detection) before publishing.
+  let scan: ModerationVerdict | null = null;
+  try {
+    const frames = await sampleVideoFrames(opts.fileUrl, 3);
+    scan = await scanVideoContent({
+      data: {
+        title: opts.title ?? "",
+        description: opts.description ?? "",
+        tags: opts.tags ?? [],
+        paidPromotion: !!opts.paidPromotion,
+        frames,
+      },
+    });
+  } catch {
+    scan = null;
+  }
+
+  if (scan?.decision === "block") {
+    return {
+      error:
+        scan.reason ||
+        "This video can't be published because it appears to violate our content safety guidelines.",
+    };
+  }
+
   // Routine compliance routing: third-party promotions declared without an
   // official in-app sponsorship go through review before they go live.
   const needsReview =
     (!!opts.paidPromotion && !opts.officialSponsorshipId) ||
     BRAND_PROMO_HINTS.some((k) =>
       `${opts.title} ${opts.description ?? ""}`.toLowerCase().includes(k),
-    );
+    ) ||
+    scan?.decision === "review" ||
+    !!scan?.sponsorship ||
+    (scan?.brands?.length ?? 0) > 0;
 
   const { error } = await supabase.from("posts").insert({
     user_id: uid,
@@ -147,6 +178,7 @@ export async function publishLongVideo(opts: {
     paid_promotion: !!opts.paidPromotion,
     review_status: needsReview ? "pending_review" : "approved",
     review_note: needsReview ? "Video under routine compliance check before publishing." : null,
+
     allow_download: true,
     audience: "everyone",
     tagged_user_ids: [],
