@@ -83,6 +83,15 @@ async function uploadToStorage(
 }
 
 /** Uploads a long-form video (and optional custom thumbnail) and stores the post. */
+const BRAND_PROMO_HINTS = [
+  "sponsored by",
+  "paid partnership",
+  "brand deal",
+  "promo code",
+  "affiliate link",
+  "use my code",
+];
+
 export async function publishLongVideo(opts: {
   fileUrl: string;
   thumbnailUrl?: string | null;
@@ -92,6 +101,8 @@ export async function publishLongVideo(opts: {
   orientation: "landscape" | "portrait";
   durationSeconds?: number | null;
   scheduledAt?: string | null;
+  paidPromotion?: boolean;
+  officialSponsorshipId?: string | null;
   onProgress?: (percent: number) => void;
 }): Promise<{ error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
@@ -113,6 +124,14 @@ export async function publishLongVideo(opts: {
     thumb = await uploadToStorage(thumb, uid, "jpg", "image/jpeg");
   }
 
+  // Routine compliance routing: third-party promotions declared without an
+  // official in-app sponsorship go through review before they go live.
+  const needsReview =
+    (!!opts.paidPromotion && !opts.officialSponsorshipId) ||
+    BRAND_PROMO_HINTS.some((k) =>
+      `${opts.title} ${opts.description ?? ""}`.toLowerCase().includes(k),
+    );
+
   const { error } = await supabase.from("posts").insert({
     user_id: uid,
     kind: "video",
@@ -125,6 +144,9 @@ export async function publishLongVideo(opts: {
     orientation: opts.orientation,
     duration_seconds: opts.durationSeconds ? Math.round(opts.durationSeconds) : null,
     scheduled_at: opts.scheduledAt ?? null,
+    paid_promotion: !!opts.paidPromotion,
+    review_status: needsReview ? "pending_review" : "approved",
+    review_note: needsReview ? "Video under routine compliance check before publishing." : null,
     allow_download: true,
     audience: "everyone",
     tagged_user_ids: [],
@@ -166,6 +188,10 @@ export function useLongVideos() {
       (p) =>
         !p.scheduled_at ||
         new Date(p.scheduled_at).getTime() <= now ||
+        (uid && p.user_id === uid),
+    ).filter(
+      (p) =>
+        (p as { review_status?: string }).review_status !== "pending_review" ||
         (uid && p.user_id === uid),
     );
 
