@@ -476,9 +476,13 @@ export function ChatThreadPage() {
             <ArrowLeft size={22} />
           </button>
           
-          <div className="relative">
+          <div
+            className="relative cursor-pointer"
+            onPointerDown={openPeerProfile.preload}
+            onClick={openPeerProfile.go}
+          >
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md">
-              U
+              {(displayName || "U").charAt(0).toUpperCase()}
             </div>
             <span
               className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-black rounded-full ${
@@ -488,7 +492,11 @@ export function ChatThreadPage() {
           </div>
 
           <div className="flex flex-col">
-            <span className="font-bold text-sm leading-tight text-white flex items-center gap-1">
+            <span
+              className="font-bold text-sm leading-tight text-white flex items-center gap-1 cursor-pointer"
+              onPointerDown={openPeerProfile.preload}
+              onClick={openPeerProfile.go}
+            >
               {displayName}
               {secretLock && <Lock size={12} className="text-purple-400" />}
               {muted && <BellOff size={12} className="text-zinc-500" />}
