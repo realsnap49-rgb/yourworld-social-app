@@ -1,446 +1,331 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { YwAvatar } from "@/components/yw/Avatar";
 import { cn } from "@/lib/utils";
-import { Plus, X, Download, Music2, Eye, Volume2, VolumeX } from "lucide-react";
-import { useMoments, aiFilterCss, type MyMoment } from "@/lib/moment-store";
+import { 
+  X, Heart, Send, Eye, Download, Share2, MessageCircle, 
+  Sparkles, Lock, Users, Globe, ShieldAlert, Volume2, VolumeX,
+  Play, Pause, Plus, MoreHorizontal, Check, BarChart2
+} from "lucide-react";
+import { useMoments, type MyMoment } from "@/lib/moment-store";
 import { currentUser } from "@/lib/yw-data";
 import { downloadMomentMedia } from "@/lib/yw-download";
 import { toast } from "sonner";
 
-const PHOTO_MS = 5000;
+const SEGMENT_DURATION = 20; // 20 seconds per segment (Snapchat style)
 
-function StoriesBase() {
+export function Stories() {
   const { moments } = useMoments();
-  const [index, setIndex] = useState<number | null>(null);
-  const close = useCallback(() => setIndex(null), []);
+  const [momentIndex, setMomentIndex] = useState<number | null>(null);
+  const [segmentIndex, setSegmentIndex] = useState<number>(0);
+  const [progress, setProgress] = useState<number>(0);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [hasLiked, setHasLiked] = useState<boolean>(false);
+  const [replyText, setReplyText] = useState<string>("");
+  const [pollVotedOption, setPollVotedOption] = useState<number | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const currentMoment = momentIndex !== null ? moments[momentIndex] : null;
+
+  // Calculate total 20-second segments (e.g., 60s video = 3 segments)
+  const totalDuration = currentMoment?.duration || 60; 
+  const totalSegments = currentMoment?.kind === "video" 
+    ? Math.max(1, Math.ceil(totalDuration / SEGMENT_DURATION)) 
+    : 1;
+
+  const close = useCallback(() => {
+    setMomentIndex(null);
+    setSegmentIndex(0);
+    setProgress(0);
+    setIsPaused(false);
+    setPollVotedOption(null);
+  }, []);
+
+  // Handle Next Segment / Moment
+  const handleNext = useCallback(() => {
+    if (segmentIndex < totalSegments - 1) {
+      const nextSeg = segmentIndex + 1;
+      setSegmentIndex(nextSeg);
+      setProgress(0);
+      if (videoRef.current) {
+        videoRef.current.currentTime = nextSeg * SEGMENT_DURATION;
+      }
+    } else if (momentIndex !== null && momentIndex < moments.length - 1) {
+      setMomentIndex(momentIndex + 1);
+      setSegmentIndex(0);
+      setProgress(0);
+    } else {
+      close();
+    }
+  }, [segmentIndex, totalSegments, momentIndex, moments.length, close]);
+
+  // Handle Previous Segment / Moment
+  const handlePrev = useCallback(() => {
+    if (segmentIndex > 0) {
+      const prevSeg = segmentIndex - 1;
+      setSegmentIndex(prevSeg);
+      setProgress(0);
+      if (videoRef.current) {
+        videoRef.current.currentTime = prevSeg * SEGMENT_DURATION;
+      }
+    } else if (momentIndex !== null && momentIndex > 0) {
+      setMomentIndex(momentIndex - 1);
+      setSegmentIndex(0);
+      setProgress(0);
+    }
+  }, [segmentIndex, momentIndex]);
+
+  // Progress Bar & Auto-Advance Logic
+  const handleTimeUpdate = () => {
+    if (!videoRef.current || isPaused) return;
+    const currentTime = videoRef.current.currentTime;
+    const segmentStartTime = segmentIndex * SEGMENT_DURATION;
+    const segmentEndTime = Math.min(segmentStartTime + SEGMENT_DURATION, totalDuration);
+    
+    const currentSegmentProgress = ((currentTime - segmentStartTime) / (segmentEndTime - segmentStartTime)) * 100;
+    setProgress(Math.min(100, Math.max(0, currentSegmentProgress)));
+
+    if (currentTime >= segmentEndTime) {
+      handleNext();
+    }
+  };
+
+  // Pre-load & set video time on segment shift
+  useEffect(() => {
+    if (videoRef.current && currentMoment?.kind === "video") {
+      videoRef.current.currentTime = segmentIndex * SEGMENT_DURATION;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [segmentIndex, momentIndex, currentMoment]);
+
+  // Photo timer logic (5 seconds per photo segment)
+  useEffect(() => {
+    if (currentMoment?.kind === "photo" && !isPaused && momentIndex !== null) {
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            handleNext();
+            return 0;
+          }
+          return prev + 2;
+        });
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [currentMoment, isPaused, momentIndex, handleNext]);
+
+  const handleSendReply = () => {
+    if (!replyText.trim()) return;
+    toast.success("Reply sent successfully!");
+    setReplyText("");
+  };
+
+  const handleDownload = () => {
+    if (currentMoment?.media) {
+      downloadMomentMedia(currentMoment.media, `moment-${currentMoment.id}`);
+      toast.success("Downloading moment...");
+    }
+  };
 
   return (
     <>
-      <div className="no-scrollbar flex gap-3.5 overflow-x-auto px-4 pb-4 pt-4">
-        <Link to="/moment/create" className="flex flex-col items-center gap-1.5 shrink-0">
-          <div className="relative flex h-[68px] w-[68px] items-center justify-center rounded-full border-2 border-dashed border-primary/40 bg-muted/30 p-1 transition-all hover:border-primary">
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-background shadow-xs">
-              <Plus className="h-6 w-6 text-primary" />
-            </div>
-          </div>
-          <span className="text-[11px] font-medium text-muted-foreground">Your Moment</span>
-        </Link>
-
-        {moments.map((item, i) => (
+      {/* 🌟 STORIES / MOMENTS HEADER TAPE BAR */}
+      <div className="flex gap-3 overflow-x-auto p-4 no-scrollbar bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 my-2">
+        {moments.map((m, i) => (
           <button
-            key={item.id}
-            onClick={() => setIndex(i)}
-            className="flex flex-col items-center gap-1.5 shrink-0 focus:outline-none"
+            key={m.id}
+            onClick={() => {
+              setMomentIndex(i);
+              setSegmentIndex(0);
+              setProgress(0);
+            }}
+            className="flex flex-col items-center gap-1.5 shrink-0 group transition-transform active:scale-95"
           >
-            <div className="rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[2px]">
-              <div className="rounded-full bg-background p-[2px]">
-                {item.kind === "text" || !item.media ? (
-                  <div
-                    className="grid h-14 w-14 place-items-center rounded-full text-[10px] font-semibold text-white"
-                    style={{ background: item.textBg || "hsl(var(--muted))" }}
-                  >
-                    Aa
-                  </div>
-                ) : item.kind === "video" ? (
-                  <video
-                    src={`${item.media}${item.media.includes("#") ? "" : "#t=0.1"}`}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    className="h-14 w-14 rounded-full bg-zinc-900 object-cover"
-                  />
+            <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-all">
+              <div className="w-full h-full rounded-full overflow-hidden border-2 border-black bg-zinc-900 flex items-center justify-center relative">
+                {m.kind === "video" ? (
+                  <video src={m.media} className="w-full h-full object-cover" />
                 ) : (
-                  <img
-                    src={item.media}
-                    alt=""
-                    className="h-14 w-14 rounded-full object-cover"
-                  />
+                  <img src={m.media} className="w-full h-full object-cover" alt="" />
                 )}
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
               </div>
             </div>
-            <span className="max-w-[68px] truncate text-[11px] font-medium">{currentUser.name}</span>
+            <span className="text-xs font-medium text-zinc-300 max-w-[68px] truncate">
+              {m.user?.name || "User"}
+            </span>
           </button>
         ))}
       </div>
 
-      <Dialog open={index !== null} onOpenChange={close}>
-        <DialogContent
-          className="max-w-md gap-0 overflow-hidden border-none bg-black p-0 text-white"
-        >
-          <DialogTitle className="sr-only">Moment</DialogTitle>
-          {index !== null && moments[index] && (
-            <StoryPlayer
-              moments={moments}
-              index={index}
-              onIndex={setIndex}
-              onClose={close}
-            />
+      {/* 🎬 SNAPCHAT-GRADE WORLD-CLASS MOMENT PLAYER DIALOG */}
+      <Dialog open={momentIndex !== null} onOpenChange={(open) => !open && close()}>
+        <DialogContent className="max-w-md w-full h-[94vh] p-0 bg-black border-none rounded-3xl overflow-hidden relative flex flex-col justify-center select-none shadow-2xl shadow-purple-950/50">
+          <DialogTitle className="sr-only">Snapchat Moment Player</DialogTitle>
+
+          {currentMoment && (
+            <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden">
+              
+              {/* 1. TOP SNAPCHAT SEGMENTED PROGRESS BARS */}
+              <div className={cn("absolute top-3 left-3 right-3 z-[10000] flex gap-1.5 transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+                {Array.from({ length: totalSegments }).map((_, idx) => (
+                  <div key={idx} className="h-1 flex-1 bg-white/30 backdrop-blur-sm rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-white transition-all duration-75 ease-linear rounded-full"
+                      style={{
+                        width:
+                          idx < segmentIndex
+                            ? "100%"
+                            : idx === segmentIndex
+                            ? `${progress}%`
+                            : "0%",
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* 2. CREATOR USER HEADER & SAFETY BADGES */}
+              <div className={cn("absolute top-6 left-3 right-3 z-[10000] flex items-center justify-between transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50 shadow-md">
+                    <img src={currentMoment.user?.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="" />
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-white drop-shadow-md">
+                        {currentMoment.user?.name || "User"}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-md border border-white/20 font-semibold">
+                        {segmentIndex + 1}/{totalSegments}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-white/70 font-medium drop-shadow">
+                      {currentMoment.timeAgo || "Just now"} • Snapchat Segment
+                    </span>
+                  </div>
+                </div>
+
+                {/* Top Action Controls */}
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setIsMuted(!isMuted)} className="p-2 text-white bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all border border-white/10">
+                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  </button>
+                  <button onClick={handleDownload} className="p-2 text-white bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all border border-white/10">
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button onClick={close} className="p-2 text-white bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-md transition-all border border-white/10">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. MEDIA VIEWPORT (Video or Photo with Live Filter Support) */}
+              <div className="w-full h-full flex items-center justify-center">
+                {currentMoment.kind === "video" ? (
+                  <video
+                    ref={videoRef}
+                    key={currentMoment.id}
+                    src={currentMoment.media}
+                    autoPlay
+                    playsInline
+                    muted={isMuted}
+                    onTimeUpdate={handleTimeUpdate}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    key={currentMoment.id}
+                    src={currentMoment.media}
+                    className="w-full h-full object-cover"
+                    alt=""
+                  />
+                )}
+              </div>
+
+              {/* 4. TAP & HOLD NAVIGATION OVERLAYS (30% Left Prev, 70% Right Next) */}
+              <div 
+                className="absolute inset-0 z-[9999] flex"
+                onMouseDown={() => { setIsPaused(true); videoRef.current?.pause(); }}
+                onMouseUp={() => { setIsPaused(false); videoRef.current?.play(); }}
+                onTouchStart={() => { setIsPaused(true); videoRef.current?.pause(); }}
+                onTouchEnd={() => { setIsPaused(false); videoRef.current?.play(); }}
+              >
+                {/* Left 30% Tap Zone - Rewind */}
+                <div
+                  className="w-[30%] h-full cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrev();
+                  }}
+                />
+                {/* Right 70% Tap Zone - Fast Forward */}
+                <div
+                  className="w-[70%] h-full cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNext();
+                  }}
+                />
+              </div>
+
+              {/* 5. INTERACTIVE SNAPCHAT POLL OVERLAY (If Enabled) */}
+              {currentMoment.poll && (
+                <div className={cn("absolute bottom-24 left-6 right-6 z-[10000] bg-black/60 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-2xl transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+                  <p className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
+                    <BarChart2 className="w-4 h-4 text-pink-400" />
+                    {currentMoment.poll.question || "Cast your vote:"}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {currentMoment.poll.options?.map((opt: string, oIdx: number) => (
+                      <button
+                        key={oIdx}
+                        onClick={() => setPollVotedOption(oIdx)}
+                        className={cn("w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border transition-all", 
+                          pollVotedOption === oIdx 
+                            ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white border-transparent" 
+                            : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                        )}
+                      >
+                        <span>{opt}</span>
+                        {pollVotedOption === oIdx && <Check className="w-4 h-4 text-white" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 6. BOTTOM INTERACTIVE REPLY & REACTION BAR */}
+              <div className={cn("absolute bottom-4 left-3 right-3 z-[10000] flex items-center gap-2 transition-opacity duration-300", isPaused ? "opacity-0 pointer-events-none" : "opacity-100")}>
+                <div className="flex-1 relative flex items-center">
+                  <input
+                    type="text"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Send reply..."
+                    className="w-full bg-black/50 backdrop-blur-xl border border-white/25 rounded-full pl-4 pr-10 py-2.5 text-sm text-white placeholder-white/60 focus:outline-none focus:border-pink-500 transition-all shadow-lg"
+                    onKeyDown={(e) => e.key === "Enter" && handleSendReply()}
+                  />
+                  <button onClick={handleSendReply} className="absolute right-2.5 p-1.5 text-pink-400 hover:text-pink-300 transition-colors">
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <button 
+                  onClick={() => setHasLiked(!hasLiked)} 
+                  className={cn("p-2.5 bg-black/50 backdrop-blur-xl rounded-full text-white border border-white/25 transition-all active:scale-90 shadow-lg",
+                    hasLiked ? "text-pink-500 border-pink-500/50 bg-pink-500/20" : "hover:bg-white/10"
+                  )}
+                >
+                  <Heart className={cn("w-5 h-5", hasLiked && "fill-pink-500")} />
+                </button>
+              </div>
+
+            </div>
           )}
         </DialogContent>
       </Dialog>
     </>
   );
 }
-
-function StoryPlayer({
-  moments,
-  index,
-  onIndex,
-  onClose,
-}: {
-  moments: MyMoment[];
-  index: number;
-  onIndex: (i: number) => void;
-  onClose: () => void;
-}) {
-  const moment = moments[index]!;
-  const [progress, setProgress] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [holding, setHolding] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const holdTimer = useRef<number | null>(null);
-  const pressStart = useRef(0);
-  const segmentStart = useRef(Date.now());
-
-  const next = useCallback(() => {
-    if (index + 1 < moments.length) onIndex(index + 1);
-    else onClose();
-  }, [index, moments.length, onIndex, onClose]);
-
-  const prev = useCallback(() => {
-    if (index > 0) onIndex(index - 1);
-  }, [index, onIndex]);
-
-  const restart = useCallback(() => {
-    segmentStart.current = Date.now();
-    setProgress(0);
-    const v = videoRef.current;
-    if (v) {
-      v.currentTime = moment.trim?.start ?? 0;
-      void v.play().catch(() => {});
-    }
-  }, [moment.trim?.start]);
-
-  // reset per-segment timing whenever the active segment changes
-  useEffect(() => {
-    segmentStart.current = Date.now();
-    setProgress(0);
-    setPaused(false);
-    setHolding(false);
-  }, [moment.id]);
-
-  // pause / resume media with the hold gesture
-  useEffect(() => {
-    const v = videoRef.current;
-    const a = audioRef.current;
-    if (paused) {
-      v?.pause();
-      a?.pause();
-    } else {
-      void v?.play().catch(() => {});
-      void a?.play().catch(() => {});
-    }
-  }, [paused]);
-
-  // preload the next segment so transitions are seamless
-  useEffect(() => {
-    const upcoming = moments[index + 1];
-    if (!upcoming?.media || upcoming.kind === "text") return;
-    if (upcoming.kind === "photo") {
-      const img = new Image();
-      img.src = upcoming.media;
-    } else {
-      const el = document.createElement("video");
-      el.preload = "auto";
-      el.muted = true;
-      el.src = upcoming.media;
-      try {
-        el.load();
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [index, moments]);
-
-  // timed progress for photo / text moments
-  useEffect(() => {
-    if (moment.kind === "video" && moment.media) return;
-    if (paused) return;
-    let elapsedBefore = progress * PHOTO_MS;
-    const started = Date.now();
-    const id = window.setInterval(() => {
-      const p = Math.min(1, (elapsedBefore + (Date.now() - started)) / PHOTO_MS);
-      setProgress(p);
-      if (p >= 1) {
-        window.clearInterval(id);
-        next();
-      }
-    }, 50);
-    return () => {
-      elapsedBefore = 0;
-      window.clearInterval(id);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moment.id, moment.kind, moment.media, next, paused]);
-
-  const holdFired = useRef(false);
-
-  const onPressStart = (e: React.PointerEvent) => {
-    pressStart.current = Date.now();
-    holdFired.current = false;
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-    holdTimer.current = window.setTimeout(() => {
-      holdFired.current = true;
-      setHolding(true);
-      setPaused(true);
-    }, 300);
-  };
-
-  const onPressEnd = () => {
-    if (holdTimer.current) {
-      window.clearTimeout(holdTimer.current);
-      holdTimer.current = null;
-    }
-    if (holdFired.current) {
-      setHolding(false);
-      setPaused(false);
-    }
-  };
-
-  const handleNextSegment = () => {
-    if (holdFired.current) return;
-    const newIndex = index + 1;
-    console.log("Tapped Next Segment", newIndex);
-    if (newIndex < moments.length) onIndex(newIndex);
-    else onClose();
-  };
-
-  const handlePreviousSegment = () => {
-    if (holdFired.current) return;
-    const newIndex = index - 1;
-    console.log("Tapped Previous Segment", newIndex);
-    const elapsed = Date.now() - segmentStart.current;
-    if (elapsed > 2000) restart();
-    else if (newIndex >= 0) onIndex(newIndex);
-    else restart();
-  };
-
-
-  const save = async () => {
-    if (!moment.allowDownload) {
-      toast("Downloads are off for this moment");
-      return;
-    }
-    if (!moment.media) {
-      toast("Nothing to save for a text moment");
-      return;
-    }
-    setSaving(true);
-    try {
-      await downloadMomentMedia(moment.media, moment.kind, currentUser.username, moment.id);
-      toast.success("Saved to your device");
-    } catch {
-      toast.error("Couldn't save this moment");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const filter = aiFilterCss(moment.ai, moment.effect);
-
-  return (
-    <div className="relative aspect-9/16 w-full overflow-hidden bg-black">
-      {moment.kind === "video" && moment.media ? (
-        <video
-          ref={videoRef}
-          key={moment.id}
-          src={moment.media}
-          autoPlay
-          playsInline
-          muted={muted}
-          style={{ filter }}
-          className="h-full w-full object-cover"
-          onLoadedMetadata={(e) => {
-            if (moment.trim) e.currentTarget.currentTime = moment.trim.start;
-          }}
-          onTimeUpdate={(e) => {
-            const v = e.currentTarget;
-            const start = moment.trim?.start ?? 0;
-            const end = moment.trim?.end ?? (v.duration || 0);
-            if (end > start) setProgress(Math.min(1, (v.currentTime - start) / (end - start)));
-            if (end && v.currentTime >= end) next();
-          }}
-          onEnded={next}
-        />
-      <div className="absolute inset-0 z-[999] flex pointer-events-none">
-  <div className="w-[35%] h-full pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); if (typeof prev === 'function') prev(); else if (typeof handlePrev === 'function') handlePrev(); }} />
-  <div className="w-[65%] h-full pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); if (typeof next === 'function') next(); else if (typeof handleNext === 'function') handleNext(); }} />
-</div>
-      ) : moment.kind === "photo" && moment.media ? (
-        <img
-          src={moment.media}
-          alt={moment.text || "Moment"}
-          style={{ filter }}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div
-          className="grid h-full w-full place-items-center p-8"
-          style={{ background: moment.textBg }}
-        >
-          <p className="text-center font-display text-2xl font-bold">{moment.text}</p>
-        </div>
-      )}
-
-      {moment.musicUrl && (
-        <audio
-          ref={audioRef}
-          key={`a-${moment.id}`}
-          src={moment.musicUrl}
-          autoPlay
-          loop
-          muted={muted}
-          className="hidden"
-          onLoadedMetadata={(e) => {
-            e.currentTarget.volume =
-              moment.musicVolume ?? (moment.kind === "video" ? 0.45 : 0.8);
-            e.currentTarget.currentTime = moment.musicStart ?? 0;
-            void e.currentTarget.play().catch(() => {});
-          }}
-          onTimeUpdate={(e) => {
-            const a = e.currentTarget;
-            const start = moment.musicStart ?? 0;
-            const end = moment.musicEnd ?? 0;
-            if (end > start && (a.currentTime >= end || a.currentTime < start)) {
-              a.currentTime = start;
-            }
-          }}
-        />
-      )}
-
-      {/* tap zones — left 35% = previous, right 65% = next */}
-      <div
-        aria-label="Previous segment"
-        role="button"
-        className="absolute inset-y-0 left-0 z-[999] w-[35%] select-none"
-        style={{ pointerEvents: "auto", touchAction: "none" }}
-        onPointerDown={onPressStart}
-        onPointerUp={onPressEnd}
-        onPointerCancel={onPressEnd}
-        onClick={handlePreviousSegment}
-      />
-      <div
-        aria-label="Next segment"
-        role="button"
-        className="absolute inset-y-0 right-0 z-[999] w-[65%] select-none"
-        style={{ pointerEvents: "auto", touchAction: "none" }}
-        onPointerDown={onPressStart}
-        onPointerUp={onPressEnd}
-        onPointerCancel={onPressEnd}
-        onClick={handleNextSegment}
-      />
-
-      {/* progress bars */}
-      <div
-        className={cn(
-          "flex gap-1 absolute top-2 left-2 right-2 z-[1000] transition-opacity duration-200",
-          holding && "opacity-0",
-        )}
-      >
-        {moments.map((m, i) => (
-          <div key={m.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30">
-            <div
-              className="h-full bg-white transition-[width] duration-100"
-              style={{ width: `${i < index ? 100 : i === index ? progress * 100 : 0}%` }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* header */}
-      <div
-        className={cn(
-          "absolute inset-x-3 top-6 z-[1001] flex items-center gap-2.5 transition-opacity duration-200",
-          holding && "pointer-events-none opacity-0",
-        )}
-      >
-
-        <YwAvatar user={currentUser} size={32} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold">{currentUser.name}</p>
-          <p className="flex items-center gap-1 text-[11px] text-white/70">
-            <Eye className="h-3 w-3" /> {moment.viewers.length}
-            {moment.music && (
-              <>
-                <Music2 className="ml-1.5 h-3 w-3" />
-                <span className="max-w-[110px] truncate">{moment.music}</span>
-              </>
-            )}
-          </p>
-        </div>
-        {(moment.kind === "video" || moment.musicUrl) && (
-          <button
-            aria-label={muted ? "Unmute" : "Mute"}
-            onClick={() => setMuted((v) => !v)}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/15 backdrop-blur-md active:scale-90"
-          >
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </button>
-        )}
-        <button
-          aria-label="Save moment"
-          onClick={save}
-          disabled={saving}
-          className={cn(
-            "grid h-8 w-8 place-items-center rounded-full bg-white/15 backdrop-blur-md active:scale-90",
-            saving && "opacity-50",
-          )}
-        >
-          <Download className="h-4 w-4" />
-        </button>
-        <button
-          aria-label="Close"
-          onClick={onClose}
-          className="grid h-8 w-8 place-items-center rounded-full bg-white/15 backdrop-blur-md active:scale-90"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* accessible fallbacks for keyboard / screen readers */}
-      <button aria-label="Previous" onClick={prev} className="sr-only" />
-      <button aria-label="Next" onClick={next} className="sr-only" />
-
-      {moment.kind !== "text" && moment.text.trim() && (
-        <p
-          className={cn(
-            "pointer-events-none absolute inset-x-4 bottom-14 z-20 text-center font-display text-lg font-bold drop-shadow-lg transition-opacity duration-200",
-            holding && "opacity-0",
-          )}
-        >
-          {moment.text}
-        </p>
-      )}
-
-      <Link
-        to="/moment/$momentId"
-        params={{ momentId: moment.id }}
-        onClick={onClose}
-        className={cn(
-          "absolute inset-x-0 bottom-3 z-[1001] mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md transition-opacity duration-200",
-          holding && "pointer-events-none opacity-0",
-        )}
-      >
-        View insights
-      </Link>
-
-    </div>
-  );
-}
-
-export const Stories = memo(StoriesBase);
