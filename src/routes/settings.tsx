@@ -290,9 +290,79 @@ export function SettingsPage() {
       {panel === "help" && (
         <Panel title="Help & Support" onClose={() => setPanel(null)}>
           <Row label="Help center" hint="Guides and troubleshooting" />
-          <Row label="Report a problem" hint="Tell us what went wrong" />
+          <Row label="Report a problem" hint="Tell us what went wrong" onClick={() => setReportStep("options")} />
           <Row label="Community guidelines" />
-          <Row label="Contact support" hint="Yourworld2029@gmail.com" />
+          <Row
+            label="Contact support"
+            hint="Yourworld2029@gmail.com"
+            onClick={() => {
+              window.location.href = "mailto:Yourworld2029@gmail.com";
+            }}
+          />
+        </Panel>
+      )}
+
+      {reportStep === "options" && (
+        <Panel title="Report a problem" onClose={() => setReportStep(null)}>
+          <Row label="Copyright Infringement (DMCA)" hint="Report stolen content" onClick={() => setReportStep("dmca")} />
+          <Row
+            label="Technical Bug"
+            hint="App errors or crashes"
+            onClick={() => {
+              window.location.href = "mailto:Yourworld2029@gmail.com?subject=" + encodeURIComponent("Technical Bug Report");
+            }}
+          />
+          <Row
+            label="Community Violation"
+            hint="Harassment, spam or abuse"
+            onClick={() => {
+              window.location.href = "mailto:Yourworld2029@gmail.com?subject=" + encodeURIComponent("Community Violation Report");
+            }}
+          />
+        </Panel>
+      )}
+
+      {reportStep === "dmca" && (
+        <Panel title="DMCA Takedown Request" onClose={() => setReportStep(null)}>
+          <div className="space-y-3 p-1">
+            <DmcaField
+              label="Content Link / ID *"
+              value={dmca.contentLink}
+              onChange={(v) => setDmca((d) => ({ ...d, contentLink: v }))}
+              placeholder="Link or ID of the infringing content"
+            />
+            <DmcaField
+              label="Original Work URL *"
+              value={dmca.originalWork}
+              onChange={(v) => setDmca((d) => ({ ...d, originalWork: v }))}
+              placeholder="Link to your original work"
+            />
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 mb-1">Description of ownership *</label>
+              <textarea
+                value={dmca.description}
+                onChange={(e) => setDmca((d) => ({ ...d, description: e.target.value }))}
+                placeholder="Explain that you own the original work"
+                maxLength={2000}
+                rows={4}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-white outline-none focus:border-indigo-500"
+              />
+            </div>
+            <DmcaField
+              label="Contact Email *"
+              type="email"
+              value={dmca.email}
+              onChange={(v) => setDmca((d) => ({ ...d, email: v }))}
+              placeholder="you@example.com"
+            />
+            <button
+              onClick={submitDmca}
+              disabled={submittingDmca}
+              className="w-full rounded-xl bg-indigo-500 py-3 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {submittingDmca ? "Submitting…" : "Submit DMCA Report"}
+            </button>
+          </div>
         </Panel>
       )}
 
