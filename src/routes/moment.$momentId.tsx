@@ -207,6 +207,13 @@ function MomentViewer() {
                   }
                 }}
               />
+              <button
+                aria-label={detailMuted ? "Unmute" : "Mute"}
+                onClick={() => setDetailMuted((v: boolean) => !v)}
+                className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md active:scale-90"
+              >
+                {detailMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
             </div>
           ) : moment.kind === "photo" && moment.media ? (
             <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>
