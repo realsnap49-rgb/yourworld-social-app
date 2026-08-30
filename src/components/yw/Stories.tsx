@@ -277,6 +277,10 @@ function StoryPlayer({
           }}
           onEnded={next}
         />
+      <div className="absolute inset-0 z-[999] flex pointer-events-none">
+  <div className="w-[35%] h-full pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); if (typeof prev === 'function') prev(); else if (typeof handlePrev === 'function') handlePrev(); }} />
+  <div className="w-[65%] h-full pointer-events-auto cursor-pointer" onClick={(e) => { e.stopPropagation(); if (typeof next === 'function') next(); else if (typeof handleNext === 'function') handleNext(); }} />
+</div>
       ) : moment.kind === "photo" && moment.media ? (
         <img
           src={moment.media}
