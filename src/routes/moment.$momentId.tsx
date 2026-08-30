@@ -402,8 +402,8 @@ function MomentViewer() {
               className="h-11 w-full justify-start rounded-2xl text-destructive"
               onClick={() => {
                 deleteMoment(moment.id);
-                toast.success("Moment deleted");
-                navigate({ to: "/" });
+                toast.success("Moment deleted successfully");
+                navigate({ to: "/", replace: true });
               }}
             >
               <Trash2 className="mr-2 h-4 w-4" /> Delete moment
