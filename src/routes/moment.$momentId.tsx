@@ -13,6 +13,8 @@ import {
   Music2,
   Clock,
   Send,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +71,7 @@ function MomentViewer() {
   );
   const [reply, setReply] = useState("");
   const [tab, setTab] = useState<"viewers" | "replies">("viewers");
+  const [detailMuted, setDetailMuted] = useState(false);
   const people = useProfiles(
     useMemo(
       () => [
@@ -190,8 +193,9 @@ function MomentViewer() {
                 src={moment.media}
                 autoPlay
                 loop
-                muted
+                muted={detailMuted}
                 playsInline
+                onClick={() => setDetailMuted((v: boolean) => !v)}
                 style={{ filter }}
                 className="h-full w-full object-cover"
                 onLoadedMetadata={(e) => {
@@ -205,6 +209,13 @@ function MomentViewer() {
                   }
                 }}
               />
+              <button
+                aria-label={detailMuted ? "Unmute" : "Mute"}
+                onClick={() => setDetailMuted((v: boolean) => !v)}
+                className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md active:scale-90"
+              >
+                {detailMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
             </div>
           ) : moment.kind === "photo" && moment.media ? (
             <div className="h-full w-full overflow-hidden" style={cropStyle(moment.crop)}>

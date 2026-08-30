@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { cn } from "@/lib/utils";
-import { Plus, X, Download, Music2, Eye } from "lucide-react";
+import { Plus, X, Download, Music2, Eye, Volume2, VolumeX } from "lucide-react";
 import { useMoments, aiFilterCss, type MyMoment } from "@/lib/moment-store";
 import { currentUser } from "@/lib/yw-data";
 import { downloadMomentMedia } from "@/lib/yw-download";
@@ -45,10 +45,11 @@ function StoriesBase() {
                   </div>
                 ) : item.kind === "video" ? (
                   <video
-                    src={item.media}
+                    src={`${item.media}${item.media.includes("#") ? "" : "#t=0.1"}`}
                     muted
                     playsInline
-                    className="h-14 w-14 rounded-full object-cover"
+                    preload="metadata"
+                    className="h-14 w-14 rounded-full bg-zinc-900 object-cover"
                   />
                 ) : (
                   <img
@@ -97,6 +98,7 @@ function StoryPlayer({
   const moment = moments[index]!;
   const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [muted, setMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const next = useCallback(() => {
@@ -155,7 +157,7 @@ function StoryPlayer({
           src={moment.media}
           autoPlay
           playsInline
-          muted={!!moment.musicUrl}
+          muted={muted}
           style={{ filter }}
           className="h-full w-full object-cover"
           onLoadedMetadata={(e) => {
@@ -192,9 +194,11 @@ function StoryPlayer({
           src={moment.musicUrl}
           autoPlay
           loop
+          muted={muted}
           className="hidden"
           onLoadedMetadata={(e) => {
-            e.currentTarget.volume = moment.musicVolume ?? 0.8;
+            e.currentTarget.volume =
+              moment.musicVolume ?? (moment.kind === "video" ? 0.45 : 0.8);
             e.currentTarget.currentTime = moment.musicStart ?? 0;
             void e.currentTarget.play().catch(() => {});
           }}
@@ -236,6 +240,15 @@ function StoryPlayer({
             )}
           </p>
         </div>
+        {(moment.kind === "video" || moment.musicUrl) && (
+          <button
+            aria-label={muted ? "Unmute" : "Mute"}
+            onClick={() => setMuted((v) => !v)}
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/15 backdrop-blur-md active:scale-90"
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        )}
         <button
           aria-label="Save moment"
           onClick={save}

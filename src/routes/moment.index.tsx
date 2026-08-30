@@ -97,7 +97,13 @@ function Section({
             )}
           >
             {m.kind === "video" ? (
-              <video src={m.media} muted playsInline className="size-full object-cover" />
+              <video
+                src={m.media ? `${m.media}${m.media.includes("#") ? "" : "#t=0.1"}` : undefined}
+                muted
+                playsInline
+                preload="metadata"
+                className="size-full bg-zinc-900 object-cover"
+              />
             ) : m.kind === "photo" ? (
               <img src={m.media} alt="" className="size-full object-cover" />
             ) : (
