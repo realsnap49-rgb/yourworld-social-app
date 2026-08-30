@@ -1002,6 +1002,8 @@ export function MomentCreatePage() {
             mimeType,
             videoBitsPerSecond:
               18_000_000,
+            audioBitsPerSecond:
+              256_000,
           })
         : new MediaRecorder(
             stream
