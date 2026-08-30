@@ -193,7 +193,7 @@ function MomentViewer() {
                 loop
                 muted={detailMuted}
                 playsInline
-                onClick={() => setDetailMuted((v) => !v)}
+                onClick={() => setDetailMuted((v: boolean) => !v)}
                 style={{ filter }}
                 className="h-full w-full object-cover"
                 onLoadedMetadata={(e) => {
