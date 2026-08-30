@@ -10,7 +10,21 @@ import { toast } from "sonner";
 // ⏱️ REAL 40 SECONDS DURATION CHUNKING
 const SEGMENT_DURATION = 40;
 
-export default function MomentViewRoute() {
+export const Route = createFileRoute("/moment/$momentId")({
+  head: () => ({
+    meta: [
+      { title: "Moment — YourWorld" },
+      { name: "description", content: "Watch this moment on YourWorld with Snapchat-style segmented playback." },
+      { property: "og:title", content: "Moment — YourWorld" },
+      { property: "og:description", content: "Watch this moment on YourWorld." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: MomentViewRoute,
+});
+
+function MomentViewRoute() {
   const { momentId } = useParams({ strict: false });
   const navigate = useNavigate();
   const { moments } = useMoments();
