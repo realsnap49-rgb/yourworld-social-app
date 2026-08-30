@@ -99,7 +99,13 @@ function StoryPlayer({
   const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [holding, setHolding] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const holdTimer = useRef<number | null>(null);
+  const pressStart = useRef(0);
+  const segmentStart = useRef(Date.now());
 
   const next = useCallback(() => {
     if (index + 1 < moments.length) onIndex(index + 1);
@@ -110,21 +116,110 @@ function StoryPlayer({
     if (index > 0) onIndex(index - 1);
   }, [index, onIndex]);
 
+  const restart = useCallback(() => {
+    segmentStart.current = Date.now();
+    setProgress(0);
+    const v = videoRef.current;
+    if (v) {
+      v.currentTime = moment.trim?.start ?? 0;
+      void v.play().catch(() => {});
+    }
+  }, [moment.trim?.start]);
+
+  // reset per-segment timing whenever the active segment changes
+  useEffect(() => {
+    segmentStart.current = Date.now();
+    setProgress(0);
+    setPaused(false);
+    setHolding(false);
+  }, [moment.id]);
+
+  // pause / resume media with the hold gesture
+  useEffect(() => {
+    const v = videoRef.current;
+    const a = audioRef.current;
+    if (paused) {
+      v?.pause();
+      a?.pause();
+    } else {
+      void v?.play().catch(() => {});
+      void a?.play().catch(() => {});
+    }
+  }, [paused]);
+
+  // preload the next segment so transitions are seamless
+  useEffect(() => {
+    const upcoming = moments[index + 1];
+    if (!upcoming?.media || upcoming.kind === "text") return;
+    if (upcoming.kind === "photo") {
+      const img = new Image();
+      img.src = upcoming.media;
+    } else {
+      const el = document.createElement("video");
+      el.preload = "auto";
+      el.muted = true;
+      el.src = upcoming.media;
+      try {
+        el.load();
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [index, moments]);
+
   // timed progress for photo / text moments
   useEffect(() => {
-    setProgress(0);
     if (moment.kind === "video" && moment.media) return;
+    if (paused) return;
+    let elapsedBefore = progress * PHOTO_MS;
     const started = Date.now();
     const id = window.setInterval(() => {
-      const p = Math.min(1, (Date.now() - started) / PHOTO_MS);
+      const p = Math.min(1, (elapsedBefore + (Date.now() - started)) / PHOTO_MS);
       setProgress(p);
       if (p >= 1) {
         window.clearInterval(id);
         next();
       }
     }, 50);
-    return () => window.clearInterval(id);
-  }, [moment.id, moment.kind, moment.media, next]);
+    return () => {
+      elapsedBefore = 0;
+      window.clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moment.id, moment.kind, moment.media, next, paused]);
+
+  const onPressStart = (e: React.PointerEvent) => {
+    pressStart.current = Date.now();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    holdTimer.current = window.setTimeout(() => {
+      setHolding(true);
+      setPaused(true);
+    }, 300);
+  };
+
+  const onPressEnd = (e: React.PointerEvent) => {
+    if (holdTimer.current) {
+      window.clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    if (holding) {
+      setHolding(false);
+      setPaused(false);
+      return;
+    }
+    const host = e.currentTarget as HTMLElement;
+    const rect = host.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / (rect.width || 1);
+    if (ratio > 0.6) {
+      next();
+    } else if (ratio < 0.4) {
+      const elapsed = Date.now() - segmentStart.current;
+      if (elapsed > 2000) restart();
+      else if (index > 0) prev();
+      else restart();
+    }
+  };
+
 
   const save = async () => {
     if (!moment.allowDownload) {
@@ -190,6 +285,7 @@ function StoryPlayer({
 
       {moment.musicUrl && (
         <audio
+          ref={audioRef}
           key={`a-${moment.id}`}
           src={moment.musicUrl}
           autoPlay
@@ -213,8 +309,29 @@ function StoryPlayer({
         />
       )}
 
+      {/* tap / hold surface */}
+      <div
+        className="absolute inset-0 z-10 select-none"
+        style={{ touchAction: "none" }}
+        onPointerDown={onPressStart}
+        onPointerUp={onPressEnd}
+        onPointerCancel={() => {
+          if (holdTimer.current) window.clearTimeout(holdTimer.current);
+          holdTimer.current = null;
+          if (holding) {
+            setHolding(false);
+            setPaused(false);
+          }
+        }}
+      />
+
       {/* progress bars */}
-      <div className="absolute inset-x-2 top-2 flex gap-1">
+      <div
+        className={cn(
+          "absolute inset-x-2 top-2 z-20 flex gap-1 transition-opacity duration-200",
+          holding && "opacity-0",
+        )}
+      >
         {moments.map((m, i) => (
           <div key={m.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30">
             <div
@@ -226,7 +343,13 @@ function StoryPlayer({
       </div>
 
       {/* header */}
-      <div className="absolute inset-x-3 top-6 flex items-center gap-2.5">
+      <div
+        className={cn(
+          "absolute inset-x-3 top-6 z-20 flex items-center gap-2.5 transition-opacity duration-200",
+          holding && "pointer-events-none opacity-0",
+        )}
+      >
+
         <YwAvatar user={currentUser} size={32} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold">{currentUser.name}</p>
@@ -269,20 +392,17 @@ function StoryPlayer({
         </button>
       </div>
 
-      {/* tap zones */}
-      <button
-        aria-label="Previous"
-        onClick={prev}
-        className="absolute inset-y-14 left-0 w-1/3 cursor-default"
-      />
-      <button
-        aria-label="Next"
-        onClick={next}
-        className="absolute inset-y-14 right-0 w-1/3 cursor-default"
-      />
+      {/* accessible fallbacks for keyboard / screen readers */}
+      <button aria-label="Previous" onClick={prev} className="sr-only" />
+      <button aria-label="Next" onClick={next} className="sr-only" />
 
       {moment.kind !== "text" && moment.text.trim() && (
-        <p className="pointer-events-none absolute inset-x-4 bottom-14 text-center font-display text-lg font-bold drop-shadow-lg">
+        <p
+          className={cn(
+            "pointer-events-none absolute inset-x-4 bottom-14 z-20 text-center font-display text-lg font-bold drop-shadow-lg transition-opacity duration-200",
+            holding && "opacity-0",
+          )}
+        >
           {moment.text}
         </p>
       )}
@@ -291,10 +411,14 @@ function StoryPlayer({
         to="/moment/$momentId"
         params={{ momentId: moment.id }}
         onClick={onClose}
-        className="absolute inset-x-0 bottom-3 mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md"
+        className={cn(
+          "absolute inset-x-0 bottom-3 z-20 mx-auto w-fit rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-semibold backdrop-blur-md transition-opacity duration-200",
+          holding && "pointer-events-none opacity-0",
+        )}
       >
         View insights
       </Link>
+
     </div>
   );
 }
