@@ -10,6 +10,7 @@ import {
   PHOTO_FILTERS, TEXT_COLORS, STICKER_EMOJIS, cropImage, renderPhoto,
   type Overlay,
 } from "@/components/yw/chat/photo-editor";
+import { PLATFORM_PROTECTION_NOTICE } from "@/lib/chat-compliance";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { LazyImage } from "@/components/yw/LazyImage";
 import { compressImageFile } from "@/lib/image-compress";
