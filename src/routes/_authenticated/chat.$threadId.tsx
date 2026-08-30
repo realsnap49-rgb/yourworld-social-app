@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Image as ImageIcon,
   Mic, Send, Smile, Play, Pause, X, MicOff,
@@ -72,6 +72,7 @@ function MenuItem({
 
 export function ChatThreadPage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [protectionWarning, setProtectionWarning] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
