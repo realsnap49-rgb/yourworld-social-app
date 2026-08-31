@@ -649,6 +649,7 @@ function MomentViewRoute() {
                 aria-label="Delete moment"
                 onClick={() => {
                   deleteMoment(current.id);
+                  toast.success("Moment deleted successfully");
                   navigate({ to: "/", replace: true });
                 }}
                 className="rounded-full border border-white/20 bg-black/50 p-2.5 text-white backdrop-blur-md active:scale-90"
