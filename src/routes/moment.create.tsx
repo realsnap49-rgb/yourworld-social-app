@@ -2585,12 +2585,26 @@ export function MomentCreatePage() {
 
         {/* TOP */}
 
-        <div className="absolute top-4 left-4 right-4 z-50 flex justify-between">
+        <div className="absolute top-4 left-4 right-4 z-50 flex justify-between items-start">
           <button
             onClick={retake}
             className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center"
           >
             <X />
+          </button>
+
+          <button
+            onClick={() => {
+              setShowTextInput(false);
+              setDrawMode(false);
+              setCropMode(false);
+              setShowMusicPanel(false);
+              setPanel(null);
+              setShowMusicLibrary(true);
+            }}
+            className="absolute left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 text-sm font-bold whitespace-nowrap active:scale-95"
+          >
+            🎵 Add a Sound
           </button>
 
           <div className="flex gap-2">
@@ -2614,28 +2628,7 @@ export function MomentCreatePage() {
           };
 
           return (
-            <div className="absolute right-3 top-20 z-[85] flex flex-col gap-2.5">
-              <EditorTool
-                icon={<Type />}
-                label="Text"
-                active={showTextInput}
-                onClick={() => {
-                  closeAll();
-                  addText();
-                }}
-              />
-
-              <EditorTool
-                icon={<Smile />}
-                label="Sticker"
-                active={panel === "sticker"}
-                onClick={() => {
-                  const next = panel === "sticker";
-                  closeAll();
-                  if (!next) setPanel("sticker");
-                }}
-              />
-
+            <div className="absolute right-3 top-24 z-[85] flex flex-col items-end gap-3">
               <EditorTool
                 icon={<Pencil />}
                 label="Draw"
@@ -2648,8 +2641,42 @@ export function MomentCreatePage() {
               />
 
               <EditorTool
+                icon={<Type />}
+                label="Text"
+                active={showTextInput}
+                onClick={() => {
+                  closeAll();
+                  addText();
+                }}
+              />
+
+              <EditorTool
+                icon={<Smile />}
+                label="Stickers"
+                active={panel === "sticker"}
+                onClick={() => {
+                  const next = panel === "sticker";
+                  closeAll();
+                  if (!next) setPanel("sticker");
+                }}
+              />
+
+              <EditorTool
+                icon={<Music />}
+                label="Sounds"
+                active={showMusicPanel}
+                onClick={() => {
+                  const next = showMusicPanel;
+                  closeAll();
+                  if (next) return;
+                  if (audioUrl) setShowMusicPanel(true);
+                  else setShowMusicLibrary(true);
+                }}
+              />
+
+              <EditorTool
                 icon={<Crop />}
-                label="Crop"
+                label="Crop & Rotate"
                 active={cropMode}
                 onClick={() => {
                   const next = cropMode;
@@ -2662,25 +2689,6 @@ export function MomentCreatePage() {
               />
 
               <EditorTool
-                icon={<RotateCcw />}
-                label="Rotate"
-                onClick={rotateMedia}
-              />
-
-              <EditorTool
-                icon={<Music />}
-                label="Music"
-                active={showMusicPanel}
-                onClick={() => {
-                  const next = showMusicPanel;
-                  closeAll();
-                  if (next) return;
-                  if (audioUrl) setShowMusicPanel(true);
-                  else setShowMusicLibrary(true);
-                }}
-              />
-
-              <EditorTool
                 icon={<Palette />}
                 label="Filters"
                 active={panel === "filter"}
@@ -2689,6 +2697,27 @@ export function MomentCreatePage() {
                   closeAll();
                   if (!next) setPanel("filter");
                 }}
+              />
+
+              <EditorTool
+                icon={<Timer />}
+                label={
+                  snapDuration
+                    ? `Timer ${snapDuration}s`
+                    : "Timer"
+                }
+                active={!!snapDuration}
+                onClick={() =>
+                  setSnapDuration((value) =>
+                    value === null
+                      ? 3
+                      : value === 3
+                      ? 5
+                      : value === 5
+                      ? 10
+                      : null
+                  )
+                }
               />
 
               <EditorTool
