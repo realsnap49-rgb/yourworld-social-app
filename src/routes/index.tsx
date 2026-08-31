@@ -73,6 +73,7 @@ function HomePage() {
         list.push({
           userId: uid,
           username: m.author?.username ?? "user",
+          displayName: m.author?.name || m.author?.username || "user",
           avatarUrl: m.author?.avatar ?? undefined,
           hasUnseen: true,
           momentId: m.id,
