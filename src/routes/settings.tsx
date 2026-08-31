@@ -421,7 +421,7 @@ export function SettingsPage() {
             hint="Takedown procedure & Safe Harbor"
             onClick={() => navigate({ to: "/copyright-policy" })}
           />
-          <Row label="Licenses" />
+          <Row label="Licenses" onClick={() => navigate({ to: "/licenses" })} />
         </Panel>
       )}
     </div>
