@@ -92,6 +92,13 @@
       "when": 1788164363076,
       "tag": "0012_post_display_options",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788167030290,
+      "tag": "0013_comment_pinning",
+      "breakpoints": true
     }
   ]
 }
