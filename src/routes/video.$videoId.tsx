@@ -9,6 +9,7 @@ import {
 } from "@/lib/video-data";
 import { resolveMediaUrl } from "@/lib/social-data";
 import { usePostSaves } from "@/lib/post-actions";
+import { usePostComments } from "@/lib/social-data";
 import { useYw } from "@/lib/yw-store";
 import { formatCount } from "@/lib/yw-data";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,8 @@ function WatchPage() {
   const navigate = useNavigate();
   const { videos, loading, currentUserId, countView, toggleLike } = useLongVideos();
   const { saved, toggleSave } = usePostSaves();
+  const { comments: allComments } = usePostComments(videoId);
+  const pinnedComments = allComments.filter((c) => c.pinned).slice(0, 4);
   const { following, toggleFollow } = useYw();
 
   const video = videos.find((v) => v.id === videoId) ?? null;
@@ -251,6 +254,21 @@ function WatchPage() {
             <div className="mt-2 flex flex-wrap gap-1.5">
               {video.hashtags.map((t) => (
                 <span key={t} className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400">{t}</span>
+              ))}
+            </div>
+          )}
+
+          {/* Pinned comments — shown first to every viewer */}
+          {pinnedComments.length > 0 && (
+            <div className="mt-4 space-y-2 rounded-xl bg-[#181818] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-pink-400">Pinned comments</p>
+              {pinnedComments.map((c) => (
+                <div key={c.id} className="text-xs">
+                  <Link to="/u/$userId" params={{ userId: c.userId }} className="font-semibold text-white">
+                    @{c.username}
+                  </Link>
+                  <span className="ml-1.5 text-zinc-300">{c.body}</span>
+                </div>
               ))}
             </div>
           )}
