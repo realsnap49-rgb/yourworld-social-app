@@ -48,6 +48,7 @@ import { currentUser } from "@/lib/yw-data";
 import { supabase } from "@/integrations/supabase/client";
 import { saveChatDisplayName, setChatNameLocal, useChatNames } from "@/lib/chat-names";
 import { saveSecretChatLock } from "@/lib/secret-chats";
+import { PinDialog } from "@/components/yw/PinDialog";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
