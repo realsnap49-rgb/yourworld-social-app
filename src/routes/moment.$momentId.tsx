@@ -567,14 +567,19 @@ function MomentViewRoute() {
                 type="button"
                 aria-label="Send reply"
                 disabled={!reply.trim() || replying}
-                onClick={() => {
+                onClick={async () => {
                   const text = reply.trim();
                   if (!text) return;
                   setReplying(true);
-                  addReply(current.id, text);
                   setReply("");
+                  const res = await addReply(current.id, text);
                   setReplying(false);
-                  toast.success("Reply sent");
+                  if (res?.error) {
+                    toast.error("Couldn't send reply");
+                    setReply(text);
+                  } else {
+                    toast.success("Reply sent");
+                  }
                 }}
                 className="text-white disabled:opacity-40"
               >
