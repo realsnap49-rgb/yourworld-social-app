@@ -146,8 +146,7 @@ export function Highlights({ userId, posts }: { userId: string | null; posts: Db
     if (!file) return;
     try {
       const dataUrl = await compressImageFile(file, {
-        maxWidth: MAX_COVER_EDGE,
-        maxHeight: MAX_COVER_EDGE,
+        maxDim: MAX_COVER_EDGE,
         quality: 0.8,
       });
       setCover(dataUrl);
