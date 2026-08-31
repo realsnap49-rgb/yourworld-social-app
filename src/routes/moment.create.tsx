@@ -3373,6 +3373,8 @@ export function MomentCreatePage() {
             />
           </button>
         </div>
+        )}
+
       </div>
     );
   }
