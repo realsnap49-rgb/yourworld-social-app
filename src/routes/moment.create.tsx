@@ -3239,6 +3239,7 @@ export function MomentCreatePage() {
           <audio
             ref={previewAudioRef}
             src={audioUrl}
+            preload="metadata"
             className="hidden"
             onEnded={() =>
               setAudioPlaying(false)
