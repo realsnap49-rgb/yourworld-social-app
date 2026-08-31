@@ -93,6 +93,7 @@ function ProfilePage() {
   const [manage, setManage] = useState<DbPost | null>(null);
   const [editing, setEditing] = useState(false);
   const [caption, setCaption] = useState("");
+  const [location, setLocation] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -100,6 +101,13 @@ function ProfilePage() {
     setManage(post);
     setEditing(false);
     setCaption(post.caption ?? "");
+    setLocation(post.location ?? "");
+  };
+
+  const startEdit = (post: DbPost) => {
+    setCaption(post.caption ?? "");
+    setLocation(post.location ?? "");
+    setEditing(true);
   };
 
   const patchManaged = async (patch: Parameters<typeof updateMyPost>[1], msg: string) => {
