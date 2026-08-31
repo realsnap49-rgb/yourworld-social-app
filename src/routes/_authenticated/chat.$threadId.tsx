@@ -469,7 +469,12 @@ export function ChatThreadPage() {
               void (async () => {
                 const salt = settings.secretPinSalt;
                 const hash = settings.secretPinHash;
-                if (!salt || !hash || (await hashPin(salt, unlockPin)) !== hash) return;
+                if (!salt || !hash || (await hashPin(salt, unlockPin)) !== hash) {
+                  setUnlockError("Incorrect PIN");
+                  setUnlockPin("");
+                  return;
+                }
+                setUnlockError(null);
                 setChatUnlocked(true);
                 setUnlockPin("");
               })();
@@ -482,14 +487,16 @@ export function ChatThreadPage() {
             </div>
             <input
               value={unlockPin}
-              onChange={(e) => setUnlockPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              onChange={(e) => { setUnlockPin(e.target.value.replace(/\D/g, "").slice(0, 8)); setUnlockError(null); }}
               inputMode="numeric"
               type="password"
               autoFocus
               aria-label="Secret chat PIN"
               className="h-12 w-full rounded-xl bg-zinc-900 px-4 text-center text-lg outline-none"
             />
+            {unlockError && <p className="text-xs font-medium text-red-400">{unlockError}</p>}
             <button type="submit" className="h-11 w-full rounded-xl bg-purple-600 text-sm font-bold">Unlock</button>
+
           </form>
         </div>
       ) : null}
