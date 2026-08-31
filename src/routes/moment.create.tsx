@@ -2661,18 +2661,8 @@ export function MomentCreatePage() {
                 }}
               />
 
-              <EditorTool
-                icon={<Music />}
-                label="Sounds"
-                active={showMusicPanel}
-                onClick={() => {
-                  const next = showMusicPanel;
-                  closeAll();
-                  if (next) return;
-                  if (audioUrl) setShowMusicPanel(true);
-                  else setShowMusicLibrary(true);
-                }}
-              />
+
+
 
               <EditorTool
                 icon={<Crop />}
