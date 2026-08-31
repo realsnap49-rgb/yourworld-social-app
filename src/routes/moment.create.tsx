@@ -975,8 +975,11 @@ export function MomentCreatePage() {
   // =====================================================
 
   const getMimeType = () => {
+    // Hardware-encoded codecs first (H.264 / VP8) so recording never
+    // hits the slow software VP9 path and drops frames.
     const types = [
-      "video/webm;codecs=vp9,opus",
+      "video/mp4;codecs=h264,aac",
+      "video/webm;codecs=h264,opus",
       "video/webm;codecs=vp8,opus",
       "video/webm",
       "video/mp4",
