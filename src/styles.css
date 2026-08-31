@@ -446,3 +446,14 @@
 @utility animate-kenburns {
   animation: yw-kenburns 14s ease-in-out infinite alternate;
 }
+
+/* Promote camera/editor surfaces to their own GPU layer so overlays,
+   docks and drawers animate at a steady 60fps without repainting the
+   live camera preview underneath. */
+@utility gpu-layer {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: paint;
+}

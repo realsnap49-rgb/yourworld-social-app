@@ -228,6 +228,11 @@ export function MomentCreatePage() {
   const streamRef =
     useRef<MediaStream | null>(null);
 
+  const captureCanvasRef =
+    useRef<HTMLCanvasElement | null>(
+      null
+    );
+
   const mediaRecorderRef =
     useRef<MediaRecorder | null>(null);
 
@@ -573,40 +578,32 @@ export function MomentCreatePage() {
         );
       }
 
+      // 720p60 first: hardware-accelerated on virtually every device,
+      // no frame drops, instant start.
+      const audioConstraint: MediaTrackConstraints =
+        {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        };
+
       const requests: MediaStreamConstraints[] =
         [
           {
             video: {
               facingMode,
               width: {
-                ideal: 3840,
+                ideal: 1280,
               },
               height: {
-                ideal: 2160,
+                ideal: 720,
               },
               frameRate: {
                 ideal: 60,
                 max: 60,
               },
             },
-            audio: true,
-          },
-
-          {
-            video: {
-              facingMode,
-              width: {
-                ideal: 1920,
-              },
-              height: {
-                ideal: 1080,
-              },
-              frameRate: {
-                ideal: 60,
-                max: 60,
-              },
-            },
-            audio: true,
+            audio: audioConstraint,
           },
 
           {
@@ -618,6 +615,16 @@ export function MomentCreatePage() {
               height: {
                 ideal: 720,
               },
+              frameRate: {
+                ideal: 30,
+              },
+            },
+            audio: audioConstraint,
+          },
+
+          {
+            video: {
+              facingMode,
             },
             audio: true,
           },
@@ -902,23 +909,45 @@ export function MomentCreatePage() {
     if (!video) return;
 
     const width =
-      video.videoWidth || 1920;
+      video.videoWidth || 1280;
 
     const height =
-      video.videoHeight || 1080;
+      video.videoHeight || 720;
 
+    // Reused offscreen canvas + desynchronized 2D context:
+    // no per-shot allocation, GPU-friendly, zero shutter lag.
     const canvas =
+      captureCanvasRef.current ||
       document.createElement(
         "canvas"
       );
 
-    canvas.width = width;
-    canvas.height = height;
+    captureCanvasRef.current =
+      canvas;
+
+    if (canvas.width !== width)
+      canvas.width = width;
+
+    if (canvas.height !== height)
+      canvas.height = height;
 
     const ctx =
-      canvas.getContext("2d");
+      canvas.getContext("2d", {
+        alpha: false,
+        desynchronized: true,
+        willReadFrequently: false,
+      }) as CanvasRenderingContext2D | null;
 
     if (!ctx) return;
+
+    ctx.setTransform(
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+    );
 
     if (facingMode === "user") {
       ctx.translate(width, 0);
@@ -934,7 +963,7 @@ export function MomentCreatePage() {
     );
 
     canvas.toBlob(
-      (blob) => {
+      (blob: Blob | null) => {
         if (!blob) return;
 
         const url =
@@ -948,7 +977,7 @@ export function MomentCreatePage() {
         setStep(1);
       },
       "image/jpeg",
-      0.98
+      0.92
     );
   };
 
@@ -973,8 +1002,11 @@ export function MomentCreatePage() {
   // =====================================================
 
   const getMimeType = () => {
+    // Hardware-encoded codecs first (H.264 / VP8) so recording never
+    // hits the slow software VP9 path and drops frames.
     const types = [
-      "video/webm;codecs=vp9,opus",
+      "video/mp4;codecs=h264,aac",
+      "video/webm;codecs=h264,opus",
       "video/webm;codecs=vp8,opus",
       "video/webm",
       "video/mp4",
@@ -1010,10 +1042,12 @@ export function MomentCreatePage() {
       const recorder = mimeType
         ? new MediaRecorder(stream, {
             mimeType,
+            // 720p60 sweet spot: crisp, but light enough for
+            // real-time hardware encoding with zero dropped frames.
             videoBitsPerSecond:
-              18_000_000,
+              6_000_000,
             audioBitsPerSecond:
-              256_000,
+              128_000,
           })
         : new MediaRecorder(
             stream
@@ -1059,7 +1093,8 @@ export function MomentCreatePage() {
       mediaRecorderRef.current =
         recorder;
 
-      recorder.start(200);
+      // Fewer, larger chunks = fewer main-thread interruptions.
+      recorder.start(1000);
 
       setIsRecording(true);
       setRecordingSeconds(0);
@@ -1277,11 +1312,15 @@ export function MomentCreatePage() {
         FILTERS[selectedFilter]
           .css;
 
+      // Filters + rotation run purely on the compositor (translateZ keeps
+      // the layer on the GPU), so grading never re-renders the canvas.
       return {
         filter: `${filter} brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
-        transform: `rotate(${rotation}deg)`,
+        transform: `rotate(${rotation}deg) translateZ(0)`,
+        willChange: "filter, transform",
+        backfaceVisibility: "hidden",
         transition:
-          "filter .15s ease, transform .2s ease",
+          "filter .15s linear, transform .2s cubic-bezier(.22,1,.36,1)",
       };
     };
 
@@ -2052,7 +2091,7 @@ export function MomentCreatePage() {
           autoPlay
           playsInline
           muted
-          className={`absolute inset-0 w-full h-full object-cover ${
+          className={`gpu-layer absolute inset-0 w-full h-full object-cover ${
             facingMode === "user"
               ? "scale-x-[-1]"
               : ""
@@ -2164,7 +2203,7 @@ export function MomentCreatePage() {
 
         {/* RIGHT TOOLS */}
 
-        <div className="absolute right-3 top-20 z-30 flex flex-col items-end gap-3">
+        <div className="gpu-layer absolute right-3 top-20 z-30 flex flex-col items-end gap-3">
           {(
             [
               {
@@ -2638,7 +2677,7 @@ export function MomentCreatePage() {
           };
 
           return (
-            <div className="absolute right-3 top-24 z-[85] flex flex-col items-end gap-3">
+            <div className="gpu-layer absolute right-3 top-24 z-[85] flex flex-col items-end gap-3">
               <EditorTool
                 icon={<Pencil />}
                 label="Draw"
@@ -2729,7 +2768,7 @@ export function MomentCreatePage() {
         {/* TEXT PANEL */}
 
         {showTextInput && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <input
               autoFocus
               value={overlayText}
@@ -2887,7 +2926,7 @@ export function MomentCreatePage() {
         {/* CROP PANEL */}
 
         {cropMode && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <p className="text-[11px] text-white/60 mb-3">
               Drag the corners to crop freely
             </p>
@@ -2977,7 +3016,7 @@ export function MomentCreatePage() {
         {/* DRAW PANEL */}
 
         {drawMode && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <div className="flex gap-2 mb-3">
               {[
                 "#ffffff",
@@ -3057,7 +3096,7 @@ export function MomentCreatePage() {
         {/* STICKER DRAWER */}
 
         {panel === "sticker" && (
-        <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10 flex gap-2 overflow-x-auto no-scrollbar">
 
           {[
             "❤️",
@@ -3090,7 +3129,7 @@ export function MomentCreatePage() {
         {/* FILTERS + ADJUSTMENTS DRAWER */}
 
         {panel === "filter" && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10">
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
 
             <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
@@ -3200,6 +3239,7 @@ export function MomentCreatePage() {
           <audio
             ref={previewAudioRef}
             src={audioUrl}
+            preload="metadata"
             className="hidden"
             onEnded={() =>
               setAudioPlaying(false)
@@ -3249,7 +3289,7 @@ export function MomentCreatePage() {
               onClick={() => setShowMusicLibrary(false)}
               aria-label="Close music library"
             />
-            <div className="rounded-t-3xl border-t border-white/10 bg-neutral-950 p-4 pb-6">
+            <div className="gpu-layer rounded-t-3xl border-t border-white/10 bg-neutral-950 p-4 pb-6">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-sm font-black uppercase tracking-wide">Add music</p>
                 <button
@@ -3300,7 +3340,7 @@ export function MomentCreatePage() {
         {/* MUSIC TRIM PANEL */}
 
         {showMusicPanel && audioUrl && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <div className="flex items-center gap-2 mb-3">
               <button
                 onClick={
@@ -3462,6 +3502,8 @@ export function MomentCreatePage() {
                     {mediaUrl && !isVideo ? (
                       <img
                         src={mediaUrl}
+                        decoding="async"
+                        loading="lazy"
                         alt={FILTERS[filter].name}
                         className="w-full h-full object-cover"
                         style={{
