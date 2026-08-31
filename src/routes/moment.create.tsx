@@ -2087,7 +2087,7 @@ export function MomentCreatePage() {
           autoPlay
           playsInline
           muted
-          className={`absolute inset-0 w-full h-full object-cover ${
+          className={`gpu-layer absolute inset-0 w-full h-full object-cover ${
             facingMode === "user"
               ? "scale-x-[-1]"
               : ""
@@ -2199,7 +2199,7 @@ export function MomentCreatePage() {
 
         {/* RIGHT TOOLS */}
 
-        <div className="absolute right-3 top-20 z-30 flex flex-col items-end gap-3">
+        <div className="gpu-layer absolute right-3 top-20 z-30 flex flex-col items-end gap-3">
           {(
             [
               {
@@ -2673,7 +2673,7 @@ export function MomentCreatePage() {
           };
 
           return (
-            <div className="absolute right-3 top-24 z-[85] flex flex-col items-end gap-3">
+            <div className="gpu-layer absolute right-3 top-24 z-[85] flex flex-col items-end gap-3">
               <EditorTool
                 icon={<Pencil />}
                 label="Draw"
@@ -2764,7 +2764,7 @@ export function MomentCreatePage() {
         {/* TEXT PANEL */}
 
         {showTextInput && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <input
               autoFocus
               value={overlayText}
@@ -2922,7 +2922,7 @@ export function MomentCreatePage() {
         {/* CROP PANEL */}
 
         {cropMode && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <p className="text-[11px] text-white/60 mb-3">
               Drag the corners to crop freely
             </p>
@@ -3012,7 +3012,7 @@ export function MomentCreatePage() {
         {/* DRAW PANEL */}
 
         {drawMode && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <div className="flex gap-2 mb-3">
               {[
                 "#ffffff",
@@ -3092,7 +3092,7 @@ export function MomentCreatePage() {
         {/* STICKER DRAWER */}
 
         {panel === "sticker" && (
-        <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10 flex gap-2 overflow-x-auto no-scrollbar">
 
           {[
             "❤️",
@@ -3125,7 +3125,7 @@ export function MomentCreatePage() {
         {/* FILTERS + ADJUSTMENTS DRAWER */}
 
         {panel === "filter" && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10">
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
 
             <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
@@ -3284,7 +3284,7 @@ export function MomentCreatePage() {
               onClick={() => setShowMusicLibrary(false)}
               aria-label="Close music library"
             />
-            <div className="rounded-t-3xl border-t border-white/10 bg-neutral-950 p-4 pb-6">
+            <div className="gpu-layer rounded-t-3xl border-t border-white/10 bg-neutral-950 p-4 pb-6">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-sm font-black uppercase tracking-wide">Add music</p>
                 <button
@@ -3335,7 +3335,7 @@ export function MomentCreatePage() {
         {/* MUSIC TRIM PANEL */}
 
         {showMusicPanel && audioUrl && (
-          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
+          <div className="gpu-layer transition-transform duration-200 ease-out absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <div className="flex items-center gap-2 mb-3">
               <button
                 onClick={
