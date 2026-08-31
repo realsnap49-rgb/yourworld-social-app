@@ -1202,7 +1202,21 @@ export function ChatThreadPage() {
     </div>
   </div>
 )}
+    <PinDialog
+      open={pinMode !== null}
+      title={pinMode === "remove" ? "Remove Secret Lock" : "Create chat PIN"}
+      description={
+        pinMode === "remove"
+          ? "Enter the PIN for this chat to remove the lock."
+          : "Choose a 4-8 digit PIN. You'll need it to open this chat."
+      }
+      confirmLabel={pinMode === "remove" ? "Remove" : "Lock chat"}
+      error={pinError}
+      onCancel={() => { setPinMode(null); setPinError(null); }}
+      onSubmit={(pin) => void submitPin(pin)}
+    />
     </>
+
   );
 }
 
