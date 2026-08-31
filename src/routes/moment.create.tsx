@@ -228,6 +228,11 @@ export function MomentCreatePage() {
   const streamRef =
     useRef<MediaStream | null>(null);
 
+  const captureCanvasRef =
+    useRef<HTMLCanvasElement | null>(
+      null
+    );
+
   const mediaRecorderRef =
     useRef<MediaRecorder | null>(null);
 
