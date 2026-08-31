@@ -3059,7 +3059,17 @@ export function MomentCreatePage() {
               </button>
             </>
           )}
-        </div>
+            </div>
+
+            <button
+              onClick={() => setPanel(null)}
+              className="mt-4 w-full py-2.5 rounded-full bg-white text-black text-xs font-black"
+            >
+              Done
+            </button>
+          </div>
+        )}
+
 
         {/* AUDIO */}
 
