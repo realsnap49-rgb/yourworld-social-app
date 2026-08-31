@@ -84,6 +84,12 @@ export type MyMoment = {
   ai: Partial<Record<AiTool, boolean>>;
   allowDownload: boolean;
   screenshotAlert: boolean;
+  /** interaction & safety settings (stored in payload) */
+  allowReactions?: boolean;
+  allowReplies?: boolean;
+  allowSharing?: boolean;
+  showLocation?: boolean;
+  saveToArchive?: boolean;
   poll: MomentPoll | null;
   createdAt: number;
   /** epoch ms when this moment expires (12h / 24h) */
