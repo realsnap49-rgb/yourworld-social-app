@@ -2030,6 +2030,14 @@ export function MomentCreatePage() {
             : undefined),
 
         mentions: [],
+        location: showLocation
+          ? (locationName || undefined)
+          : undefined,
+        allowReactions,
+        allowReplies,
+        allowSharing,
+        showLocation,
+        saveToArchive,
         privacy:
           audience ===
           "close_friends"
