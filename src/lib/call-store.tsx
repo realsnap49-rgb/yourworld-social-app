@@ -323,6 +323,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const phaseRef = useRef<Phase>("idle");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+
+  // An unanswered incoming call must stop ringing on its own too, otherwise the
+  // full-screen call UI can get stuck when the caller disappears.
+  useEffect(() => {
+    if (phase !== "incoming") return;
+    const t = window.setTimeout(() => {
+      toast.message("Missed call");
+      teardown();
+    }, 45_000);
+    return () => window.clearTimeout(t);
+  }, [phase, teardown]);
+
   const callRef = useRef<CallState | null>(null);
   useEffect(() => { callRef.current = call; }, [call]);
   const meRef = useRef<string | null>(null);
