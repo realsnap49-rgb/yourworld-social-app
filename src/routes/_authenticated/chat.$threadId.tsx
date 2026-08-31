@@ -23,6 +23,7 @@ import { useCall } from "@/lib/call-store";
 import { useChatNames, saveChatDisplayName } from "@/lib/chat-names";
 import { useChatSettings } from "@/lib/chat-settings";
 import { hashPin, randomPinSalt, saveSecretChatLock } from "@/lib/secret-chats";
+import { PinDialog } from "@/components/yw/PinDialog";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ChatThreadPage,
