@@ -2710,11 +2710,7 @@ export function MomentCreatePage() {
                 }
               />
 
-              <EditorTool
-                icon={<Download />}
-                label="Save"
-                onClick={handleDownload}
-              />
+
             </div>
           );
         })()}
