@@ -225,6 +225,11 @@ function payloadOf(m: NewMoment) {
     mentions: m.mentions ?? [],
     effect: m.effect ?? "none",
     ai: m.ai ?? {},
+    allowReactions: m.allowReactions ?? true,
+    allowReplies: m.allowReplies ?? true,
+    allowSharing: m.allowSharing ?? true,
+    showLocation: m.showLocation ?? true,
+    saveToArchive: m.saveToArchive ?? true,
   };
 }
 
