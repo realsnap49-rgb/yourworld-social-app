@@ -573,40 +573,32 @@ export function MomentCreatePage() {
         );
       }
 
+      // 720p60 first: hardware-accelerated on virtually every device,
+      // no frame drops, instant start.
+      const audioConstraint: MediaTrackConstraints =
+        {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        };
+
       const requests: MediaStreamConstraints[] =
         [
           {
             video: {
               facingMode,
               width: {
-                ideal: 3840,
+                ideal: 1280,
               },
               height: {
-                ideal: 2160,
+                ideal: 720,
               },
               frameRate: {
                 ideal: 60,
                 max: 60,
               },
             },
-            audio: true,
-          },
-
-          {
-            video: {
-              facingMode,
-              width: {
-                ideal: 1920,
-              },
-              height: {
-                ideal: 1080,
-              },
-              frameRate: {
-                ideal: 60,
-                max: 60,
-              },
-            },
-            audio: true,
+            audio: audioConstraint,
           },
 
           {
@@ -618,6 +610,16 @@ export function MomentCreatePage() {
               height: {
                 ideal: 720,
               },
+              frameRate: {
+                ideal: 30,
+              },
+            },
+            audio: audioConstraint,
+          },
+
+          {
+            video: {
+              facingMode,
             },
             audio: true,
           },
