@@ -480,10 +480,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             console.error("[call] signal error", err);
           }
-        }).subscribe((status) => {
-          if (status === "SUBSCRIBED") resolve();
+        });
+
+        // Never leave callers awaiting forever: resolve on any terminal
+        // subscription status and after a hard timeout as well.
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        const guard = setTimeout(done, 8000);
+        ch.subscribe((status) => {
+          if (
+            status === "SUBSCRIBED" ||
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            clearTimeout(guard);
+            done();
+          }
         });
       }),
+
     [createPeer, flushIce, getMedia, signal, teardown, logCallOutcome],
   );
 
