@@ -545,14 +545,33 @@ export function MomentProvider({ children }: { children: ReactNode }) {
         patch(id, (m) => ({ ...m, archived: false }));
         void supabase.from("moments").update({ archived: false }).eq("id", id);
       },
-      addReply: (id, text) => {
+      addReply: async (id, text) => {
         const uid = uidRef.current;
-        if (!uid || !text.trim()) return;
+        const body = text.trim();
+        if (!uid || !body) return { error: "no-session" };
         patch(id, (m) => ({
           ...m,
-          replies: [...m.replies, { id: `tmp-${Date.now()}`, userId: uid, text, at: Date.now() }],
+          replies: [...m.replies, { id: `tmp-${Date.now()}`, userId: uid, text: body, at: Date.now() }],
         }));
-        void supabase.from("moment_replies").insert({ moment_id: id, user_id: uid, text });
+        const { error } = await supabase
+          .from("moment_replies")
+          .insert({ moment_id: id, user_id: uid, text: body });
+        if (error) return { error: error.message };
+
+        // Deliver the reply to the moment owner's chat inbox as a real DM.
+        const target = momentsRef.current.find((m) => m.id === id);
+        const ownerId = target?.author?.id;
+        if (ownerId && ownerId !== uid) {
+          const threadId = dmThreadId(uid, ownerId);
+          await supabase.from("direct_messages").insert({
+            thread_id: threadId,
+            sender_id: uid,
+            content: body,
+            media_url: target?.media ?? null,
+            media_type: "text",
+          });
+        }
+        return { error: null };
       },
       votePoll: (id, option) => {
         const target = moments.find((m) => m.id === id);
