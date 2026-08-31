@@ -714,7 +714,12 @@ export type PostComment = {
   avatarUrl: string | null;
   body: string;
   createdAt: string;
+  pinned: boolean;
+  pinnedAt: string | null;
 };
+
+export const MAX_PINNED_COMMENTS = 4;
+
 
 /** Real comments for a post or reel: live fetch, optimistic post, realtime sync. */
 export function usePostComments(postId: string | null) {
