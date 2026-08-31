@@ -581,6 +581,8 @@ function MomentViewRoute() {
                 <Send className="h-4 w-4" />
               </button>
             </div>
+            )}
+            {current.allowReactions === false ? null : (
             <button
               type="button"
               aria-label="Like"
@@ -593,6 +595,7 @@ function MomentViewRoute() {
             >
               <Heart className={cn("h-5 w-5", liked && "fill-red-500 text-red-500")} />
             </button>
+            )}
             {current.allowDownload && current.media ? (
               <button
                 type="button"
