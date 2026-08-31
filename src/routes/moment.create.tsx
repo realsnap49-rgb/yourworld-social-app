@@ -362,6 +362,9 @@ export function MomentCreatePage() {
     useState(false);
   const [showMusicPanel, setShowMusicPanel] =
     useState(false);
+  const [panel, setPanel] =
+    useState<null | "sticker" | "filter">(null);
+
 
   const previewAudioRef =
     useRef<HTMLAudioElement | null>(null);
