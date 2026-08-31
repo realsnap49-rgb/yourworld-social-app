@@ -16,7 +16,6 @@ import {
   Archive,
   MapPin,
   ChevronUp,
-  Music2,
   Plus,
 } from "lucide-react";
 import { downloadMomentMedia } from "@/lib/yw-download";

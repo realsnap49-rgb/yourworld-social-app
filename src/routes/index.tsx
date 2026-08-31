@@ -54,6 +54,7 @@ function HomePage() {
   type StoryRing = {
     userId: string;
     username: string;
+    displayName: string;
     avatarUrl?: string;
     hasUnseen: boolean;
     mine?: boolean;
