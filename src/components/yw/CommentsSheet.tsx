@@ -10,8 +10,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { YwAvatar } from "@/components/yw/Avatar";
 import { byId, currentUser, type Comment, type User } from "@/lib/yw-data";
-import { usePostComments, timeAgo, resolveMediaUrl } from "@/lib/social-data";
-import { SendHorizonal, Trash2 } from "lucide-react";
+import { usePostComments, timeAgo, resolveMediaUrl, MAX_PINNED_COMMENTS } from "@/lib/social-data";
+import { Pin, PinOff, SendHorizonal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type DisplayComment = {
@@ -21,6 +21,7 @@ type DisplayComment = {
   time: string;
   avatarUrl?: string | null;
   mine: boolean;
+  pinned: boolean;
 };
 
 function toUser(username: string, displayName: string, id: string, hue = 200): User {
@@ -95,10 +96,18 @@ export function CommentsSheet({
         time: timeAgo(c.createdAt),
         avatarUrl: c.avatarUrl,
         mine: !!real.me && c.userId === real.me,
+        pinned: c.pinned,
       }))
     : local.map((c) => {
         const u = byId(c.userId);
-        return { id: c.id, user: u, body: c.text, time: c.time, mine: c.userId === currentUser.id };
+        return {
+          id: c.id,
+          user: u,
+          body: c.text,
+          time: c.time,
+          mine: c.userId === currentUser.id,
+          pinned: false,
+        };
       });
 
   const count = list.length;
@@ -118,6 +127,19 @@ export function CommentsSheet({
       ]);
     }
     setDraft("");
+  };
+
+  const canModerate = useReal && real.isPostOwner;
+
+  const togglePin = async (c: DisplayComment) => {
+    if (!useReal) return;
+    if (!c.pinned && real.pinnedCount >= MAX_PINNED_COMMENTS) {
+      toast("You can pin up to 4 comments");
+      return;
+    }
+    const ok = await real.togglePin(c.id);
+    if (ok) toast.success(c.pinned ? "Comment unpinned" : "Comment pinned");
+    else toast.error("Couldn't update pin");
   };
 
   const remove = (c: DisplayComment) => {
@@ -142,7 +164,7 @@ export function CommentsSheet({
 
           <ul className="flex-1 space-y-4 overflow-y-auto px-4 pb-4">
             {list.map((c) => (
-              <li key={c.id} className="flex gap-3">
+              <li key={c.id} className={c.pinned ? "flex gap-3 rounded-xl bg-secondary/40 p-2" : "flex gap-3"}>
                 {isRealUser(c.user.id) && !c.mine ? (
                   <Link
                     to="/u/$userId"
@@ -177,16 +199,32 @@ export function CommentsSheet({
                     · {c.time}
                   </p>
                   <p className="text-sm">{c.body}</p>
+                  {c.pinned && (
+                    <p className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      <Pin className="h-3 w-3" /> Pinned
+                    </p>
+                  )}
                 </div>
-                {c.mine && (
+                <div className="mt-1 flex shrink-0 items-start gap-2">
+                {canModerate && (
+                  <button
+                    onClick={() => void togglePin(c)}
+                    aria-label={c.pinned ? "Unpin comment" : "Pin comment"}
+                    className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {c.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                  </button>
+                )}
+                {(c.mine || canModerate) && (
                   <button
                     onClick={() => remove(c)}
                     aria-label="Delete comment"
-                    className="mt-1 shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+                    className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
+                </div>
               </li>
             ))}
             {useReal && !real.loading && list.length === 0 && (

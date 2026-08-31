@@ -714,12 +714,18 @@ export type PostComment = {
   avatarUrl: string | null;
   body: string;
   createdAt: string;
+  pinned: boolean;
+  pinnedAt: string | null;
 };
+
+export const MAX_PINNED_COMMENTS = 4;
+
 
 /** Real comments for a post or reel: live fetch, optimistic post, realtime sync. */
 export function usePostComments(postId: string | null) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [me, setMe] = useState<string | null>(null);
+  const [postOwnerId, setPostOwnerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -732,9 +738,16 @@ export function usePostComments(postId: string | null) {
     const uid = sessionData.session?.user.id ?? null;
     setMe(uid);
 
+    const { data: postRow } = await supabase
+      .from("posts")
+      .select("user_id")
+      .eq("id", postId)
+      .maybeSingle();
+    setPostOwnerId(postRow?.user_id ?? null);
+
     const { data: rows } = await supabase
       .from("post_comments")
-      .select("id,post_id,user_id,body,created_at")
+      .select("id,post_id,user_id,body,created_at,pinned,pinned_at")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
 
@@ -752,20 +765,29 @@ export function usePostComments(postId: string | null) {
       ((profiles ?? []) as DbProfile[]).map((p) => [p.id, p]),
     );
 
-    setComments(
-      rows.map((r) => {
-        const p = profileById.get(r.user_id);
-        return {
-          id: r.id,
-          userId: r.user_id,
-          username: p?.username ?? `user${r.user_id.slice(0, 4)}`,
-          displayName: p?.display_name ?? p?.username ?? "YourWorld user",
-          avatarUrl: p?.avatar_url ?? null,
-          body: r.body,
-          createdAt: r.created_at,
-        };
-      }),
-    );
+    const mapped: PostComment[] = rows.map((r) => {
+      const p = profileById.get(r.user_id);
+      return {
+        id: r.id,
+        userId: r.user_id,
+        username: p?.username ?? `user${r.user_id.slice(0, 4)}`,
+        displayName: p?.display_name ?? p?.username ?? "YourWorld user",
+        avatarUrl: p?.avatar_url ?? null,
+        body: r.body,
+        createdAt: r.created_at,
+        pinned: !!r.pinned,
+        pinnedAt: r.pinned_at ?? null,
+      };
+    });
+
+    // Pinned comments always float to the top, oldest pin first.
+    mapped.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      if (a.pinned && b.pinned) return (a.pinnedAt ?? "").localeCompare(b.pinnedAt ?? "");
+      return a.createdAt.localeCompare(b.createdAt);
+    });
+
+    setComments(mapped);
     setLoading(false);
   }, [postId]);
 
@@ -813,6 +835,8 @@ export function usePostComments(postId: string | null) {
           avatarUrl: null,
           body: text,
           createdAt: new Date().toISOString(),
+          pinned: false,
+          pinnedAt: null,
         },
       ]);
       const { error } = await supabase
@@ -830,17 +854,51 @@ export function usePostComments(postId: string | null) {
     [postId, me, load],
   );
 
-  /** Delete one of my own comments. */
+  const isPostOwner = !!me && !!postOwnerId && me === postOwnerId;
+  const pinnedCount = comments.filter((c) => c.pinned).length;
+
+  /** Delete my own comment, or — as the post owner — any comment on my post. */
   const remove = useCallback(
     async (id: string) => {
       const snapshot = comments;
       setComments((prev) => prev.filter((c) => c.id !== id));
       const { error } = await supabase.from("post_comments").delete().eq("id", id);
       if (error) setComments(snapshot);
+      return !error;
     },
     [comments],
   );
 
-  return { comments, loading, send, remove, me };
+  /** Post owner pins/unpins a comment (max 4 pinned per post). */
+  const togglePin = useCallback(
+    async (id: string) => {
+      const target = comments.find((c) => c.id === id);
+      if (!target || !isPostOwner) return false;
+      const next = !target.pinned;
+      if (next && pinnedCount >= MAX_PINNED_COMMENTS) return false;
+
+      const snapshot = comments;
+      setComments((prev) =>
+        [...prev.map((c) => (c.id === id ? { ...c, pinned: next, pinnedAt: next ? new Date().toISOString() : null } : c))].sort(
+          (a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            if (a.pinned && b.pinned) return (a.pinnedAt ?? "").localeCompare(b.pinnedAt ?? "");
+            return a.createdAt.localeCompare(b.createdAt);
+          },
+        ),
+      );
+      const { error } = await supabase.from("post_comments").update({ pinned: next }).eq("id", id);
+      if (error) {
+        setComments(snapshot);
+        return false;
+      }
+      void load();
+      return true;
+    },
+    [comments, isPostOwner, pinnedCount, load],
+  );
+
+  return { comments, loading, send, remove, togglePin, me, postOwnerId, isPostOwner, pinnedCount };
 }
+
 
