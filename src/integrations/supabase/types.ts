@@ -964,12 +964,16 @@ export type Database = {
       posts: {
         Row: {
           allow_download: boolean
+          archived: boolean
           audience: string
           audio: string | null
           caption: string
+          comments_off: boolean
           created_at: string
           duration_seconds: number | null
           hashtags: string[]
+          hide_like_count: boolean
+          hide_share_count: boolean
           id: string
           kind: string
           link: string | null
@@ -978,6 +982,7 @@ export type Database = {
           media_url: string
           orientation: string
           paid_promotion: boolean
+          pinned: boolean
           review_note: string | null
           review_status: string
           scheduled_at: string | null
@@ -991,12 +996,16 @@ export type Database = {
         }
         Insert: {
           allow_download?: boolean
+          archived?: boolean
           audience?: string
           audio?: string | null
           caption?: string
+          comments_off?: boolean
           created_at?: string
           duration_seconds?: number | null
           hashtags?: string[]
+          hide_like_count?: boolean
+          hide_share_count?: boolean
           id?: string
           kind?: string
           link?: string | null
@@ -1005,6 +1014,7 @@ export type Database = {
           media_url?: string
           orientation?: string
           paid_promotion?: boolean
+          pinned?: boolean
           review_note?: string | null
           review_status?: string
           scheduled_at?: string | null
@@ -1018,12 +1028,16 @@ export type Database = {
         }
         Update: {
           allow_download?: boolean
+          archived?: boolean
           audience?: string
           audio?: string | null
           caption?: string
+          comments_off?: boolean
           created_at?: string
           duration_seconds?: number | null
           hashtags?: string[]
+          hide_like_count?: boolean
+          hide_share_count?: boolean
           id?: string
           kind?: string
           link?: string | null
@@ -1032,6 +1046,7 @@ export type Database = {
           media_url?: string
           orientation?: string
           paid_promotion?: boolean
+          pinned?: boolean
           review_note?: string | null
           review_status?: string
           scheduled_at?: string | null

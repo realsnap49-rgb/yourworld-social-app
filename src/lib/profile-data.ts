@@ -163,13 +163,27 @@ export function useMyProfile() {
 /** Update a post/reel you own (caption, hashtags, location, download flag). */
 export async function updateMyPost(
   postId: string,
-  patch: { caption?: string; location?: string | null; allow_download?: boolean },
+  patch: {
+    caption?: string;
+    location?: string | null;
+    allow_download?: boolean;
+    hide_like_count?: boolean;
+    hide_share_count?: boolean;
+    comments_off?: boolean;
+    pinned?: boolean;
+    archived?: boolean;
+  },
 ) {
   const next: {
     caption?: string;
     hashtags?: string[];
     location?: string | null;
     allow_download?: boolean;
+    hide_like_count?: boolean;
+    hide_share_count?: boolean;
+    comments_off?: boolean;
+    pinned?: boolean;
+    archived?: boolean;
   } = {};
 
   if (patch.caption !== undefined) {
@@ -180,10 +194,16 @@ export async function updateMyPost(
   }
   if (patch.location !== undefined) next.location = patch.location;
   if (patch.allow_download !== undefined) next.allow_download = patch.allow_download;
+  if (patch.hide_like_count !== undefined) next.hide_like_count = patch.hide_like_count;
+  if (patch.hide_share_count !== undefined) next.hide_share_count = patch.hide_share_count;
+  if (patch.comments_off !== undefined) next.comments_off = patch.comments_off;
+  if (patch.pinned !== undefined) next.pinned = patch.pinned;
+  if (patch.archived !== undefined) next.archived = patch.archived;
 
   const { error } = await supabase.from("posts").update(next).eq("id", postId);
   if (error) throw new Error(error.message);
 }
+
 
 /** Permanently delete a post/reel you own, plus its stored media file. */
 export async function deleteMyPost(post: { id: string; media_url: string; kind: string }) {

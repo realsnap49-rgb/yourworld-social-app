@@ -26,6 +26,11 @@ export type DbPost = {
   allow_download: boolean;
   created_at: string;
   views?: number | null;
+  hide_like_count?: boolean | null;
+  hide_share_count?: boolean | null;
+  comments_off?: boolean | null;
+  pinned?: boolean | null;
+  archived?: boolean | null;
 };
 
 export type SocialPost = DbPost & {
