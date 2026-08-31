@@ -25,7 +25,7 @@ import { toast } from "sonner";
 const PHOTO_DURATION = 5000;
 const TICK = 60;
 /** long videos are split into chunks of this many seconds */
-const SEGMENT_DURATION = 40;
+const SEGMENT_DURATION = 20;
 
 export const Route = createFileRoute("/moment/$momentId")({
   head: () => ({
