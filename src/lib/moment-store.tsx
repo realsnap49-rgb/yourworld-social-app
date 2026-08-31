@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadWithProgress } from "@/lib/storage-upload";
 import { getRegisteredBlob } from "@/lib/blob-registry";
+import { dmThreadId } from "@/lib/social-data";
 
 
 export type MomentKind = "photo" | "video" | "text";
@@ -115,7 +116,7 @@ type Store = {
   deleteMoment: (id: string) => void;
   archiveMoment: (id: string) => void;
   restoreMoment: (id: string) => void;
-  addReply: (id: string, text: string) => void;
+  addReply: (id: string, text: string) => Promise<{ error: string | null }>;
   votePoll: (id: string, option: 0 | 1) => void;
   registerScreenshot: (id: string) => void;
   registerView: (id: string, liked?: boolean) => void;
@@ -559,7 +560,7 @@ export function MomentProvider({ children }: { children: ReactNode }) {
         if (error) return { error: error.message };
 
         // Deliver the reply to the moment owner's chat inbox as a real DM.
-        const target = momentsRef.current.find((m) => m.id === id);
+        const target = moments.find((m) => m.id === id);
         const ownerId = target?.author?.id;
         if (ownerId && ownerId !== uid) {
           const threadId = dmThreadId(uid, ownerId);
