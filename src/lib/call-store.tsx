@@ -246,7 +246,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(hideTimer.current);
       hideTimer.current = null;
     }
+    if (ringTimer.current) {
+      window.clearTimeout(ringTimer.current);
+      ringTimer.current = null;
+    }
+    connectedAt.current = null;
     pendingIce.current = [];
+
     setPhase("idle");
     setCall(null);
     setMicOn(true);
