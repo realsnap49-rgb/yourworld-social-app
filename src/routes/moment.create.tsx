@@ -1984,7 +1984,12 @@ export function MomentCreatePage() {
           ? audioVolume
           : undefined,
         stickers: [],
-        trim: part.trim,
+        trim:
+          part.trim ??
+          (!isVideo && audioUrl
+            ? { start: 0, end: photoSeconds }
+            : undefined),
+
         mentions: [],
         privacy:
           audience ===
