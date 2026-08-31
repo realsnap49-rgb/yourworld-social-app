@@ -192,6 +192,11 @@ function rowToMoment(
     ai: (p["ai"] as Partial<Record<AiTool, boolean>> | undefined) ?? {},
     allowDownload: row.allow_download,
     screenshotAlert: row.screenshot_alert,
+    allowReactions: (p["allowReactions"] as boolean | undefined) ?? true,
+    allowReplies: (p["allowReplies"] as boolean | undefined) ?? true,
+    allowSharing: (p["allowSharing"] as boolean | undefined) ?? true,
+    showLocation: (p["showLocation"] as boolean | undefined) ?? true,
+    saveToArchive: (p["saveToArchive"] as boolean | undefined) ?? true,
     poll: row.poll,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: row.expires_at
