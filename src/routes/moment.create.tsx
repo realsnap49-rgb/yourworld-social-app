@@ -1015,10 +1015,12 @@ export function MomentCreatePage() {
       const recorder = mimeType
         ? new MediaRecorder(stream, {
             mimeType,
+            // 720p60 sweet spot: crisp, but light enough for
+            // real-time hardware encoding with zero dropped frames.
             videoBitsPerSecond:
-              18_000_000,
+              6_000_000,
             audioBitsPerSecond:
-              256_000,
+              128_000,
           })
         : new MediaRecorder(
             stream
