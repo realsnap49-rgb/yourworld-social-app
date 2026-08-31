@@ -3304,7 +3304,7 @@ export function MomentCreatePage() {
 
         {/* CAPTION + NEXT */}
 
-        <div className="absolute bottom-4 left-4 right-4 z-[70] flex gap-2">
+        <div className="absolute bottom-0 left-0 right-0 z-[70] flex gap-2 px-4 pb-5 pt-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-md">
           <input
             value={caption}
             onChange={(e) =>
