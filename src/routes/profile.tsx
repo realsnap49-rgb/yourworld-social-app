@@ -454,21 +454,34 @@ function MediaGrid({
           ) : (
             <img src={it.src} alt="" loading="lazy" className="h-full w-full object-cover" />
           )}
+          {it.type?.startsWith("video") ? (
+            <Play className="absolute left-1.5 top-1.5 h-4 w-4 fill-current text-white drop-shadow" />
+          ) : null}
           {it.post && onSelect ? (
-            <button
-              type="button"
-              aria-label="Manage post"
-              onClick={() => onSelect(it.post!)}
-              className="absolute inset-0 grid place-items-end justify-items-end p-1.5"
-            >
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-background/70 backdrop-blur">
-                <Pencil className="h-3.5 w-3.5" strokeWidth={1.9} />
-              </span>
-            </button>
+            <>
+              <button
+                type="button"
+                aria-label="Open post"
+                onClick={() => onSelect(it.post!)}
+                className="absolute inset-0"
+              />
+              <button
+                type="button"
+                aria-label="Edit or delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(it.post!);
+                }}
+                className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-background/70 backdrop-blur transition-transform active:scale-90"
+              >
+                <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </>
           ) : null}
         </li>
       ))}
     </ul>
+
 
   );
 }
