@@ -152,6 +152,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [speakerOn, setSpeakerOn] = useState(true);
   const hideTimer = useRef<number | null>(null);
+  // Cancels a call that is never answered so neither side rings forever.
+  const ringTimer = useRef<number | null>(null);
+
 
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
