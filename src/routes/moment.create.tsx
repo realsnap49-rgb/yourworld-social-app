@@ -2154,103 +2154,140 @@ export function MomentCreatePage() {
 
         {/* RIGHT TOOLS */}
 
-        <div className="absolute right-3 top-20 z-30 flex flex-col gap-1.5 bg-black/35 backdrop-blur-xl p-1.5 rounded-2xl">
-          <button
-            onClick={() =>
-              setFacingMode(
-                (value) =>
-                  value === "user"
-                    ? "environment"
-                    : "user"
-              )
-            }
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            <RefreshCw size={16} />
-          </button>
-
-          <button
-            onClick={toggleFlash}
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            {isFlashOn ? (
-              <Zap className="text-yellow-300" size={16} />
-            ) : (
-              <ZapOff size={16} />
-            )}
-          </button>
-
-          <button
-            onClick={() =>
-              applyZoom(
-                zoom >= maxZoom
-                  ? 1
-                  : zoom + 0.5
-              )
-            }
-            className="w-7 h-7 text-[10px] font-bold"
-          >
-            {zoom.toFixed(1)}x
-          </button>
-
-          <button
-            onClick={() =>
-              setIsGridOn(
-                (value) => !value
-              )
-            }
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            <Grid3X3
-              size={16}
-              className={
-                isGridOn
-                  ? "text-pink-400"
-                  : ""
-              }
-            />
-          </button>
-
-          <button
-            onClick={() =>
-              setTimerSeconds(
-                (value) =>
-                  value === null
-                    ? 3
-                    : value === 3
-                    ? 10
-                    : null
-              )
-            }
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            <Timer
-              size={16}
-              className={
-                timerSeconds
-                  ? "text-green-400"
-                  : ""
-              }
-            />
-          </button>
+        <div className="absolute right-3 top-20 z-30 flex flex-col items-end gap-3">
+          {(
+            [
+              {
+                key: "flash",
+                label: "Flash",
+                icon: isFlashOn ? (
+                  <Zap size={19} className="text-yellow-300" />
+                ) : (
+                  <ZapOff size={19} />
+                ),
+                active: isFlashOn,
+                onClick: toggleFlash,
+              },
+              {
+                key: "timer",
+                label: timerSeconds
+                  ? `Timer ${timerSeconds}s`
+                  : "Timer",
+                icon: <Timer size={19} />,
+                active: !!timerSeconds,
+                onClick: () =>
+                  setTimerSeconds(
+                    (value) =>
+                      value === null
+                        ? 3
+                        : value === 3
+                        ? 10
+                        : null
+                  ),
+              },
+              {
+                key: "grid",
+                label: "Grid",
+                icon: <Grid3X3 size={19} />,
+                active: isGridOn,
+                onClick: () =>
+                  setIsGridOn((value) => !value),
+              },
+              {
+                key: "flip",
+                label: "Flip",
+                icon: <RefreshCw size={19} />,
+                active: false,
+                onClick: () =>
+                  setFacingMode(
+                    (value) =>
+                      value === "user"
+                        ? "environment"
+                        : "user"
+                  ),
+              },
+            ] as const
+          ).map((tool) => (
+            <button
+              key={tool.key}
+              onClick={tool.onClick}
+              className="flex items-center gap-2"
+            >
+              <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                {tool.label}
+              </span>
+              <span
+                className={`w-10 h-10 rounded-full backdrop-blur-xl flex items-center justify-center ${
+                  tool.active
+                    ? "bg-white text-black"
+                    : "bg-black/45 text-white"
+                }`}
+              >
+                {tool.icon}
+              </span>
+            </button>
+          ))}
 
           <button
             onClick={() =>
-              setIsNightMode(
-                (value) => !value
-              )
+              setShowExtraTools((value) => !value)
             }
-            className="w-7 h-7 flex items-center justify-center"
+            aria-label="More tools"
+            className="flex items-center gap-2"
           >
-            <Moon
-              size={16}
-              className={
-                isNightMode
-                  ? "text-blue-400"
-                  : ""
-              }
-            />
+            <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+              {showExtraTools ? "Less" : "More"}
+            </span>
+            <span className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl flex items-center justify-center">
+              {showExtraTools ? (
+                <ChevronUp size={19} />
+              ) : (
+                <ChevronDown size={19} />
+              )}
+            </span>
           </button>
+
+          {showExtraTools && (
+            <>
+              <button
+                onClick={() =>
+                  applyZoom(
+                    zoom >= maxZoom
+                      ? 1
+                      : zoom + 0.5
+                  )
+                }
+                className="flex items-center gap-2"
+              >
+                <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  Zoom
+                </span>
+                <span className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl flex items-center justify-center text-[11px] font-bold">
+                  {zoom.toFixed(1)}x
+                </span>
+              </button>
+
+              <button
+                onClick={() =>
+                  setIsNightMode((value) => !value)
+                }
+                className="flex items-center gap-2"
+              >
+                <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  Night
+                </span>
+                <span
+                  className={`w-10 h-10 rounded-full backdrop-blur-xl flex items-center justify-center ${
+                    isNightMode
+                      ? "bg-white text-black"
+                      : "bg-black/45 text-white"
+                  }`}
+                >
+                  <Moon size={19} />
+                </span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* BOTTOM CAMERA */}
@@ -2297,9 +2334,14 @@ export function MomentCreatePage() {
               onClick={() =>
                 imageInputRef.current?.click()
               }
-              className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-xl flex items-center justify-center"
+              className="flex flex-col items-center gap-1.5"
             >
-              <ImageIcon size={25} />
+              <span className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-xl border border-white/25 flex items-center justify-center">
+                <ImageIcon size={23} />
+              </span>
+              <span className="text-[10px] font-semibold text-white/90">
+                Memories
+              </span>
             </button>
 
             <button
@@ -2319,12 +2361,19 @@ export function MomentCreatePage() {
               />
             </button>
 
-            <div className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-xl flex flex-col items-center justify-center">
-              <ZoomIn size={20} />
-              <span className="text-[9px]">
-                {zoom.toFixed(1)}x
+            <button
+              onClick={() =>
+                setShowExtraTools((value) => !value)
+              }
+              className="flex flex-col items-center gap-1.5"
+            >
+              <span className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-xl border border-white/25 flex items-center justify-center">
+                <Star size={23} />
               </span>
-            </div>
+              <span className="text-[10px] font-semibold text-white/90">
+                Lenses
+              </span>
+            </button>
           </div>
 
           <p className="text-center text-xs text-white/50 mt-4">
