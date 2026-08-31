@@ -167,6 +167,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteStream = useRef<MediaStream | null>(null);
   /** Call ids we've already reacted to (broadcast + database ring paths). */
   const seenCalls = useRef<Set<string>>(new Set());
+  /** Remember handled call ids without growing the set forever. */
+  const markSeen = useCallback((id: string) => {
+    const set = seenCalls.current;
+    set.add(id);
+    if (set.size > 200) {
+      for (const k of Array.from(set).slice(0, set.size - 200)) set.delete(k);
+    }
+  }, []);
   /** Set when the peer connection reaches "connected" — used for call duration. */
   const connectedAt = useRef<number | null>(null);
   /** Ensures the call-log chat message is written exactly once per call. */
@@ -556,7 +564,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (!payload?.callId || seenCalls.current.has(payload.callId)) return;
         // Only accept rings whose signalling topic we are actually a participant of.
         if (!String(payload.callId).includes(me)) return;
-        seenCalls.current.add(payload.callId);
+        markSeen(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
           void httpBroadcast(`rtc-${payload.callId}`, "signal", { type: "decline" });
@@ -619,7 +627,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", wake);
       if (ch) void supabase.removeChannel(ch);
     };
-  }, [me, teardown, httpBroadcast]);
+  }, [me, teardown, httpBroadcast, markSeen]);
 
 
   /* ---------- durable ring listener (database, works app-wide) ---------- */
@@ -638,7 +646,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           // Ignore stale rows (e.g. replayed after a reconnect).
           const age = Date.now() - new Date(String(row.created_at)).getTime();
           if (age > 60_000) return;
-          seenCalls.current.add(callId);
+          markSeen(callId);
           if (pcRef.current || phaseRef.current !== "idle") {
             void supabase.from("calls").update({ status: "declined" }).eq("call_id", callId);
             void httpBroadcast(`rtc-${callId}`, "signal", { type: "decline" });
@@ -676,7 +684,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [authId, teardown, httpBroadcast]);
+  }, [authId, teardown, httpBroadcast, markSeen]);
 
 
   /* ---------- start an outgoing call ---------- */
@@ -729,7 +737,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await openSignalChannel(callId, mode, true);
 
       const ringPayload = { callId, mode, fromId: me, fromName: myName, threadId };
-      seenCalls.current.add(callId);
+      markSeen(callId);
       // Durable ring: a row the callee's realtime subscription always receives,
       // so the incoming-call screen pops app-wide (WhatsApp / Instagram style).
       if (!isGuest) {
@@ -769,7 +777,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         teardown();
       }, 45_000);
     },
-    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast, logCallOutcome],
+    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast, logCallOutcome, markSeen],
 
   );
 
