@@ -2934,8 +2934,15 @@ export function MomentCreatePage() {
               >
                 Clear
               </button>
+              <button
+                onClick={() => setDrawMode(false)}
+                className="ml-auto px-5 rounded-xl bg-white text-black text-xs font-black"
+              >
+                Done
+              </button>
             </div>
           </div>
+
         )}
 
         {/* STICKER DRAWER */}
