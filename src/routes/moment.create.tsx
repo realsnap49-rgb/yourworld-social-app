@@ -2938,9 +2938,11 @@ export function MomentCreatePage() {
           </div>
         )}
 
-        {/* STICKER PANEL */}
+        {/* STICKER DRAWER */}
 
-        <div className="absolute bottom-32 left-4 right-4 z-50 flex gap-2 overflow-x-auto pb-2">
+        {panel === "sticker" && (
+        <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10 flex gap-2 overflow-x-auto no-scrollbar">
+
           {[
             "❤️",
             "😂",
