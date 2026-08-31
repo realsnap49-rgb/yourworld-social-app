@@ -160,16 +160,16 @@ function HomePage() {
             >
               <div className="w-full h-full rounded-full bg-neutral-900 border-2 border-black overflow-hidden">
                 {s.avatarUrl ? (
-                  <img src={s.avatarUrl} alt={s.username} className="w-full h-full object-cover" />
+                  <img src={s.avatarUrl} alt={s.displayName} className="h-full w-full object-cover" loading="lazy" />
                 ) : (
                   <div className="w-full h-full bg-neutral-800 flex items-center justify-center text-sm font-bold text-neutral-300">
-                    {s.username?.[0]?.toUpperCase() || "U"}
+                    {(s.displayName || s.username)?.[0]?.toUpperCase() || "U"}
                   </div>
                 )}
               </div>
             </button>
             <span className="text-xs text-neutral-400 truncate max-w-[68px]">
-              {s.username}
+              {s.displayName}
             </span>
           </div>
         ))}

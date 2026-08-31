@@ -492,10 +492,14 @@ function MomentViewRoute() {
           )}
         >
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 overflow-hidden rounded-full border-2 border-white/50 bg-neutral-800">
+            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border-2 border-white/50 bg-neutral-800">
               {current.author?.avatar ? (
                 <img src={current.author.avatar} className="h-full w-full object-cover" alt="" />
-              ) : null}
+              ) : (
+                <span className="text-sm font-bold text-white/80">
+                  {(current.author?.name || current.author?.username || "Y")[0]?.toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-white drop-shadow-md">
