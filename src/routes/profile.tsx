@@ -299,7 +299,7 @@ function ProfilePage() {
           {grid.length ? (
             <MediaGrid
               onSelect={openManage}
-              items={grid.map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
+              items={sortPinned(grid).map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
             />
           ) : (
             <Empty text={loading ? "Loading your posts…" : "No posts yet. Create your first one."} />
@@ -309,7 +309,7 @@ function ProfilePage() {
           {reels.length ? (
             <MediaGrid
               onSelect={openManage}
-              items={reels.map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
+              items={sortPinned(reels).map((p) => ({ src: src(p.media_url), type: p.media_type, post: p }))}
             />
           ) : (
             <Empty text={loading ? "Loading reels…" : "No reels yet."} />
@@ -326,7 +326,80 @@ function ProfilePage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!manage} onOpenChange={(o) => !o && setManage(null)}>
+      <Sheet open={!!manage && !editing} onOpenChange={(o) => !o && setManage(null)}>
+        <SheetContent side="bottom" className="rounded-t-3xl border-border px-0 pb-6 pt-3">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/40" />
+          {manage ? (
+            <div className="max-h-[70vh] overflow-y-auto">
+              <OptionRow
+                icon={<Heart className="h-5 w-5" />}
+                label="Hide like count to others"
+                sub="Only you will see the total number of likes."
+                toggle={!!manage.hide_like_count}
+                onToggle={(v) => patchManaged({ hide_like_count: v }, v ? "Like count hidden" : "Like count visible")}
+              />
+              <OptionRow
+                icon={<Send className="h-5 w-5" />}
+                label="Hide share count"
+                sub="Others won't see how many times this was shared."
+                toggle={!!manage.hide_share_count}
+                onToggle={(v) => patchManaged({ hide_share_count: v }, v ? "Share count hidden" : "Share count visible")}
+              />
+              <OptionRow
+                icon={<MessageCircleOff className="h-5 w-5" />}
+                label="Turn off commenting"
+                sub="No one can comment on this post."
+                toggle={!!manage.comments_off}
+                onToggle={(v) => patchManaged({ comments_off: v }, v ? "Commenting turned off" : "Commenting turned on")}
+              />
+              <OptionRow
+                icon={manage.pinned ? <PinOff className="h-5 w-5" /> : <Pin className="h-5 w-5" />}
+                label={manage.pinned ? "Unpin from your grid" : "Pin to your main grid"}
+                onClick={() =>
+                  patchManaged({ pinned: !manage.pinned }, manage.pinned ? "Unpinned" : "Pinned to your grid")
+                }
+              />
+              <OptionRow
+                icon={<Pencil className="h-5 w-5" />}
+                label="Edit"
+                onClick={() => {
+                  setCaption(manage.caption ?? "");
+                  setEditing(true);
+                }}
+              />
+              <OptionRow
+                icon={<Link2 className="h-5 w-5" />}
+                label="Copy link"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(
+                      `${window.location.origin}/?post=${manage.id}`,
+                    );
+                    toast.success("Link copied");
+                  } catch {
+                    toast.error("Couldn't copy link");
+                  }
+                }}
+              />
+              <OptionRow
+                icon={<Archive className="h-5 w-5" />}
+                label={manage.archived ? "Unarchive" : "Archive"}
+                onClick={() =>
+                  patchManaged({ archived: !manage.archived }, manage.archived ? "Unarchived" : "Archived")
+                }
+              />
+              <OptionRow
+                icon={<Trash2 className="h-5 w-5" />}
+                label="Delete"
+                destructive
+                onClick={() => setConfirmDelete(true)}
+              />
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={!!manage && editing} onOpenChange={(o) => !o && setEditing(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>{manage?.kind === "reel" ? "Edit reel" : "Edit post"}</DialogTitle>
@@ -369,6 +442,7 @@ function ProfilePage() {
                 try {
                   await updateMyPost(manage.id, { caption });
                   toast.success("Updated");
+                  setEditing(false);
                   setManage(null);
                   await reload();
                 } catch (e) {
@@ -435,6 +509,47 @@ function ProfilePage() {
   );
 }
 
+function OptionRow({
+  icon,
+  label,
+  sub,
+  toggle,
+  onToggle,
+  onClick,
+  destructive,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  sub?: string;
+  toggle?: boolean;
+  onToggle?: (v: boolean) => void;
+  onClick?: () => void;
+  destructive?: boolean;
+}) {
+  const content = (
+    <div className="flex w-full items-center gap-3 px-5 py-3.5 text-left">
+      <span className={destructive ? "text-destructive" : "text-foreground"}>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={`block text-sm font-medium ${destructive ? "text-destructive" : "text-foreground"}`}
+        >
+          {label}
+        </span>
+        {sub ? <span className="block text-xs text-muted-foreground">{sub}</span> : null}
+      </span>
+      {onToggle ? (
+        <Switch checked={!!toggle} onCheckedChange={onToggle} onClick={(e) => e.stopPropagation()} />
+      ) : null}
+    </div>
+  );
+  if (onToggle) return <div className="w-full">{content}</div>;
+  return (
+    <button type="button" onClick={onClick} className="w-full transition-colors active:bg-secondary">
+      {content}
+    </button>
+  );
+}
+
 function Empty({ text }: { text: string }) {
   return <p className="px-4 py-10 text-center text-sm text-muted-foreground">{text}</p>;
 }
@@ -485,6 +600,9 @@ function MediaGrid({
           )}
           {it.type?.startsWith("video") ? (
             <Play className="absolute left-1.5 top-1.5 h-4 w-4 fill-current text-white drop-shadow" />
+          ) : null}
+          {it.post?.pinned ? (
+            <Pin className="absolute bottom-1.5 left-1.5 h-4 w-4 fill-current text-white drop-shadow" />
           ) : null}
           {it.post && onSelect ? (
             <>
