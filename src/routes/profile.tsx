@@ -46,6 +46,9 @@ import type { DbPost } from "@/lib/social-data";
 import { UserWatermark } from "@/components/yw/UserWatermark";
 import { FollowListDialog } from "@/components/yw/FollowListDialog";
 import { useFollowCounts } from "@/lib/follow-data";
+import { Highlights } from "@/components/yw/Highlights";
+
+
 
 
 
@@ -247,6 +250,8 @@ function ProfilePage() {
           </Button>
         </div>
       </section>
+
+      <Highlights userId={userId} posts={posts} />
 
       <Tabs defaultValue="grid" className="pt-5">
         <TabsList className="grid w-full grid-cols-3 rounded-none border-y border-border bg-transparent p-0">
