@@ -387,7 +387,7 @@ function MomentViewRoute() {
               {current.text}
             </p>
           ) : null}
-          {current.location ? (
+          {current.location && current.showLocation !== false ? (
             <div className="absolute inset-x-4 bottom-16 flex flex-wrap items-center justify-center gap-2">
               <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
                 <MapPin className="h-3 w-3" /> {current.location}
@@ -549,6 +549,11 @@ function MomentViewRoute() {
               paused ? "pointer-events-none opacity-0" : "opacity-100",
             )}
           >
+            {current.allowReplies === false ? (
+              <div className="flex-1 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-[11px] font-medium text-white/50 backdrop-blur-md">
+                Replies are turned off
+              </div>
+            ) : (
             <div className="flex flex-1 items-center gap-2 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 backdrop-blur-md">
               <input
                 value={reply}
@@ -576,6 +581,8 @@ function MomentViewRoute() {
                 <Send className="h-4 w-4" />
               </button>
             </div>
+            )}
+            {current.allowReactions === false ? null : (
             <button
               type="button"
               aria-label="Like"
@@ -588,6 +595,7 @@ function MomentViewRoute() {
             >
               <Heart className={cn("h-5 w-5", liked && "fill-red-500 text-red-500")} />
             </button>
+            )}
             {current.allowDownload && current.media ? (
               <button
                 type="button"

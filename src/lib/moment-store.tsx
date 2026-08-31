@@ -84,6 +84,12 @@ export type MyMoment = {
   ai: Partial<Record<AiTool, boolean>>;
   allowDownload: boolean;
   screenshotAlert: boolean;
+  /** interaction & safety settings (stored in payload) */
+  allowReactions?: boolean;
+  allowReplies?: boolean;
+  allowSharing?: boolean;
+  showLocation?: boolean;
+  saveToArchive?: boolean;
   poll: MomentPoll | null;
   createdAt: number;
   /** epoch ms when this moment expires (12h / 24h) */
@@ -186,6 +192,11 @@ function rowToMoment(
     ai: (p["ai"] as Partial<Record<AiTool, boolean>> | undefined) ?? {},
     allowDownload: row.allow_download,
     screenshotAlert: row.screenshot_alert,
+    allowReactions: (p["allowReactions"] as boolean | undefined) ?? true,
+    allowReplies: (p["allowReplies"] as boolean | undefined) ?? true,
+    allowSharing: (p["allowSharing"] as boolean | undefined) ?? true,
+    showLocation: (p["showLocation"] as boolean | undefined) ?? true,
+    saveToArchive: (p["saveToArchive"] as boolean | undefined) ?? true,
     poll: row.poll,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: row.expires_at
@@ -214,6 +225,11 @@ function payloadOf(m: NewMoment) {
     mentions: m.mentions ?? [],
     effect: m.effect ?? "none",
     ai: m.ai ?? {},
+    allowReactions: m.allowReactions ?? true,
+    allowReplies: m.allowReplies ?? true,
+    allowSharing: m.allowSharing ?? true,
+    showLocation: m.showLocation ?? true,
+    saveToArchive: m.saveToArchive ?? true,
   };
 }
 
