@@ -197,9 +197,13 @@ function MomentViewRoute() {
   // photo / text timer
   useEffect(() => {
     if (!current || current.kind === "video" || paused || showViewers) return;
+    const span =
+      current.trim?.end && current.trim.end > 0
+        ? current.trim.end * 1000
+        : PHOTO_DURATION;
     const id = setInterval(() => {
       setProgress((p) => {
-        const nextP = p + (TICK / PHOTO_DURATION) * 100;
+        const nextP = p + (TICK / span) * 100;
         if (nextP >= 100) {
           goNext();
           return 0;
@@ -209,6 +213,7 @@ function MomentViewRoute() {
     }, TICK);
     return () => clearInterval(id);
   }, [current, paused, showViewers, goNext]);
+
 
   // pause / resume media
   useEffect(() => {
