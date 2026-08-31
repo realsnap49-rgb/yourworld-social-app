@@ -18,6 +18,8 @@ import {
   Download,
   Star,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Camera,
   Check,
   Lock,
@@ -2002,6 +2004,12 @@ export function MomentCreatePage() {
   };
 
   // =====================================================
+  const [showExtraTools, setShowExtraTools] =
+    useState(false);
+  const [snapDuration, setSnapDuration] =
+    useState<3 | 5 | 10 | null>(null);
+
+  // =====================================================
   // CAMERA SCREEN
   // =====================================================
 
@@ -2146,103 +2154,140 @@ export function MomentCreatePage() {
 
         {/* RIGHT TOOLS */}
 
-        <div className="absolute right-3 top-20 z-30 flex flex-col gap-1.5 bg-black/35 backdrop-blur-xl p-1.5 rounded-2xl">
-          <button
-            onClick={() =>
-              setFacingMode(
-                (value) =>
-                  value === "user"
-                    ? "environment"
-                    : "user"
-              )
-            }
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            <RefreshCw size={16} />
-          </button>
-
-          <button
-            onClick={toggleFlash}
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            {isFlashOn ? (
-              <Zap className="text-yellow-300" size={16} />
-            ) : (
-              <ZapOff size={16} />
-            )}
-          </button>
-
-          <button
-            onClick={() =>
-              applyZoom(
-                zoom >= maxZoom
-                  ? 1
-                  : zoom + 0.5
-              )
-            }
-            className="w-7 h-7 text-[10px] font-bold"
-          >
-            {zoom.toFixed(1)}x
-          </button>
-
-          <button
-            onClick={() =>
-              setIsGridOn(
-                (value) => !value
-              )
-            }
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            <Grid3X3
-              size={16}
-              className={
-                isGridOn
-                  ? "text-pink-400"
-                  : ""
-              }
-            />
-          </button>
-
-          <button
-            onClick={() =>
-              setTimerSeconds(
-                (value) =>
-                  value === null
-                    ? 3
-                    : value === 3
-                    ? 10
-                    : null
-              )
-            }
-            className="w-7 h-7 flex items-center justify-center"
-          >
-            <Timer
-              size={16}
-              className={
-                timerSeconds
-                  ? "text-green-400"
-                  : ""
-              }
-            />
-          </button>
+        <div className="absolute right-3 top-20 z-30 flex flex-col items-end gap-3">
+          {(
+            [
+              {
+                key: "flash",
+                label: "Flash",
+                icon: isFlashOn ? (
+                  <Zap size={19} className="text-yellow-300" />
+                ) : (
+                  <ZapOff size={19} />
+                ),
+                active: isFlashOn,
+                onClick: toggleFlash,
+              },
+              {
+                key: "timer",
+                label: timerSeconds
+                  ? `Timer ${timerSeconds}s`
+                  : "Timer",
+                icon: <Timer size={19} />,
+                active: !!timerSeconds,
+                onClick: () =>
+                  setTimerSeconds(
+                    (value) =>
+                      value === null
+                        ? 3
+                        : value === 3
+                        ? 10
+                        : null
+                  ),
+              },
+              {
+                key: "grid",
+                label: "Grid",
+                icon: <Grid3X3 size={19} />,
+                active: isGridOn,
+                onClick: () =>
+                  setIsGridOn((value) => !value),
+              },
+              {
+                key: "flip",
+                label: "Flip",
+                icon: <RefreshCw size={19} />,
+                active: false,
+                onClick: () =>
+                  setFacingMode(
+                    (value) =>
+                      value === "user"
+                        ? "environment"
+                        : "user"
+                  ),
+              },
+            ] as const
+          ).map((tool) => (
+            <button
+              key={tool.key}
+              onClick={tool.onClick}
+              className="flex items-center gap-2"
+            >
+              <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                {tool.label}
+              </span>
+              <span
+                className={`w-10 h-10 rounded-full backdrop-blur-xl flex items-center justify-center ${
+                  tool.active
+                    ? "bg-white text-black"
+                    : "bg-black/45 text-white"
+                }`}
+              >
+                {tool.icon}
+              </span>
+            </button>
+          ))}
 
           <button
             onClick={() =>
-              setIsNightMode(
-                (value) => !value
-              )
+              setShowExtraTools((value) => !value)
             }
-            className="w-7 h-7 flex items-center justify-center"
+            aria-label="More tools"
+            className="flex items-center gap-2"
           >
-            <Moon
-              size={16}
-              className={
-                isNightMode
-                  ? "text-blue-400"
-                  : ""
-              }
-            />
+            <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+              {showExtraTools ? "Less" : "More"}
+            </span>
+            <span className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl flex items-center justify-center">
+              {showExtraTools ? (
+                <ChevronUp size={19} />
+              ) : (
+                <ChevronDown size={19} />
+              )}
+            </span>
           </button>
+
+          {showExtraTools && (
+            <>
+              <button
+                onClick={() =>
+                  applyZoom(
+                    zoom >= maxZoom
+                      ? 1
+                      : zoom + 0.5
+                  )
+                }
+                className="flex items-center gap-2"
+              >
+                <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  Zoom
+                </span>
+                <span className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-xl flex items-center justify-center text-[11px] font-bold">
+                  {zoom.toFixed(1)}x
+                </span>
+              </button>
+
+              <button
+                onClick={() =>
+                  setIsNightMode((value) => !value)
+                }
+                className="flex items-center gap-2"
+              >
+                <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  Night
+                </span>
+                <span
+                  className={`w-10 h-10 rounded-full backdrop-blur-xl flex items-center justify-center ${
+                    isNightMode
+                      ? "bg-white text-black"
+                      : "bg-black/45 text-white"
+                  }`}
+                >
+                  <Moon size={19} />
+                </span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* BOTTOM CAMERA */}
@@ -2289,9 +2334,14 @@ export function MomentCreatePage() {
               onClick={() =>
                 imageInputRef.current?.click()
               }
-              className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-xl flex items-center justify-center"
+              className="flex flex-col items-center gap-1.5"
             >
-              <ImageIcon size={25} />
+              <span className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-xl border border-white/25 flex items-center justify-center">
+                <ImageIcon size={23} />
+              </span>
+              <span className="text-[10px] font-semibold text-white/90">
+                Memories
+              </span>
             </button>
 
             <button
@@ -2311,12 +2361,19 @@ export function MomentCreatePage() {
               />
             </button>
 
-            <div className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-xl flex flex-col items-center justify-center">
-              <ZoomIn size={20} />
-              <span className="text-[9px]">
-                {zoom.toFixed(1)}x
+            <button
+              onClick={() =>
+                setShowExtraTools((value) => !value)
+              }
+              className="flex flex-col items-center gap-1.5"
+            >
+              <span className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-xl border border-white/25 flex items-center justify-center">
+                <Star size={23} />
               </span>
-            </div>
+              <span className="text-[10px] font-semibold text-white/90">
+                Lenses
+              </span>
+            </button>
           </div>
 
           <p className="text-center text-xs text-white/50 mt-4">
@@ -2528,12 +2585,26 @@ export function MomentCreatePage() {
 
         {/* TOP */}
 
-        <div className="absolute top-4 left-4 right-4 z-50 flex justify-between">
+        <div className="absolute top-4 left-4 right-4 z-50 flex justify-between items-start">
           <button
             onClick={retake}
             className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-xl flex items-center justify-center"
           >
             <X />
+          </button>
+
+          <button
+            onClick={() => {
+              setShowTextInput(false);
+              setDrawMode(false);
+              setCropMode(false);
+              setShowMusicPanel(false);
+              setPanel(null);
+              setShowMusicLibrary(true);
+            }}
+            className="absolute left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 text-sm font-bold whitespace-nowrap active:scale-95"
+          >
+            🎵 Add a Sound
           </button>
 
           <div className="flex gap-2">
@@ -2557,28 +2628,7 @@ export function MomentCreatePage() {
           };
 
           return (
-            <div className="absolute right-3 top-20 z-[85] flex flex-col gap-2.5">
-              <EditorTool
-                icon={<Type />}
-                label="Text"
-                active={showTextInput}
-                onClick={() => {
-                  closeAll();
-                  addText();
-                }}
-              />
-
-              <EditorTool
-                icon={<Smile />}
-                label="Sticker"
-                active={panel === "sticker"}
-                onClick={() => {
-                  const next = panel === "sticker";
-                  closeAll();
-                  if (!next) setPanel("sticker");
-                }}
-              />
-
+            <div className="absolute right-3 top-24 z-[85] flex flex-col items-end gap-3">
               <EditorTool
                 icon={<Pencil />}
                 label="Draw"
@@ -2591,8 +2641,42 @@ export function MomentCreatePage() {
               />
 
               <EditorTool
+                icon={<Type />}
+                label="Text"
+                active={showTextInput}
+                onClick={() => {
+                  closeAll();
+                  addText();
+                }}
+              />
+
+              <EditorTool
+                icon={<Smile />}
+                label="Stickers"
+                active={panel === "sticker"}
+                onClick={() => {
+                  const next = panel === "sticker";
+                  closeAll();
+                  if (!next) setPanel("sticker");
+                }}
+              />
+
+              <EditorTool
+                icon={<Music />}
+                label="Sounds"
+                active={showMusicPanel}
+                onClick={() => {
+                  const next = showMusicPanel;
+                  closeAll();
+                  if (next) return;
+                  if (audioUrl) setShowMusicPanel(true);
+                  else setShowMusicLibrary(true);
+                }}
+              />
+
+              <EditorTool
                 icon={<Crop />}
-                label="Crop"
+                label="Crop & Rotate"
                 active={cropMode}
                 onClick={() => {
                   const next = cropMode;
@@ -2605,25 +2689,6 @@ export function MomentCreatePage() {
               />
 
               <EditorTool
-                icon={<RotateCcw />}
-                label="Rotate"
-                onClick={rotateMedia}
-              />
-
-              <EditorTool
-                icon={<Music />}
-                label="Music"
-                active={showMusicPanel}
-                onClick={() => {
-                  const next = showMusicPanel;
-                  closeAll();
-                  if (next) return;
-                  if (audioUrl) setShowMusicPanel(true);
-                  else setShowMusicLibrary(true);
-                }}
-              />
-
-              <EditorTool
                 icon={<Palette />}
                 label="Filters"
                 active={panel === "filter"}
@@ -2632,6 +2697,27 @@ export function MomentCreatePage() {
                   closeAll();
                   if (!next) setPanel("filter");
                 }}
+              />
+
+              <EditorTool
+                icon={<Timer />}
+                label={
+                  snapDuration
+                    ? `Timer ${snapDuration}s`
+                    : "Timer"
+                }
+                active={!!snapDuration}
+                onClick={() =>
+                  setSnapDuration((value) =>
+                    value === null
+                      ? 3
+                      : value === 3
+                      ? 5
+                      : value === 5
+                      ? 10
+                      : null
+                  )
+                }
               />
 
               <EditorTool
@@ -2851,6 +2937,14 @@ export function MomentCreatePage() {
                 className="px-4 py-3 rounded-2xl bg-white/10 text-xs font-bold"
               >
                 Reset
+              </button>
+
+              <button
+                onClick={rotateMedia}
+                className="px-4 py-3 rounded-2xl bg-white/10 text-xs font-bold flex items-center gap-1.5"
+              >
+                <RotateCcw size={14} />
+                Rotate
               </button>
 
               <button
@@ -3345,11 +3439,65 @@ export function MomentCreatePage() {
         )}
 
 
-        {/* CAPTION + NEXT */}
+        {/* FILTER THUMBNAILS ROW */}
 
         {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
-        <div className="absolute bottom-0 left-0 right-0 z-[70] flex gap-2 px-4 pb-6 pt-5 bg-gradient-to-t from-black via-black/70 to-transparent backdrop-blur-md">
+          <div className="absolute bottom-40 left-0 right-0 z-[65] px-4">
+            <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
+              {(
+                Object.keys(
+                  FILTERS
+                ) as FilterName[]
+              ).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() =>
+                    setSelectedFilter(filter)
+                  }
+                  className="flex flex-col items-center gap-1 shrink-0"
+                >
+                  <span
+                    className={`w-14 h-14 rounded-full overflow-hidden border-2 bg-zinc-800 ${
+                      selectedFilter === filter
+                        ? "border-white"
+                        : "border-white/30"
+                    }`}
+                  >
+                    {mediaUrl && !isVideo ? (
+                      <img
+                        src={mediaUrl}
+                        alt={FILTERS[filter].name}
+                        className="w-full h-full object-cover"
+                        style={{
+                          filter:
+                            FILTERS[filter].css ||
+                            undefined,
+                        }}
+                      />
+                    ) : (
+                      <span
+                        className="block w-full h-full bg-gradient-to-br from-zinc-600 to-zinc-900"
+                        style={{
+                          filter:
+                            FILTERS[filter].css ||
+                            undefined,
+                        }}
+                      />
+                    )}
+                  </span>
+                  <span className="text-[9px] font-semibold text-white/85">
+                    {FILTERS[filter].name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
+        {/* CAPTION */}
+
+        {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
+        <div className="absolute bottom-24 left-0 right-0 z-[70] px-4">
           <input
             value={caption}
             onChange={(e) =>
@@ -3358,18 +3506,42 @@ export function MomentCreatePage() {
               )
             }
             placeholder="Add a caption..."
-            className="flex-1 bg-black/70 backdrop-blur-xl border border-white/10 rounded-full px-5 py-4 outline-none text-sm"
+            className="w-full bg-black/70 backdrop-blur-xl border border-white/10 rounded-full px-5 py-3.5 outline-none text-sm"
           />
+        </div>
+        )}
+
+        {/* BOTTOM NAV BAR */}
+
+        {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
+        <div className="absolute bottom-0 left-0 right-0 z-[70] flex items-center justify-between gap-3 px-4 pb-6 pt-4 bg-gradient-to-t from-black via-black/70 to-transparent backdrop-blur-md">
+
+          <button
+            onClick={handleDownload}
+            aria-label="Download"
+            className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 flex items-center justify-center active:scale-95"
+          >
+            <Download size={20} />
+          </button>
 
           <button
             onClick={() =>
               setStep(2)
             }
-            className="px-6 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black flex items-center gap-1"
+            className="px-5 py-3 rounded-full bg-zinc-800/90 backdrop-blur-xl border border-white/10 text-sm font-bold active:scale-95"
           >
-            Next
+            + Stories
+          </button>
+
+          <button
+            onClick={() =>
+              setStep(2)
+            }
+            className="px-6 py-3 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black text-sm flex items-center gap-1.5 active:scale-95"
+          >
+            Send to
             <ChevronRight
-              size={20}
+              size={18}
             />
           </button>
         </div>
@@ -3686,14 +3858,21 @@ function EditorTool({
   return (
     <button
       onClick={onClick}
-      className={`w-12 h-12 rounded-2xl backdrop-blur-xl flex items-center justify-center ${
-        active
-          ? "bg-white text-black"
-          : "bg-black/60 text-white"
-      }`}
+      className="flex items-center gap-2"
       title={label}
     >
-      {icon}
+      <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+        {label}
+      </span>
+      <span
+        className={`w-10 h-10 rounded-full backdrop-blur-xl flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5 ${
+          active
+            ? "bg-white text-black"
+            : "bg-black/50 text-white"
+        }`}
+      >
+        {icon}
+      </span>
     </button>
   );
 }
