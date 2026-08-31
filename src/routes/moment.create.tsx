@@ -2967,38 +2967,41 @@ export function MomentCreatePage() {
           ))}
         </div>
 
-        {/* FILTERS */}
+        {/* FILTERS + ADJUSTMENTS DRAWER */}
 
-        <div className="absolute bottom-48 left-0 right-0 z-50 overflow-x-auto px-4">
-          <div className="flex gap-3">
-            {(
-              Object.keys(
-                FILTERS
-              ) as FilterName[]
-            ).map((filter) => (
-              <button
-                key={filter}
-                onClick={() =>
-                  setSelectedFilter(
-                    filter
-                  )
-                }
-                className={`px-4 py-2 rounded-full whitespace-nowrap text-xs font-bold backdrop-blur-xl ${
-                  selectedFilter ===
-                  filter
-                    ? "bg-white text-black"
-                    : "bg-black/60"
-                }`}
-              >
-                {FILTERS[filter].name}
-              </button>
-            ))}
-          </div>
-        </div>
+        {panel === "filter" && (
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
 
-        {/* ADJUSTMENTS */}
+            <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
+              <div className="flex gap-3">
+                {(
+                  Object.keys(
+                    FILTERS
+                  ) as FilterName[]
+                ).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() =>
+                      setSelectedFilter(
+                        filter
+                      )
+                    }
+                    className={`px-4 py-2 rounded-full whitespace-nowrap text-xs font-bold ${
+                      selectedFilter ===
+                      filter
+                        ? "bg-white text-black"
+                        : "bg-white/10"
+                    }`}
+                  >
+                    {FILTERS[filter].name}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <div className="absolute bottom-20 left-4 right-4 z-50 flex gap-3 overflow-x-auto">
+            <div className="mt-3 flex gap-3 overflow-x-auto no-scrollbar">
+
           <Adjust
             icon={<Sun />}
             value={brightness}
