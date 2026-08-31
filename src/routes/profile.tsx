@@ -90,15 +90,34 @@ function ProfilePage() {
   const [listOpen, setListOpen] = useState(false);
   const [listTab, setListTab] = useState<"followers" | "following">("followers");
   const [manage, setManage] = useState<DbPost | null>(null);
+  const [editing, setEditing] = useState(false);
   const [caption, setCaption] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
-
   const openManage = (post: DbPost) => {
     setManage(post);
+    setEditing(false);
     setCaption(post.caption ?? "");
   };
+
+  const patchManaged = async (patch: Parameters<typeof updateMyPost>[1], msg: string) => {
+    if (!manage) return;
+    const prev = manage;
+    setManage({ ...manage, ...patch } as DbPost);
+    try {
+      await updateMyPost(prev.id, patch);
+      toast.success(msg);
+      await reload();
+    } catch (e) {
+      setManage(prev);
+      toast.error(e instanceof Error ? e.message : "Couldn't update");
+    }
+  };
+
+  const sortPinned = (list: DbPost[]) =>
+    [...list].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+
 
 
   const savedPosts = posts.filter((p) => saved[p.id]);
