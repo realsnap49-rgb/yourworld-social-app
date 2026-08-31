@@ -743,25 +743,46 @@ export function CallProvider({ children }: { children: ReactNode }) {
         sent++;
         void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
       }, 1500);
+
+      // Stop ringing after 45s instead of hanging on the calling screen.
+      if (ringTimer.current) window.clearTimeout(ringTimer.current);
+      ringTimer.current = window.setTimeout(() => {
+        ringTimer.current = null;
+        if (phaseRef.current !== "outgoing") return;
+        window.clearInterval(timer);
+        toast.message("No answer");
+        void httpBroadcast(`calls-user-${target}`, "cancel", { callId });
+        void supabase.from("calls").update({ status: "cancelled" }).eq("call_id", callId);
+        void logCallOutcome("missed");
+        teardown();
+      }, 45_000);
     },
-    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast],
+    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast, logCallOutcome],
 
   );
 
   const accept = useCallback(async () => {
     if (!call) return;
+    if (ringTimer.current) {
+      window.clearTimeout(ringTimer.current);
+      ringTimer.current = null;
+    }
     setPhase("connecting");
     try {
       await getMedia(call.mode);
     } catch {
       toast.error("Camera / microphone permission denied");
+      void supabase.from("calls").update({ status: "declined" }).eq("call_id", call.callId);
       teardown();
       return;
     }
     createPeer(localStream.current!);
     await openSignalChannel(call.callId, call.mode, false);
     signal({ type: "accept" });
+    // Mark the durable row so the caller's devices stop ringing everywhere.
+    void supabase.from("calls").update({ status: "accepted" }).eq("call_id", call.callId);
   }, [call, getMedia, createPeer, openSignalChannel, signal, teardown]);
+
 
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {
