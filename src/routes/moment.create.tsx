@@ -963,7 +963,7 @@ export function MomentCreatePage() {
     );
 
     canvas.toBlob(
-      (blob) => {
+      (blob: Blob | null) => {
         if (!blob) return;
 
         const url =
