@@ -1312,11 +1312,15 @@ export function MomentCreatePage() {
         FILTERS[selectedFilter]
           .css;
 
+      // Filters + rotation run purely on the compositor (translateZ keeps
+      // the layer on the GPU), so grading never re-renders the canvas.
       return {
         filter: `${filter} brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
-        transform: `rotate(${rotation}deg)`,
+        transform: `rotate(${rotation}deg) translateZ(0)`,
+        willChange: "filter, transform",
+        backfaceVisibility: "hidden",
         transition:
-          "filter .15s ease, transform .2s ease",
+          "filter .15s linear, transform .2s cubic-bezier(.22,1,.36,1)",
       };
     };
 
