@@ -491,7 +491,15 @@ function MomentViewRoute() {
             paused ? "pointer-events-none opacity-0" : "opacity-100",
           )}
         >
-          <div className="flex items-center gap-2.5">
+          <div
+            className="pointer-events-auto flex cursor-pointer items-center gap-2.5"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (current.mine) void navigate({ to: "/profile" });
+              else if (current.author?.id)
+                void navigate({ to: "/u/$userId", params: { userId: current.author.id } });
+            }}
+          >
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border-2 border-white/50 bg-neutral-800">
               {current.author?.avatar ? (
                 <img src={current.author.avatar} className="h-full w-full object-cover" alt="" />
