@@ -3167,7 +3167,7 @@ export function MomentCreatePage() {
         {/* MUSIC TRIM PANEL */}
 
         {showMusicPanel && audioUrl && (
-          <div className="absolute bottom-28 left-4 right-4 z-[80] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <div className="flex items-center gap-2 mb-3">
               <button
                 onClick={
