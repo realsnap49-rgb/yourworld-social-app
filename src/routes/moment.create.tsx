@@ -362,6 +362,9 @@ export function MomentCreatePage() {
     useState(false);
   const [showMusicPanel, setShowMusicPanel] =
     useState(false);
+  const [panel, setPanel] =
+    useState<null | "sticker" | "filter">(null);
+
 
   const previewAudioRef =
     useRef<HTMLAudioElement | null>(null);
@@ -2542,90 +2545,109 @@ export function MomentCreatePage() {
           </div>
         </div>
 
-        {/* EDITOR TOOLS */}
+        {/* RIGHT TOOLS DOCK */}
 
-        <div className="absolute right-3 top-20 z-50 flex flex-col gap-2">
-          <EditorTool
-            icon={<Type />}
-            label="Text"
-            active={showTextInput}
-            onClick={addText}
-          />
+        {(() => {
+          const closeAll = () => {
+            setShowTextInput(false);
+            setDrawMode(false);
+            setCropMode(false);
+            setShowMusicPanel(false);
+            setPanel(null);
+          };
 
-          <EditorTool
-            icon={<Smile />}
-            label="Sticker"
-            onClick={() =>
-              addSticker("❤️")
-            }
-          />
+          return (
+            <div className="absolute right-3 top-20 z-[85] flex flex-col gap-2.5">
+              <EditorTool
+                icon={<Type />}
+                label="Text"
+                active={showTextInput}
+                onClick={() => {
+                  closeAll();
+                  addText();
+                }}
+              />
 
-          <EditorTool
-            icon={<Pencil />}
-            label="Draw"
-            active={drawMode}
-            onClick={() =>
-              setDrawMode(
-                (value) => !value
-              )
-            }
-          />
+              <EditorTool
+                icon={<Smile />}
+                label="Sticker"
+                active={panel === "sticker"}
+                onClick={() => {
+                  const next = panel === "sticker";
+                  closeAll();
+                  if (!next) setPanel("sticker");
+                }}
+              />
 
-          <EditorTool
-            icon={<Crop />}
-            label="Crop"
-            active={cropMode}
-            onClick={() => {
-              setShowTextInput(
-                false
-              );
-              setDrawMode(false);
-              setCropDraft(
-                cropRect
-              );
-              setCropMode(
-                (value) => !value
-              );
-            }}
-          />
+              <EditorTool
+                icon={<Pencil />}
+                label="Draw"
+                active={drawMode}
+                onClick={() => {
+                  const next = drawMode;
+                  closeAll();
+                  if (!next) setDrawMode(true);
+                }}
+              />
 
-          <EditorTool
-            icon={<RotateCcw />}
-            label="Rotate"
-            onClick={rotateMedia}
-          />
+              <EditorTool
+                icon={<Crop />}
+                label="Crop"
+                active={cropMode}
+                onClick={() => {
+                  const next = cropMode;
+                  closeAll();
+                  if (!next) {
+                    setCropDraft(cropRect);
+                    setCropMode(true);
+                  }
+                }}
+              />
 
-          <EditorTool
-            icon={<Music />}
-            label="Music"
-            active={showMusicPanel}
-            onClick={() => {
-              if (audioUrl) {
-                setShowMusicPanel(
-                  (v) => !v
-                );
-              } else {
-                setShowMusicLibrary(
-                  true
-                );
-              }
-            }}
-          />
+              <EditorTool
+                icon={<RotateCcw />}
+                label="Rotate"
+                onClick={rotateMedia}
+              />
 
+              <EditorTool
+                icon={<Music />}
+                label="Music"
+                active={showMusicPanel}
+                onClick={() => {
+                  const next = showMusicPanel;
+                  closeAll();
+                  if (next) return;
+                  if (audioUrl) setShowMusicPanel(true);
+                  else setShowMusicLibrary(true);
+                }}
+              />
 
-          <EditorTool
-            icon={<Download />}
-            label="Save"
-            onClick={
-              handleDownload
-            }
-          />
-        </div>
+              <EditorTool
+                icon={<Palette />}
+                label="Filters"
+                active={panel === "filter"}
+                onClick={() => {
+                  const next = panel === "filter";
+                  closeAll();
+                  if (!next) setPanel("filter");
+                }}
+              />
+
+              <EditorTool
+                icon={<Download />}
+                label="Save"
+                onClick={handleDownload}
+              />
+            </div>
+          );
+        })()}
+
 
         {/* TEXT PANEL */}
 
         {showTextInput && (
-          <div className="absolute top-20 left-4 right-20 z-[60] bg-black/80 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <input
               autoFocus
               value={overlayText}
@@ -2783,7 +2805,7 @@ export function MomentCreatePage() {
         {/* CROP PANEL */}
 
         {cropMode && (
-          <div className="absolute bottom-8 left-4 right-4 z-[70] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <p className="text-[11px] text-white/60 mb-3">
               Drag the corners to crop freely
             </p>
@@ -2865,7 +2887,7 @@ export function MomentCreatePage() {
         {/* DRAW PANEL */}
 
         {drawMode && (
-          <div className="absolute top-20 left-4 z-[60] bg-black/80 backdrop-blur-xl rounded-3xl p-4">
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <div className="flex gap-2 mb-3">
               {[
                 "#ffffff",
@@ -2931,13 +2953,22 @@ export function MomentCreatePage() {
               >
                 Clear
               </button>
+              <button
+                onClick={() => setDrawMode(false)}
+                className="ml-auto px-5 rounded-xl bg-white text-black text-xs font-black"
+              >
+                Done
+              </button>
             </div>
           </div>
+
         )}
 
-        {/* STICKER PANEL */}
+        {/* STICKER DRAWER */}
 
-        <div className="absolute bottom-32 left-4 right-4 z-50 flex gap-2 overflow-x-auto pb-2">
+        {panel === "sticker" && (
+        <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10 flex gap-2 overflow-x-auto no-scrollbar">
+
           {[
             "❤️",
             "😂",
@@ -2963,39 +2994,44 @@ export function MomentCreatePage() {
             </button>
           ))}
         </div>
+        )}
 
-        {/* FILTERS */}
 
-        <div className="absolute bottom-48 left-0 right-0 z-50 overflow-x-auto px-4">
-          <div className="flex gap-3">
-            {(
-              Object.keys(
-                FILTERS
-              ) as FilterName[]
-            ).map((filter) => (
-              <button
-                key={filter}
-                onClick={() =>
-                  setSelectedFilter(
-                    filter
-                  )
-                }
-                className={`px-4 py-2 rounded-full whitespace-nowrap text-xs font-bold backdrop-blur-xl ${
-                  selectedFilter ===
-                  filter
-                    ? "bg-white text-black"
-                    : "bg-black/60"
-                }`}
-              >
-                {FILTERS[filter].name}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* FILTERS + ADJUSTMENTS DRAWER */}
 
-        {/* ADJUSTMENTS */}
+        {panel === "filter" && (
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl px-4 pt-4 pb-8 border-t border-white/10">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
 
-        <div className="absolute bottom-20 left-4 right-4 z-50 flex gap-3 overflow-x-auto">
+            <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
+              <div className="flex gap-3">
+                {(
+                  Object.keys(
+                    FILTERS
+                  ) as FilterName[]
+                ).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() =>
+                      setSelectedFilter(
+                        filter
+                      )
+                    }
+                    className={`px-4 py-2 rounded-full whitespace-nowrap text-xs font-bold ${
+                      selectedFilter ===
+                      filter
+                        ? "bg-white text-black"
+                        : "bg-white/10"
+                    }`}
+                  >
+                    {FILTERS[filter].name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 flex gap-3 overflow-x-auto no-scrollbar">
+
           <Adjust
             icon={<Sun />}
             value={brightness}
@@ -3056,7 +3092,17 @@ export function MomentCreatePage() {
               </button>
             </>
           )}
-        </div>
+            </div>
+
+            <button
+              onClick={() => setPanel(null)}
+              className="mt-4 w-full py-2.5 rounded-full bg-white text-black text-xs font-black"
+            >
+              Done
+            </button>
+          </div>
+        )}
+
 
         {/* AUDIO */}
 
@@ -3164,7 +3210,7 @@ export function MomentCreatePage() {
         {/* MUSIC TRIM PANEL */}
 
         {showMusicPanel && audioUrl && (
-          <div className="absolute bottom-28 left-4 right-4 z-[80] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <div className="flex items-center gap-2 mb-3">
               <button
                 onClick={
@@ -3301,7 +3347,9 @@ export function MomentCreatePage() {
 
         {/* CAPTION + NEXT */}
 
-        <div className="absolute bottom-4 left-4 right-4 z-[70] flex gap-2">
+        {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
+        <div className="absolute bottom-0 left-0 right-0 z-[70] flex gap-2 px-4 pb-6 pt-5 bg-gradient-to-t from-black via-black/70 to-transparent backdrop-blur-md">
+
           <input
             value={caption}
             onChange={(e) =>
@@ -3325,6 +3373,8 @@ export function MomentCreatePage() {
             />
           </button>
         </div>
+        )}
+
       </div>
     );
   }
