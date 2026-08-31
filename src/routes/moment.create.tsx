@@ -18,6 +18,8 @@ import {
   Download,
   Star,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Camera,
   Check,
   Lock,
@@ -2000,6 +2002,12 @@ export function MomentCreatePage() {
       to: "/moment",
     });
   };
+
+  // =====================================================
+  const [showExtraTools, setShowExtraTools] =
+    useState(false);
+  const [snapDuration, setSnapDuration] =
+    useState<3 | 5 | 10 | null>(null);
 
   // =====================================================
   // CAMERA SCREEN
