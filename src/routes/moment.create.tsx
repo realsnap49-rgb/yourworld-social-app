@@ -366,6 +366,11 @@ export function MomentCreatePage() {
     useState(false);
   const [panel, setPanel] =
     useState<null | "sticker" | "filter">(null);
+  const [showFinalPreview, setShowFinalPreview] =
+    useState(false);
+  const [photoSeconds, setPhotoSeconds] =
+    useState(15);
+
 
 
   const previewAudioRef =
@@ -1979,7 +1984,12 @@ export function MomentCreatePage() {
           ? audioVolume
           : undefined,
         stickers: [],
-        trim: part.trim,
+        trim:
+          part.trim ??
+          (!isVideo && audioUrl
+            ? { start: 0, end: photoSeconds }
+            : undefined),
+
         mentions: [],
         privacy:
           audience ===
@@ -2661,18 +2671,8 @@ export function MomentCreatePage() {
                 }}
               />
 
-              <EditorTool
-                icon={<Music />}
-                label="Sounds"
-                active={showMusicPanel}
-                onClick={() => {
-                  const next = showMusicPanel;
-                  closeAll();
-                  if (next) return;
-                  if (audioUrl) setShowMusicPanel(true);
-                  else setShowMusicLibrary(true);
-                }}
-              />
+
+
 
               <EditorTool
                 icon={<Crop />}
@@ -2720,11 +2720,7 @@ export function MomentCreatePage() {
                 }
               />
 
-              <EditorTool
-                icon={<Download />}
-                label="Save"
-                onClick={handleDownload}
-              />
+
             </div>
           );
         })()}
@@ -3526,7 +3522,7 @@ export function MomentCreatePage() {
 
           <button
             onClick={() =>
-              setStep(2)
+              setShowFinalPreview(true)
             }
             className="px-5 py-3 rounded-full bg-zinc-800/90 backdrop-blur-xl border border-white/10 text-sm font-bold active:scale-95"
           >
@@ -3535,7 +3531,7 @@ export function MomentCreatePage() {
 
           <button
             onClick={() =>
-              setStep(2)
+              setShowFinalPreview(true)
             }
             className="px-6 py-3 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black text-sm flex items-center gap-1.5 active:scale-95"
           >
@@ -3546,6 +3542,94 @@ export function MomentCreatePage() {
           </button>
         </div>
         )}
+
+        {/* FINAL PREVIEW */}
+
+        {showFinalPreview && (
+          <div className="fixed inset-0 z-[120] bg-black flex flex-col">
+            <div className="flex items-center justify-between px-4 pt-5 pb-3">
+              <button
+                onClick={() => setShowFinalPreview(false)}
+                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+                aria-label="Back to editor"
+              >
+                <X size={18} />
+              </button>
+              <span className="text-sm font-black uppercase tracking-wide">
+                Preview
+              </span>
+              <span className="w-11" />
+            </div>
+
+            <div className="flex-1 min-h-0 flex items-center justify-center px-4">
+              <div className="relative w-full h-full max-h-full rounded-2xl overflow-hidden bg-zinc-900">
+                {mediaUrl && isVideo ? (
+                  <video
+                    src={mediaUrl}
+                    className="w-full h-full object-contain"
+                    style={getMediaStyle()}
+                    autoPlay
+                    loop
+                    playsInline
+                    muted={!!audioUrl}
+                  />
+                ) : mediaUrl ? (
+                  <img
+                    src={mediaUrl}
+                    alt="Moment preview"
+                    className="w-full h-full object-contain"
+                    style={getMediaStyle()}
+                  />
+                ) : null}
+
+                {caption && (
+                  <div className="absolute bottom-4 left-4 right-4 text-center text-sm font-semibold bg-black/60 backdrop-blur-xl rounded-2xl px-4 py-2">
+                    {caption}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="px-4 pb-6 pt-3 space-y-3">
+              {selectedAudio && (
+                <p className="text-xs text-white/70 font-semibold">
+                  🎵 {selectedAudio}
+                </p>
+              )}
+
+              {!isVideo && audioUrl && (
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold mb-1">
+                    <span>Photo duration</span>
+                    <span>{photoSeconds}s</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={40}
+                    step={1}
+                    value={photoSeconds}
+                    onChange={(e) =>
+                      setPhotoSeconds(Number(e.target.value))
+                    }
+                    className="w-full accent-pink-500"
+                  />
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setShowFinalPreview(false);
+                  setStep(2);
+                }}
+                className="w-full py-3.5 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black text-sm active:scale-95"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
 
       </div>
     );
