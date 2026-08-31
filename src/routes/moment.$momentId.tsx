@@ -491,7 +491,15 @@ function MomentViewRoute() {
             paused ? "pointer-events-none opacity-0" : "opacity-100",
           )}
         >
-          <div className="flex items-center gap-2.5">
+          <div
+            className="pointer-events-auto flex cursor-pointer items-center gap-2.5"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (current.mine) void navigate({ to: "/profile" });
+              else if (current.author?.id)
+                void navigate({ to: "/u/$userId", params: { userId: current.author.id } });
+            }}
+          >
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border-2 border-white/50 bg-neutral-800">
               {current.author?.avatar ? (
                 <img src={current.author.avatar} className="h-full w-full object-cover" alt="" />
@@ -567,14 +575,19 @@ function MomentViewRoute() {
                 type="button"
                 aria-label="Send reply"
                 disabled={!reply.trim() || replying}
-                onClick={() => {
+                onClick={async () => {
                   const text = reply.trim();
                   if (!text) return;
                   setReplying(true);
-                  addReply(current.id, text);
                   setReply("");
+                  const res = await addReply(current.id, text);
                   setReplying(false);
-                  toast.success("Reply sent");
+                  if (res?.error) {
+                    toast.error("Couldn't send reply");
+                    setReply(text);
+                  } else {
+                    toast.success("Reply sent");
+                  }
                 }}
                 className="text-white disabled:opacity-40"
               >
