@@ -16,7 +16,6 @@ import {
   Archive,
   MapPin,
   ChevronUp,
-  Music2,
   Plus,
 } from "lucide-react";
 import { downloadMomentMedia } from "@/lib/yw-download";
@@ -388,18 +387,13 @@ function MomentViewRoute() {
               {current.text}
             </p>
           ) : null}
-          <div className="absolute inset-x-4 bottom-16 flex flex-wrap items-center justify-center gap-2">
-            {current.location ? (
+          {current.location ? (
+            <div className="absolute inset-x-4 bottom-16 flex flex-wrap items-center justify-center gap-2">
               <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
                 <MapPin className="h-3 w-3" /> {current.location}
               </span>
-            ) : null}
-            {current.music ? (
-              <span className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
-                <Music2 className="h-3 w-3" /> {current.music}
-              </span>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
 
         {/* POLL */}
@@ -498,10 +492,14 @@ function MomentViewRoute() {
           )}
         >
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 overflow-hidden rounded-full border-2 border-white/50 bg-neutral-800">
+            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border-2 border-white/50 bg-neutral-800">
               {current.author?.avatar ? (
                 <img src={current.author.avatar} className="h-full w-full object-cover" alt="" />
-              ) : null}
+              ) : (
+                <span className="text-sm font-bold text-white/80">
+                  {(current.author?.name || current.author?.username || "Y")[0]?.toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-white drop-shadow-md">
@@ -651,6 +649,7 @@ function MomentViewRoute() {
                 aria-label="Delete moment"
                 onClick={() => {
                   deleteMoment(current.id);
+                  toast.success("Moment deleted successfully");
                   navigate({ to: "/", replace: true });
                 }}
                 className="rounded-full border border-white/20 bg-black/50 p-2.5 text-white backdrop-blur-md active:scale-90"
