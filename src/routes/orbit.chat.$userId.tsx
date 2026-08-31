@@ -513,35 +513,46 @@ function OrbitChatPage() {
     toast.success("Chat cleared");
   };
 
-  const toggleSecretLock = async () => {
-    if (secretLock) {
-      const pin = window.prompt("Enter the chat PIN to remove Secret Lock:");
-      if (!pin || !secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, pin)) !== secretPinHash) {
-        toast.error("Incorrect PIN");
+  const toggleSecretLock = () => {
+    setPinError(null);
+    setPinMode(secretLock ? "remove" : "set");
+  };
+
+  const submitPin = async (pin: string) => {
+    try {
+      if (pinMode === "remove") {
+        if (!pin || !secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, pin)) !== secretPinHash) {
+          setPinError("Incorrect PIN");
+          return;
+        }
+        await saveSecretChatLock(userId, false, null, null);
+        setSecretLock(false);
+        setSecretPinSalt(null);
+        setSecretPinHash(null);
+        setChatUnlocked(true);
+        setPinMode(null);
+        toast.success("Secret Lock removed");
         return;
       }
-      await saveSecretChatLock(userId, false, null, null);
-      setSecretLock(false);
-      setSecretPinSalt(null);
-      setSecretPinHash(null);
+      if (!/^\d{4,8}$/.test(pin)) {
+        setPinError("Use a 4–8 digit PIN");
+        return;
+      }
+      const salt = randomPinSalt();
+      const hash = await hashPin(salt, pin);
+      await saveSecretChatLock(userId, true, salt, hash);
+      setSecretPinSalt(salt);
+      setSecretPinHash(hash);
+      setSecretLock(true);
       setChatUnlocked(true);
-      toast.success("Secret Lock removed");
-      return;
+      setPinMode(null);
+      toast.success("Secret Lock enabled");
+    } catch (err) {
+      console.error("[secret-lock] save failed", err);
+      setPinError("Couldn't save. Check your connection and try again.");
     }
-    const pin = window.prompt("Create a 4–8 digit PIN for this chat:");
-    if (!pin || !/^\d{4,8}$/.test(pin)) {
-      toast.error("Use a 4–8 digit PIN");
-      return;
-    }
-    const salt = randomPinSalt();
-    const hash = await hashPin(salt, pin);
-    await saveSecretChatLock(userId, true, salt, hash);
-    setSecretPinSalt(salt);
-    setSecretPinHash(hash);
-    setSecretLock(true);
-    setChatUnlocked(true);
-    toast.success("Secret Lock enabled");
   };
+
 
   const reportUser = async () => {
     if (reported) {
