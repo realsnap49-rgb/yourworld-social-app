@@ -48,6 +48,7 @@ import { currentUser } from "@/lib/yw-data";
 import { supabase } from "@/integrations/supabase/client";
 import { saveChatDisplayName, setChatNameLocal, useChatNames } from "@/lib/chat-names";
 import { saveSecretChatLock } from "@/lib/secret-chats";
+import { PinDialog } from "@/components/yw/PinDialog";
 
 export const Route = createFileRoute("/orbit/chat/$userId")({
   head: () => ({
@@ -213,6 +214,10 @@ function OrbitChatPage() {
   const [secretPinHash, setSecretPinHash] = useState<string | null>(null);
   const [chatUnlocked, setChatUnlocked] = useState(true);
   const [unlockPin, setUnlockPin] = useState("");
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [pinMode, setPinMode] = useState<"set" | "remove" | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [autoDeleteOpen, setAutoDeleteOpen] = useState(false);
@@ -513,35 +518,46 @@ function OrbitChatPage() {
     toast.success("Chat cleared");
   };
 
-  const toggleSecretLock = async () => {
-    if (secretLock) {
-      const pin = window.prompt("Enter the chat PIN to remove Secret Lock:");
-      if (!pin || !secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, pin)) !== secretPinHash) {
-        toast.error("Incorrect PIN");
+  const toggleSecretLock = () => {
+    setPinError(null);
+    setPinMode(secretLock ? "remove" : "set");
+  };
+
+  const submitPin = async (pin: string) => {
+    try {
+      if (pinMode === "remove") {
+        if (!pin || !secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, pin)) !== secretPinHash) {
+          setPinError("Incorrect PIN");
+          return;
+        }
+        await saveSecretChatLock(userId, false, null, null);
+        setSecretLock(false);
+        setSecretPinSalt(null);
+        setSecretPinHash(null);
+        setChatUnlocked(true);
+        setPinMode(null);
+        toast.success("Secret Lock removed");
         return;
       }
-      await saveSecretChatLock(userId, false, null, null);
-      setSecretLock(false);
-      setSecretPinSalt(null);
-      setSecretPinHash(null);
+      if (!/^\d{4,8}$/.test(pin)) {
+        setPinError("Use a 4–8 digit PIN");
+        return;
+      }
+      const salt = randomPinSalt();
+      const hash = await hashPin(salt, pin);
+      await saveSecretChatLock(userId, true, salt, hash);
+      setSecretPinSalt(salt);
+      setSecretPinHash(hash);
+      setSecretLock(true);
       setChatUnlocked(true);
-      toast.success("Secret Lock removed");
-      return;
+      setPinMode(null);
+      toast.success("Secret Lock enabled");
+    } catch (err) {
+      console.error("[secret-lock] save failed", err);
+      setPinError("Couldn't save. Check your connection and try again.");
     }
-    const pin = window.prompt("Create a 4–8 digit PIN for this chat:");
-    if (!pin || !/^\d{4,8}$/.test(pin)) {
-      toast.error("Use a 4–8 digit PIN");
-      return;
-    }
-    const salt = randomPinSalt();
-    const hash = await hashPin(salt, pin);
-    await saveSecretChatLock(userId, true, salt, hash);
-    setSecretPinSalt(salt);
-    setSecretPinHash(hash);
-    setSecretLock(true);
-    setChatUnlocked(true);
-    toast.success("Secret Lock enabled");
   };
+
 
   const reportUser = async () => {
     if (reported) {
@@ -828,9 +844,11 @@ function OrbitChatPage() {
               event.preventDefault();
               void (async () => {
                 if (!secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, unlockPin)) !== secretPinHash) {
-                  toast.error("Incorrect PIN");
+                  setUnlockError("Incorrect PIN");
+                  setUnlockPin("");
                   return;
                 }
+                setUnlockError(null);
                 setChatUnlocked(true);
                 setUnlockPin("");
               })();
@@ -843,17 +861,33 @@ function OrbitChatPage() {
             </div>
             <input
               value={unlockPin}
-              onChange={(event) => setUnlockPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+              onChange={(event) => { setUnlockPin(event.target.value.replace(/\D/g, "").slice(0, 8)); setUnlockError(null); }}
               inputMode="numeric"
               type="password"
               autoFocus
               aria-label="Secret chat PIN"
               className="h-12 w-full rounded-xl bg-secondary px-4 text-center text-lg outline-none"
             />
+            {unlockError && <p className="text-xs font-medium text-destructive">{unlockError}</p>}
             <button type="submit" className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground">Unlock</button>
           </form>
         </div>
       )}
+
+      <PinDialog
+        open={pinMode !== null}
+        title={pinMode === "remove" ? "Remove Secret Lock" : "Create chat PIN"}
+        description={
+          pinMode === "remove"
+            ? "Enter the PIN for this chat to remove the lock."
+            : "Choose a 4–8 digit PIN. You'll need it to open this chat."
+        }
+        confirmLabel={pinMode === "remove" ? "Remove" : "Lock chat"}
+        error={pinError}
+        onCancel={() => { setPinMode(null); setPinError(null); }}
+        onSubmit={(pin) => void submitPin(pin)}
+      />
+
 
       {selectMode && (
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-secondary/60 px-4 py-2">

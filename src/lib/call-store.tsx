@@ -152,6 +152,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [speakerOn, setSpeakerOn] = useState(true);
   const hideTimer = useRef<number | null>(null);
+  // Cancels a call that is never answered so neither side rings forever.
+  const ringTimer = useRef<number | null>(null);
+
 
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -164,6 +167,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteStream = useRef<MediaStream | null>(null);
   /** Call ids we've already reacted to (broadcast + database ring paths). */
   const seenCalls = useRef<Set<string>>(new Set());
+  /** Remember handled call ids without growing the set forever. */
+  const markSeen = useCallback((id: string) => {
+    const set = seenCalls.current;
+    set.add(id);
+    if (set.size > 200) {
+      for (const k of Array.from(set).slice(0, set.size - 200)) set.delete(k);
+    }
+  }, []);
   /** Set when the peer connection reaches "connected" — used for call duration. */
   const connectedAt = useRef<number | null>(null);
   /** Ensures the call-log chat message is written exactly once per call. */
@@ -246,7 +257,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(hideTimer.current);
       hideTimer.current = null;
     }
+    if (ringTimer.current) {
+      window.clearTimeout(ringTimer.current);
+      ringTimer.current = null;
+    }
+    connectedAt.current = null;
     pendingIce.current = [];
+
     setPhase("idle");
     setCall(null);
     setMicOn(true);
@@ -314,6 +331,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const phaseRef = useRef<Phase>("idle");
   useEffect(() => { phaseRef.current = phase; }, [phase]);
+
+  // An unanswered incoming call must stop ringing on its own too, otherwise the
+  // full-screen call UI can get stuck when the caller disappears.
+  useEffect(() => {
+    if (phase !== "incoming") return;
+    const t = window.setTimeout(() => {
+      toast.message("Missed call");
+      teardown();
+    }, 45_000);
+    return () => window.clearTimeout(t);
+  }, [phase, teardown]);
+
   const callRef = useRef<CallState | null>(null);
   useEffect(() => { callRef.current = call; }, [call]);
   const meRef = useRef<string | null>(null);
@@ -480,10 +509,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             console.error("[call] signal error", err);
           }
-        }).subscribe((status) => {
-          if (status === "SUBSCRIBED") resolve();
+        });
+
+        // Never leave callers awaiting forever: resolve on any terminal
+        // subscription status and after a hard timeout as well.
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        const guard = setTimeout(done, 8000);
+        ch.subscribe((status) => {
+          if (
+            status === "SUBSCRIBED" ||
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
+            clearTimeout(guard);
+            done();
+          }
         });
       }),
+
     [createPeer, flushIce, getMedia, signal, teardown, logCallOutcome],
   );
 
@@ -515,7 +564,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (!payload?.callId || seenCalls.current.has(payload.callId)) return;
         // Only accept rings whose signalling topic we are actually a participant of.
         if (!String(payload.callId).includes(me)) return;
-        seenCalls.current.add(payload.callId);
+        markSeen(payload.callId);
         if (pcRef.current || phaseRef.current !== "idle") {
           // already busy — tell the caller
           void httpBroadcast(`rtc-${payload.callId}`, "signal", { type: "decline" });
@@ -578,7 +627,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", wake);
       if (ch) void supabase.removeChannel(ch);
     };
-  }, [me, teardown, httpBroadcast]);
+  }, [me, teardown, httpBroadcast, markSeen]);
 
 
   /* ---------- durable ring listener (database, works app-wide) ---------- */
@@ -597,7 +646,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           // Ignore stale rows (e.g. replayed after a reconnect).
           const age = Date.now() - new Date(String(row.created_at)).getTime();
           if (age > 60_000) return;
-          seenCalls.current.add(callId);
+          markSeen(callId);
           if (pcRef.current || phaseRef.current !== "idle") {
             void supabase.from("calls").update({ status: "declined" }).eq("call_id", callId);
             void httpBroadcast(`rtc-${callId}`, "signal", { type: "decline" });
@@ -635,7 +684,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [authId, teardown, httpBroadcast]);
+  }, [authId, teardown, httpBroadcast, markSeen]);
 
 
   /* ---------- start an outgoing call ---------- */
@@ -688,7 +737,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await openSignalChannel(callId, mode, true);
 
       const ringPayload = { callId, mode, fromId: me, fromName: myName, threadId };
-      seenCalls.current.add(callId);
+      markSeen(callId);
       // Durable ring: a row the callee's realtime subscription always receives,
       // so the incoming-call screen pops app-wide (WhatsApp / Instagram style).
       if (!isGuest) {
@@ -714,25 +763,46 @@ export function CallProvider({ children }: { children: ReactNode }) {
         sent++;
         void httpBroadcast(`calls-user-${target}`, "ring", ringPayload);
       }, 1500);
+
+      // Stop ringing after 45s instead of hanging on the calling screen.
+      if (ringTimer.current) window.clearTimeout(ringTimer.current);
+      ringTimer.current = window.setTimeout(() => {
+        ringTimer.current = null;
+        if (phaseRef.current !== "outgoing") return;
+        window.clearInterval(timer);
+        toast.message("No answer");
+        void httpBroadcast(`calls-user-${target}`, "cancel", { callId });
+        void supabase.from("calls").update({ status: "cancelled" }).eq("call_id", callId);
+        void logCallOutcome("missed");
+        teardown();
+      }, 45_000);
     },
-    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast],
+    [me, isGuest, getMedia, createPeer, openSignalChannel, teardown, httpBroadcast, logCallOutcome, markSeen],
 
   );
 
   const accept = useCallback(async () => {
     if (!call) return;
+    if (ringTimer.current) {
+      window.clearTimeout(ringTimer.current);
+      ringTimer.current = null;
+    }
     setPhase("connecting");
     try {
       await getMedia(call.mode);
     } catch {
       toast.error("Camera / microphone permission denied");
+      void supabase.from("calls").update({ status: "declined" }).eq("call_id", call.callId);
       teardown();
       return;
     }
     createPeer(localStream.current!);
     await openSignalChannel(call.callId, call.mode, false);
     signal({ type: "accept" });
+    // Mark the durable row so the caller's devices stop ringing everywhere.
+    void supabase.from("calls").update({ status: "accepted" }).eq("call_id", call.callId);
   }, [call, getMedia, createPeer, openSignalChannel, signal, teardown]);
+
 
   const hangup = useCallback(async () => {
     if (call && phase === "incoming") {

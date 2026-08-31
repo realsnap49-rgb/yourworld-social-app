@@ -23,6 +23,7 @@ import { useCall } from "@/lib/call-store";
 import { useChatNames, saveChatDisplayName } from "@/lib/chat-names";
 import { useChatSettings } from "@/lib/chat-settings";
 import { hashPin, randomPinSalt, saveSecretChatLock } from "@/lib/secret-chats";
+import { PinDialog } from "@/components/yw/PinDialog";
 
 export const Route = createFileRoute("/_authenticated/chat/$threadId")({
   component: ChatThreadPage,
@@ -235,38 +236,54 @@ export function ChatThreadPage() {
   const secretLock = settings.secretLock;
   const [chatUnlocked, setChatUnlocked] = useState(false);
   const [unlockPin, setUnlockPin] = useState("");
-  const toggleSecretLock = async () => {
-    const peerId = peer.peerId;
-    if (!peerId) {
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [pinMode, setPinMode] = useState<"set" | "remove" | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  const toggleSecretLock = () => {
+    if (!peer.peerId) {
       pushSystem("Chat is still loading");
       return;
     }
-    if (secretLock) {
-      const pin = window.prompt("Enter the chat PIN to remove Secret Lock:");
-      const salt = settings.secretPinSalt;
-      const hash = settings.secretPinHash;
-      if (!pin || !salt || !hash || (await hashPin(salt, pin)) !== hash) {
-        pushSystem("Incorrect PIN");
+    setPinError(null);
+    setPinMode(secretLock ? "remove" : "set");
+  };
+
+  const submitPin = async (pin: string) => {
+    const peerId = peer.peerId;
+    if (!peerId) return;
+    try {
+      if (pinMode === "remove") {
+        const salt = settings.secretPinSalt;
+        const hash = settings.secretPinHash;
+        if (!pin || !salt || !hash || (await hashPin(salt, pin)) !== hash) {
+          setPinError("Incorrect PIN");
+          return;
+        }
+        await saveSecretChatLock(peerId, false, null, null);
+        patch({ secretLock: false, secretPinSalt: null, secretPinHash: null });
+        setChatUnlocked(true);
+        setPinMode(null);
+        pushSystem("Secret lock disabled");
         return;
       }
-      await saveSecretChatLock(peerId, false, null, null);
-      patch({ secretLock: false, secretPinSalt: null, secretPinHash: null });
+      if (!/^\d{4,8}$/.test(pin)) {
+        setPinError("Use a 4-8 digit PIN");
+        return;
+      }
+      const salt = randomPinSalt();
+      const hash = await hashPin(salt, pin);
+      await saveSecretChatLock(peerId, true, salt, hash);
+      patch({ secretLock: true, secretPinSalt: salt, secretPinHash: hash });
       setChatUnlocked(true);
-      pushSystem("Secret lock disabled");
-      return;
+      setPinMode(null);
+      pushSystem("Secret lock enabled");
+    } catch (err) {
+      console.error("[secret-lock] save failed", err);
+      setPinError("Couldn't save. Check your connection and try again.");
     }
-    const pin = window.prompt("Create a 4-8 digit PIN for this chat:");
-    if (!pin || !/^\d{4,8}$/.test(pin)) {
-      pushSystem("Use a 4-8 digit PIN");
-      return;
-    }
-    const salt = randomPinSalt();
-    const hash = await hashPin(salt, pin);
-    await saveSecretChatLock(peerId, true, salt, hash);
-    patch({ secretLock: true, secretPinSalt: salt, secretPinHash: hash });
-    setChatUnlocked(true);
-    pushSystem("Secret lock enabled");
   };
+
   const viewOnce = settings.viewOnce;
   const autoDelete = settings.autoDelete;
   const screenshotAlert = settings.screenshotAlert;
@@ -452,7 +469,12 @@ export function ChatThreadPage() {
               void (async () => {
                 const salt = settings.secretPinSalt;
                 const hash = settings.secretPinHash;
-                if (!salt || !hash || (await hashPin(salt, unlockPin)) !== hash) return;
+                if (!salt || !hash || (await hashPin(salt, unlockPin)) !== hash) {
+                  setUnlockError("Incorrect PIN");
+                  setUnlockPin("");
+                  return;
+                }
+                setUnlockError(null);
                 setChatUnlocked(true);
                 setUnlockPin("");
               })();
@@ -465,14 +487,16 @@ export function ChatThreadPage() {
             </div>
             <input
               value={unlockPin}
-              onChange={(e) => setUnlockPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              onChange={(e) => { setUnlockPin(e.target.value.replace(/\D/g, "").slice(0, 8)); setUnlockError(null); }}
               inputMode="numeric"
               type="password"
               autoFocus
               aria-label="Secret chat PIN"
               className="h-12 w-full rounded-xl bg-zinc-900 px-4 text-center text-lg outline-none"
             />
+            {unlockError && <p className="text-xs font-medium text-red-400">{unlockError}</p>}
             <button type="submit" className="h-11 w-full rounded-xl bg-purple-600 text-sm font-bold">Unlock</button>
+
           </form>
         </div>
       ) : null}
@@ -1186,7 +1210,21 @@ export function ChatThreadPage() {
     </div>
   </div>
 )}
+    <PinDialog
+      open={pinMode !== null}
+      title={pinMode === "remove" ? "Remove Secret Lock" : "Create chat PIN"}
+      description={
+        pinMode === "remove"
+          ? "Enter the PIN for this chat to remove the lock."
+          : "Choose a 4-8 digit PIN. You'll need it to open this chat."
+      }
+      confirmLabel={pinMode === "remove" ? "Remove" : "Lock chat"}
+      error={pinError}
+      onCancel={() => { setPinMode(null); setPinError(null); }}
+      onSubmit={(pin) => void submitPin(pin)}
+    />
     </>
+
   );
 }
 
