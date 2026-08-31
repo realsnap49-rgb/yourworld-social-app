@@ -2545,85 +2545,104 @@ export function MomentCreatePage() {
           </div>
         </div>
 
-        {/* EDITOR TOOLS */}
+        {/* RIGHT TOOLS DOCK */}
 
-        <div className="absolute right-3 top-20 z-50 flex flex-col gap-2">
-          <EditorTool
-            icon={<Type />}
-            label="Text"
-            active={showTextInput}
-            onClick={addText}
-          />
+        {(() => {
+          const closeAll = () => {
+            setShowTextInput(false);
+            setDrawMode(false);
+            setCropMode(false);
+            setShowMusicPanel(false);
+            setPanel(null);
+          };
 
-          <EditorTool
-            icon={<Smile />}
-            label="Sticker"
-            onClick={() =>
-              addSticker("❤️")
-            }
-          />
+          return (
+            <div className="absolute right-3 top-20 z-[85] flex flex-col gap-2.5">
+              <EditorTool
+                icon={<Type />}
+                label="Text"
+                active={showTextInput}
+                onClick={() => {
+                  closeAll();
+                  addText();
+                }}
+              />
 
-          <EditorTool
-            icon={<Pencil />}
-            label="Draw"
-            active={drawMode}
-            onClick={() =>
-              setDrawMode(
-                (value) => !value
-              )
-            }
-          />
+              <EditorTool
+                icon={<Smile />}
+                label="Sticker"
+                active={panel === "sticker"}
+                onClick={() => {
+                  const next = panel === "sticker";
+                  closeAll();
+                  if (!next) setPanel("sticker");
+                }}
+              />
 
-          <EditorTool
-            icon={<Crop />}
-            label="Crop"
-            active={cropMode}
-            onClick={() => {
-              setShowTextInput(
-                false
-              );
-              setDrawMode(false);
-              setCropDraft(
-                cropRect
-              );
-              setCropMode(
-                (value) => !value
-              );
-            }}
-          />
+              <EditorTool
+                icon={<Pencil />}
+                label="Draw"
+                active={drawMode}
+                onClick={() => {
+                  const next = drawMode;
+                  closeAll();
+                  if (!next) setDrawMode(true);
+                }}
+              />
 
-          <EditorTool
-            icon={<RotateCcw />}
-            label="Rotate"
-            onClick={rotateMedia}
-          />
+              <EditorTool
+                icon={<Crop />}
+                label="Crop"
+                active={cropMode}
+                onClick={() => {
+                  const next = cropMode;
+                  closeAll();
+                  if (!next) {
+                    setCropDraft(cropRect);
+                    setCropMode(true);
+                  }
+                }}
+              />
 
-          <EditorTool
-            icon={<Music />}
-            label="Music"
-            active={showMusicPanel}
-            onClick={() => {
-              if (audioUrl) {
-                setShowMusicPanel(
-                  (v) => !v
-                );
-              } else {
-                setShowMusicLibrary(
-                  true
-                );
-              }
-            }}
-          />
+              <EditorTool
+                icon={<RotateCcw />}
+                label="Rotate"
+                onClick={rotateMedia}
+              />
 
+              <EditorTool
+                icon={<Music />}
+                label="Music"
+                active={showMusicPanel}
+                onClick={() => {
+                  const next = showMusicPanel;
+                  closeAll();
+                  if (next) return;
+                  if (audioUrl) setShowMusicPanel(true);
+                  else setShowMusicLibrary(true);
+                }}
+              />
 
-          <EditorTool
-            icon={<Download />}
-            label="Save"
-            onClick={
-              handleDownload
-            }
-          />
-        </div>
+              <EditorTool
+                icon={<Palette />}
+                label="Filters"
+                active={panel === "filter"}
+                onClick={() => {
+                  const next = panel === "filter";
+                  closeAll();
+                  if (!next) setPanel("filter");
+                }}
+              />
+
+              <EditorTool
+                icon={<Download />}
+                label="Save"
+                onClick={handleDownload}
+              />
+            </div>
+          );
+        })()}
+
 
         {/* TEXT PANEL */}
 
