@@ -406,47 +406,26 @@ function ProfilePage() {
       </Sheet>
 
       <Dialog open={!!manage && editing} onOpenChange={(o) => !o && setEditing(false)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{manage?.kind === "reel" ? "Edit reel" : "Edit post"}</DialogTitle>
-          </DialogHeader>
-          {manage ? (
-            <div className="space-y-3">
-              <div className="overflow-hidden rounded-xl bg-secondary">
-                {manage.media_type?.startsWith("video") ? (
-                  <video
-                    src={src(manage.media_url)}
-                    controls
-                    playsInline
-                    className="max-h-56 w-full object-contain"
-                  />
-                ) : (
-                  <img src={src(manage.media_url)} alt="" className="max-h-56 w-full object-contain" />
-                )}
-              </div>
-              <Textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="Write a caption…"
-                rows={3}
-              />
-            </div>
-          ) : null}
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button
-              variant="ghost"
-              className="text-destructive"
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+        <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+          <DialogHeader className="grid grid-cols-[auto_1fr_auto] items-center border-b border-border px-4 py-3 text-center">
+            <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setEditing(false)}>
+              Cancel
             </Button>
+            <DialogTitle className="text-sm font-semibold">
+              Edit {manage?.kind === "reel" ? "reel" : "post"}
+            </DialogTitle>
             <Button
+              size="sm"
+              className="h-8 rounded-full px-4"
               disabled={busy}
               onClick={async () => {
                 if (!manage) return;
                 setBusy(true);
                 try {
-                  await updateMyPost(manage.id, { caption });
+                  await updateMyPost(manage.id, {
+                    caption,
+                    location: location.trim() || null,
+                  });
                   toast.success("Updated");
                   setEditing(false);
                   setManage(null);
@@ -458,9 +437,80 @@ function ProfilePage() {
                 }
               }}
             >
-              Save
+              {busy ? "Saving…" : "Done"}
             </Button>
-          </DialogFooter>
+          </DialogHeader>
+          {manage ? (
+            <div className="max-h-[75vh] overflow-y-auto">
+              <div className="relative bg-secondary">
+                {manage.media_type?.startsWith("video") ? (
+                  <video
+                    src={src(manage.media_url)}
+                    controls
+                    playsInline
+                    className="max-h-64 w-full object-contain"
+                  />
+                ) : (
+                  <img src={src(manage.media_url)} alt="" className="max-h-64 w-full object-contain" />
+                )}
+              </div>
+              <div className="space-y-1 px-4 py-3">
+                <div className="flex items-start gap-3 py-1.5">
+                  {avatarSrc ? (
+                    <img src={avatarSrc} alt="" className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <YwAvatar user={avatarUser} size={36} />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="pb-1 text-sm font-semibold">@{profile.username || "you"}</p>
+                    <Textarea
+                      value={caption}
+                      onChange={(e) => setCaption(e.target.value.slice(0, 2200))}
+                      placeholder="Write a caption…"
+                      rows={4}
+                      className="resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
+                    />
+                    <p className="pt-1 text-right text-[11px] text-muted-foreground">
+                      {caption.length}/2,200
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 border-t border-border py-3">
+                  <MapPin className="h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <input
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Add location"
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="flex items-center justify-between border-t border-border py-3">
+                  <div>
+                    <p className="text-sm">Hide like count to others</p>
+                    <p className="text-xs text-muted-foreground">Only you will see total likes.</p>
+                  </div>
+                  <Switch
+                    checked={!!manage.hide_like_count}
+                    onCheckedChange={(v) =>
+                      patchManaged({ hide_like_count: v }, v ? "Like count hidden" : "Like count visible")
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between border-t border-border py-3">
+                  <div>
+                    <p className="text-sm">Turn off commenting</p>
+                    <p className="text-xs text-muted-foreground">No one can comment on this post.</p>
+                  </div>
+                  <Switch
+                    checked={!!manage.comments_off}
+                    onCheckedChange={(v) =>
+                      patchManaged({ comments_off: v }, v ? "Commenting turned off" : "Commenting turned on")
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
 
