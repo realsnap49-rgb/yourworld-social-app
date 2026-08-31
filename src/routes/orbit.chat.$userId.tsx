@@ -843,9 +843,11 @@ function OrbitChatPage() {
               event.preventDefault();
               void (async () => {
                 if (!secretPinSalt || !secretPinHash || (await hashPin(secretPinSalt, unlockPin)) !== secretPinHash) {
-                  toast.error("Incorrect PIN");
+                  setUnlockError("Incorrect PIN");
+                  setUnlockPin("");
                   return;
                 }
+                setUnlockError(null);
                 setChatUnlocked(true);
                 setUnlockPin("");
               })();
@@ -858,17 +860,33 @@ function OrbitChatPage() {
             </div>
             <input
               value={unlockPin}
-              onChange={(event) => setUnlockPin(event.target.value.replace(/\D/g, "").slice(0, 8))}
+              onChange={(event) => { setUnlockPin(event.target.value.replace(/\D/g, "").slice(0, 8)); setUnlockError(null); }}
               inputMode="numeric"
               type="password"
               autoFocus
               aria-label="Secret chat PIN"
               className="h-12 w-full rounded-xl bg-secondary px-4 text-center text-lg outline-none"
             />
+            {unlockError && <p className="text-xs font-medium text-destructive">{unlockError}</p>}
             <button type="submit" className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground">Unlock</button>
           </form>
         </div>
       )}
+
+      <PinDialog
+        open={pinMode !== null}
+        title={pinMode === "remove" ? "Remove Secret Lock" : "Create chat PIN"}
+        description={
+          pinMode === "remove"
+            ? "Enter the PIN for this chat to remove the lock."
+            : "Choose a 4–8 digit PIN. You'll need it to open this chat."
+        }
+        confirmLabel={pinMode === "remove" ? "Remove" : "Lock chat"}
+        error={pinError}
+        onCancel={() => { setPinMode(null); setPinError(null); }}
+        onSubmit={(pin) => void submitPin(pin)}
+      />
+
 
       {selectMode && (
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-secondary/60 px-4 py-2">
