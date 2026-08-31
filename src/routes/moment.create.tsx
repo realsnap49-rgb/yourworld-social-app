@@ -3347,7 +3347,9 @@ export function MomentCreatePage() {
 
         {/* CAPTION + NEXT */}
 
-        <div className="absolute bottom-0 left-0 right-0 z-[70] flex gap-2 px-4 pb-5 pt-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-md">
+        {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
+        <div className="absolute bottom-0 left-0 right-0 z-[70] flex gap-2 px-4 pb-6 pt-5 bg-gradient-to-t from-black via-black/70 to-transparent backdrop-blur-md">
+
           <input
             value={caption}
             onChange={(e) =>
