@@ -2968,6 +2968,8 @@ export function MomentCreatePage() {
             </button>
           ))}
         </div>
+        )}
+
 
         {/* FILTERS + ADJUSTMENTS DRAWER */}
 
