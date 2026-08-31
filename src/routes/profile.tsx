@@ -371,10 +371,7 @@ function ProfilePage() {
               <OptionRow
                 icon={<Pencil className="h-5 w-5" />}
                 label="Edit"
-                onClick={() => {
-                  setCaption(manage.caption ?? "");
-                  setEditing(true);
-                }}
+                onClick={() => startEdit(manage)}
               />
               <OptionRow
                 icon={<Link2 className="h-5 w-5" />}
