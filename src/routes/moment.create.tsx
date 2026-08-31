@@ -366,6 +366,11 @@ export function MomentCreatePage() {
     useState(false);
   const [panel, setPanel] =
     useState<null | "sticker" | "filter">(null);
+  const [showFinalPreview, setShowFinalPreview] =
+    useState(false);
+  const [photoSeconds, setPhotoSeconds] =
+    useState(15);
+
 
 
   const previewAudioRef =
