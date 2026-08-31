@@ -8,10 +8,18 @@ import {
   MapPin,
   Link2,
   Trash2,
-  
+  Heart,
+  MessageCircleOff,
+  Send,
+  Pencil,
+  Pin,
+  PinOff,
+  Archive,
   MoreHorizontal,
-
 } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
