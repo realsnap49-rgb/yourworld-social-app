@@ -904,23 +904,45 @@ export function MomentCreatePage() {
     if (!video) return;
 
     const width =
-      video.videoWidth || 1920;
+      video.videoWidth || 1280;
 
     const height =
-      video.videoHeight || 1080;
+      video.videoHeight || 720;
 
+    // Reused offscreen canvas + desynchronized 2D context:
+    // no per-shot allocation, GPU-friendly, zero shutter lag.
     const canvas =
+      captureCanvasRef.current ||
       document.createElement(
         "canvas"
       );
 
-    canvas.width = width;
-    canvas.height = height;
+    captureCanvasRef.current =
+      canvas;
+
+    if (canvas.width !== width)
+      canvas.width = width;
+
+    if (canvas.height !== height)
+      canvas.height = height;
 
     const ctx =
-      canvas.getContext("2d");
+      canvas.getContext("2d", {
+        alpha: false,
+        desynchronized: true,
+        willReadFrequently: false,
+      }) as CanvasRenderingContext2D | null;
 
     if (!ctx) return;
+
+    ctx.setTransform(
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+    );
 
     if (facingMode === "user") {
       ctx.translate(width, 0);
@@ -950,7 +972,7 @@ export function MomentCreatePage() {
         setStep(1);
       },
       "image/jpeg",
-      0.98
+      0.92
     );
   };
 
