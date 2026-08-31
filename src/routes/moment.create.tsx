@@ -1066,7 +1066,8 @@ export function MomentCreatePage() {
       mediaRecorderRef.current =
         recorder;
 
-      recorder.start(200);
+      // Fewer, larger chunks = fewer main-thread interruptions.
+      recorder.start(1000);
 
       setIsRecording(true);
       setRecordingSeconds(0);
