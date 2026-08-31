@@ -3502,6 +3502,8 @@ export function MomentCreatePage() {
                     {mediaUrl && !isVideo ? (
                       <img
                         src={mediaUrl}
+                        decoding="async"
+                        loading="lazy"
                         alt={FILTERS[filter].name}
                         className="w-full h-full object-cover"
                         style={{
