@@ -174,7 +174,17 @@ export async function updateMyPost(
     archived?: boolean;
   },
 ) {
-  const next: Record<string, unknown> = {};
+  const next: {
+    caption?: string;
+    hashtags?: string[];
+    location?: string | null;
+    allow_download?: boolean;
+    hide_like_count?: boolean;
+    hide_share_count?: boolean;
+    comments_off?: boolean;
+    pinned?: boolean;
+    archived?: boolean;
+  } = {};
 
   if (patch.caption !== undefined) {
     next.caption = patch.caption;
