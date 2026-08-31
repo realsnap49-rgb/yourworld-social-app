@@ -360,6 +360,41 @@ export type Database = {
         }
         Relationships: []
       }
+      highlights: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          id: string
+          items: Json
+          title: string
+          user_id: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          title: string
+          user_id: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moment_replies: {
         Row: {
           created_at: string
