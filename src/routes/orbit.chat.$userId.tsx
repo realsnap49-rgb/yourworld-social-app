@@ -213,6 +213,10 @@ function OrbitChatPage() {
   const [secretPinHash, setSecretPinHash] = useState<string | null>(null);
   const [chatUnlocked, setChatUnlocked] = useState(true);
   const [unlockPin, setUnlockPin] = useState("");
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [pinMode, setPinMode] = useState<"set" | "remove" | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [autoDeleteOpen, setAutoDeleteOpen] = useState(false);
