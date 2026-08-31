@@ -2786,7 +2786,7 @@ export function MomentCreatePage() {
         {/* CROP PANEL */}
 
         {cropMode && (
-          <div className="absolute bottom-8 left-4 right-4 z-[70] bg-black/85 backdrop-blur-xl rounded-3xl p-4 border border-white/10">
+          <div className="absolute bottom-0 left-0 right-0 z-[80] bg-black/90 backdrop-blur-2xl rounded-t-3xl p-4 pb-8 border-t border-white/10">
             <p className="text-[11px] text-white/60 mb-3">
               Drag the corners to crop freely
             </p>
