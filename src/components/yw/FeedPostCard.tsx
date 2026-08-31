@@ -359,7 +359,7 @@ function FeedPostCardBase({
         </div>
 
         <div className="flex items-center gap-3 text-xs font-bold text-white">
-          <span>{formatCount(post.likeCount)} likes</span>
+          {!post.hide_like_count && <span>{formatCount(post.likeCount)} likes</span>}
           <span className="flex items-center gap-1 font-medium text-zinc-400">
             <Eye size={13} /> {formatCount(views)}
           </span>
