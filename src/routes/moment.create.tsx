@@ -2940,6 +2940,14 @@ export function MomentCreatePage() {
               </button>
 
               <button
+                onClick={rotateMedia}
+                className="px-4 py-3 rounded-2xl bg-white/10 text-xs font-bold flex items-center gap-1.5"
+              >
+                <RotateCcw size={14} />
+                Rotate
+              </button>
+
+              <button
                 onClick={() => {
                   setCropDraft(
                     cropRect
@@ -3431,11 +3439,65 @@ export function MomentCreatePage() {
         )}
 
 
-        {/* CAPTION + NEXT */}
+        {/* FILTER THUMBNAILS ROW */}
 
         {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
-        <div className="absolute bottom-0 left-0 right-0 z-[70] flex gap-2 px-4 pb-6 pt-5 bg-gradient-to-t from-black via-black/70 to-transparent backdrop-blur-md">
+          <div className="absolute bottom-40 left-0 right-0 z-[65] px-4">
+            <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
+              {(
+                Object.keys(
+                  FILTERS
+                ) as FilterName[]
+              ).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() =>
+                    setSelectedFilter(filter)
+                  }
+                  className="flex flex-col items-center gap-1 shrink-0"
+                >
+                  <span
+                    className={`w-14 h-14 rounded-full overflow-hidden border-2 bg-zinc-800 ${
+                      selectedFilter === filter
+                        ? "border-white"
+                        : "border-white/30"
+                    }`}
+                  >
+                    {mediaUrl && !isVideo ? (
+                      <img
+                        src={mediaUrl}
+                        alt={FILTERS[filter].name}
+                        className="w-full h-full object-cover"
+                        style={{
+                          filter:
+                            FILTERS[filter].css ||
+                            undefined,
+                        }}
+                      />
+                    ) : (
+                      <span
+                        className="block w-full h-full bg-gradient-to-br from-zinc-600 to-zinc-900"
+                        style={{
+                          filter:
+                            FILTERS[filter].css ||
+                            undefined,
+                        }}
+                      />
+                    )}
+                  </span>
+                  <span className="text-[9px] font-semibold text-white/85">
+                    {FILTERS[filter].name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
+        {/* CAPTION */}
+
+        {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
+        <div className="absolute bottom-24 left-0 right-0 z-[70] px-4">
           <input
             value={caption}
             onChange={(e) =>
@@ -3444,18 +3506,42 @@ export function MomentCreatePage() {
               )
             }
             placeholder="Add a caption..."
-            className="flex-1 bg-black/70 backdrop-blur-xl border border-white/10 rounded-full px-5 py-4 outline-none text-sm"
+            className="w-full bg-black/70 backdrop-blur-xl border border-white/10 rounded-full px-5 py-3.5 outline-none text-sm"
           />
+        </div>
+        )}
+
+        {/* BOTTOM NAV BAR */}
+
+        {!(showTextInput || drawMode || cropMode || showMusicPanel || panel) && (
+        <div className="absolute bottom-0 left-0 right-0 z-[70] flex items-center justify-between gap-3 px-4 pb-6 pt-4 bg-gradient-to-t from-black via-black/70 to-transparent backdrop-blur-md">
+
+          <button
+            onClick={handleDownload}
+            aria-label="Download"
+            className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 flex items-center justify-center active:scale-95"
+          >
+            <Download size={20} />
+          </button>
 
           <button
             onClick={() =>
               setStep(2)
             }
-            className="px-6 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black flex items-center gap-1"
+            className="px-5 py-3 rounded-full bg-zinc-800/90 backdrop-blur-xl border border-white/10 text-sm font-bold active:scale-95"
           >
-            Next
+            + Stories
+          </button>
+
+          <button
+            onClick={() =>
+              setStep(2)
+            }
+            className="px-6 py-3 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-pink-600 font-black text-sm flex items-center gap-1.5 active:scale-95"
+          >
+            Send to
             <ChevronRight
-              size={20}
+              size={18}
             />
           </button>
         </div>
@@ -3772,14 +3858,21 @@ function EditorTool({
   return (
     <button
       onClick={onClick}
-      className={`w-12 h-12 rounded-2xl backdrop-blur-xl flex items-center justify-center ${
-        active
-          ? "bg-white text-black"
-          : "bg-black/60 text-white"
-      }`}
+      className="flex items-center gap-2"
       title={label}
     >
-      {icon}
+      <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+        {label}
+      </span>
+      <span
+        className={`w-10 h-10 rounded-full backdrop-blur-xl flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5 ${
+          active
+            ? "bg-white text-black"
+            : "bg-black/50 text-white"
+        }`}
+      >
+        {icon}
+      </span>
     </button>
   );
 }
