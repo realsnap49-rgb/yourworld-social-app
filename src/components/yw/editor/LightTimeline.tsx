@@ -29,6 +29,9 @@ export interface LightTimelineProps {
   audioTrack?: AudioTrackState | null;
   onAudioChange?: (next: AudioTrackState) => void;
   onAudioRemove?: () => void;
+  /** per-clip caption/text overlay labels rendered on the yellow text track */
+  textLabels?: (string | undefined)[];
+  onEditText?: (index: number) => void;
 }
 
 const CELL = 112;
