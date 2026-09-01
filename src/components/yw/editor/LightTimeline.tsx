@@ -135,6 +135,8 @@ function LightTimelineBase({
   audioTrack,
   onAudioChange,
   onAudioRemove,
+  textLabels,
+  onEditText,
 }: LightTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userScrollRef = useRef(false);
