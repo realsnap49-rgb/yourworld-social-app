@@ -300,7 +300,28 @@ function LightTimelineBase({
             contain: "paint",
           }}
         >
-          {/* video track — continuous, zero gaps, white dividers */}
+          {/* TRACK 1 — text / captions */}
+          <div className="flex items-center h-6 mb-1" style={{ willChange: "transform" }}>
+            {clips.map((clip, i) => {
+              const label = textLabels?.[i];
+              return (
+                <button
+                  key={`t_${clip.id || i}`}
+                  onClick={() => onEditText?.(i)}
+                  style={{ width: CELL }}
+                  className={`relative h-6 flex-shrink-0 mr-[2px] rounded-[4px] px-2 text-left text-[9px] font-black truncate transition ${
+                    label
+                      ? "bg-yellow-400 text-black"
+                      : "bg-yellow-400/15 text-yellow-500/80 border border-dashed border-yellow-400/40"
+                  }`}
+                >
+                  {label || "Add text"}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* TRACK 2 — video track: continuous, zero gaps, white dividers */}
           <div className="flex items-center h-16" style={{ willChange: "transform" }}>
 
             {clips.map((clip, i) => {
