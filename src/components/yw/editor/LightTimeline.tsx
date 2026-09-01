@@ -309,7 +309,7 @@ function LightTimelineBase({
                   key={`t_${clip.id || i}`}
                   onClick={() => onEditText?.(i)}
                   style={{ width: CELL }}
-                  className={`relative h-6 flex-shrink-0 mr-[2px] rounded-[4px] px-2 text-left text-[9px] font-black truncate transition ${
+                  className={`relative h-6 flex-shrink-0 rounded-[4px] border-r-2 border-background px-2 text-left text-[9px] font-black truncate transition ${
                     label
                       ? "bg-yellow-400 text-black"
                       : "bg-yellow-400/15 text-yellow-500/80 border border-dashed border-yellow-400/40"
