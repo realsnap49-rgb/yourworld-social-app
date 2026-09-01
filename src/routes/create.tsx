@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Pause, Scissors, Gauge, Volume2,
   Sparkles, Captions, Trash2, Copy, RotateCw,
   Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop, SplitSquareHorizontal,
-  PictureInPicture2, Upload,
+  PictureInPicture2, Upload, Maximize2, Minimize2, Ratio,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
@@ -62,15 +62,12 @@ type ToolId =
   | "TRIM" | "MUSIC" | "FILTER" | "EFFECT" | "TEXT" | "STICKER" | "PIP" | "SPEED" | "CROP";
 
 const TOOL_MENU: { id: ToolId; label: string; Icon: React.ComponentType<{ size?: number }> }[] = [
-  { id: "TRIM", label: "Trim", Icon: Scissors },
-  { id: "MUSIC", label: "Music", Icon: Music },
-  { id: "FILTER", label: "Filter", Icon: Sliders },
-  { id: "EFFECT", label: "Effect", Icon: Sparkles },
+  { id: "TRIM", label: "Split", Icon: SplitSquareHorizontal },
   { id: "TEXT", label: "Text", Icon: Type },
-  { id: "STICKER", label: "Sticker", Icon: Smile },
-  { id: "PIP", label: "PIP", Icon: PictureInPicture2 },
+  { id: "MUSIC", label: "Audio", Icon: Music },
+  { id: "FILTER", label: "Filter", Icon: Sliders },
   { id: "SPEED", label: "Speed", Icon: Gauge },
-  { id: "CROP", label: "Crop", Icon: Crop },
+  { id: "CROP", label: "Ratio", Icon: Ratio },
 ];
 
 const fmtSec = (s: number) => {
@@ -99,6 +96,7 @@ export function CreateStudioPage() {
   const [exportStage, setExportStage] = useState<"choose" | "saving" | "done">("choose");
   const [exportProgress, setExportProgress] = useState(0);
   const [posting, setPosting] = useState(false);
+  const [previewFull, setPreviewFull] = useState(false);
 
   const startExport = () => {
     setExportStage("saving");
