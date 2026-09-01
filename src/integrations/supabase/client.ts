@@ -39,9 +39,14 @@ function createSupabaseClient() {
       ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
       ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
     ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    console.error(`[Supabase] Missing environment variable(s): ${missing.join(', ')}. Rendering app in offline mode.`);
+    // Safe fallback: return a stub client pointing at a placeholder so the
+    // app renders instead of crashing. All requests will fail gracefully.
+    return createClient<Database>(
+      'https://placeholder.supabase.co',
+      'placeholder-anon-key',
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
