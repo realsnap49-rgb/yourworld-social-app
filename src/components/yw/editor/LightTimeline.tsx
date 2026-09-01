@@ -282,9 +282,9 @@ function LightTimelineBase({
 
       <div className="relative">
         {/* fixed center playhead */}
-        <div className="pointer-events-none absolute left-1/2 top-0 bottom-0 z-20 -translate-x-1/2">
-          <div className="h-full w-[2px] rounded-full bg-gradient-to-b from-orange-400 via-orange-500 to-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.55)]" />
-          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-orange-500 shadow" />
+        <div className="pointer-events-none absolute left-1/2 top-0 bottom-0 z-30 -translate-x-1/2">
+          <div className="h-full w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-white shadow" />
         </div>
 
         <div
