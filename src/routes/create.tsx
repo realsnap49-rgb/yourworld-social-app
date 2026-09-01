@@ -878,9 +878,24 @@ export function CreateStudioPage() {
 
 
 
-          {/* FULL-WIDTH VIDEO CANVAS */}
+          {/* CENTERED 9:16 PREVIEW */}
           <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-black overflow-hidden">
-            <div ref={stageRef} className="relative h-full w-full flex items-center justify-center touch-none">
+            <button
+              onClick={() => setPreviewFull((v) => !v)}
+              aria-label={previewFull ? "Exit fullscreen" : "Fullscreen preview"}
+              className="absolute right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white backdrop-blur-md active:scale-90 transition"
+            >
+              {previewFull ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <div
+              ref={stageRef}
+              className={`relative flex items-center justify-center touch-none overflow-hidden bg-black will-change-transform ${
+                previewFull
+                  ? "h-full w-full"
+                  : "h-full max-h-full aspect-[9/16] max-w-full rounded-2xl shadow-[0_10px_40px_-20px_rgba(0,0,0,0.9)]"
+              }`}
+              style={{ transform: "translateZ(0)" }}
+            >
               <video
                 ref={videoRef}
                 autoPlay
