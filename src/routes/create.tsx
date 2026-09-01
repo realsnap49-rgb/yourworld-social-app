@@ -962,38 +962,54 @@ export function CreateStudioPage() {
             </div>
           </div>
 
-          {/* PLAY CONTROLS DIRECTLY BELOW CANVAS */}
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-card/95 backdrop-blur-xl border-t border-border">
-            <div className="flex items-center gap-3">
+          {/* PLAYBACK ROW */}
+          <div className="flex-shrink-0 grid grid-cols-3 items-center px-4 py-2 bg-card/95 backdrop-blur-xl border-t border-border">
+            <div className="flex items-center gap-1.5">
+              {[
+                { key: "del", Icon: Trash2, label: "Delete clip", onClick: handleDelete, danger: true },
+                { key: "split", Icon: Scissors, label: "Split clip at playhead", onClick: handleSplit },
+              ].map((b) => (
+                <button
+                  key={b.key}
+                  onClick={b.onClick}
+                  aria-label={b.label}
+                  className={`grid h-9 w-9 place-items-center rounded-full bg-muted/60 transition-transform duration-150 ease-out active:scale-90 ${
+                    b.danger ? "text-destructive" : "text-foreground"
+                  }`}
+                >
+                  <b.Icon size={16} />
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col items-center gap-0.5">
               <button
                 onClick={togglePlay}
-                className="w-10 h-10 rounded-full bg-gradient-to-b from-orange-400 to-orange-600 text-white flex items-center justify-center shadow-[0_6px_16px_-6px_rgba(249,115,22,0.9)] transition-transform duration-150 ease-out active:scale-90"
+                className="w-11 h-11 rounded-full bg-gradient-to-b from-orange-400 to-orange-600 text-white flex items-center justify-center shadow-[0_6px_16px_-6px_rgba(249,115,22,0.9)] transition-transform duration-150 ease-out active:scale-90"
                 aria-label={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} />}
               </button>
-              <span className="text-[11px] font-bold tabular-nums text-muted-foreground">
-                Clip {activeClipIndex + 1}/{clips.length} · {currentClip?.speed}x
+              <span className="text-[10px] font-black tabular-nums text-muted-foreground">
+                {fmtSec(currentTime)} / {fmtSec(totalDuration)}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+
+            <div className="flex items-center justify-end gap-1.5 text-muted-foreground">
               {[
                 { key: "undo", Icon: Undo2, label: "Undo", onClick: handleUndo, disabled: !canUndo },
                 { key: "redo", Icon: Redo2, label: "Redo", onClick: handleRedo, disabled: !canRedo },
-                { key: "split", Icon: SplitSquareHorizontal, label: "Split clip at playhead", onClick: handleSplit },
-                { key: "dup", Icon: Copy, label: "Duplicate clip", onClick: handleDuplicate },
-                { key: "del", Icon: Trash2, label: "Delete clip", onClick: handleDelete, danger: true },
               ].map((b) => (
                 <button
                   key={b.key}
                   onClick={b.onClick}
                   disabled={b.disabled}
                   aria-label={b.label}
-                  className={`grid h-8 w-8 place-items-center rounded-full bg-muted/60 transition-transform duration-150 ease-out active:scale-90 ${
-                    b.disabled ? "opacity-35" : b.danger ? "text-destructive" : "text-foreground"
+                  className={`grid h-9 w-9 place-items-center rounded-full bg-muted/60 text-foreground transition-transform duration-150 ease-out active:scale-90 ${
+                    b.disabled ? "opacity-35" : ""
                   }`}
                 >
-                  <b.Icon size={15} />
+                  <b.Icon size={16} />
                 </button>
               ))}
             </div>
