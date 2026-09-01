@@ -198,22 +198,49 @@ export function useLongVideos() {
   const [me, setMe] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData.session?.user.id ?? null;
+    let uid: string | null = null;
+    try {
+      const { data: sessionData } = await withTimeout(
+        supabase.auth.getSession(),
+        4000,
+        { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
+      );
+      uid = sessionData.session?.user.id ?? null;
+    } catch {
+      uid = null; // offline: keep rendering, just unauthenticated
+    }
     setMe(uid);
 
-    const { data: posts } = await supabase
-      .from("posts")
-      .select("*")
-      .eq("kind", "video")
-      .order("created_at", { ascending: false })
-      .limit(30);
+    let posts: any[] | null = null;
+    try {
+      const res = await withTimeout(
+        supabase
+          .from("posts")
+          .select("*")
+          .eq("kind", "video")
+          .order("created_at", { ascending: false })
+          .limit(30) as unknown as Promise<{ data: any[] | null }>,
+        6000,
+        { data: null },
+      );
+      posts = res.data;
+    } catch {
+      posts = null;
+    }
 
-    if (!posts?.length) {
+    if (!posts) {
+      // Backend unreachable — show offline demo content instead of a spinner.
+      setVideos((prev) => (prev.length ? prev : OFFLINE_LONG_VIDEOS));
+      setLoading(false);
+      return;
+    }
+
+    if (!posts.length) {
       setVideos([]);
       setLoading(false);
       return;
     }
+
 
     const now = Date.now();
     const visible = posts.filter(
