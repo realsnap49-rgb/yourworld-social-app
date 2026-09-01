@@ -92,7 +92,7 @@ function Waveform({
     const slice = peaks.slice(a, b);
     const bars = Math.min(slice.length, Math.floor(w / 3));
     const bucket = Math.max(1, Math.floor(slice.length / Math.max(1, bars)));
-    ctx.fillStyle = "rgba(5, 150, 105, 0.85)";
+    ctx.fillStyle = "rgba(20, 184, 166, 0.9)";
     for (let i = 0; i < bars; i++) {
       let max = 0;
       for (let j = 0; j < bucket; j++) {
@@ -186,12 +186,12 @@ export function AudioTrackLane({
     <div className="mt-1" style={{ minWidth: width }}>
       <div
         ref={laneRef}
-        className="relative h-10 rounded-md bg-emerald-500/10 border border-emerald-500/30 overflow-hidden"
+        className="relative h-10 rounded-md bg-teal-500/10 border border-teal-500/30 overflow-hidden"
         style={{ width }}
       >
         <div
           onPointerDown={drag("move")}
-          className="absolute inset-y-0 bg-emerald-500/25 border border-emerald-600/50 rounded-md touch-none cursor-grab overflow-hidden"
+          className="absolute inset-y-0 bg-teal-500/25 border border-teal-600/50 rounded-md touch-none cursor-grab overflow-hidden"
           style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
         >
           <Waveform
@@ -201,20 +201,20 @@ export function AudioTrackLane({
             duration={track.duration || track.clipEnd}
           />
           <div className="absolute inset-x-0 top-0 flex items-center gap-1 px-4 pointer-events-none">
-            <Music2 className="w-2.5 h-2.5 text-emerald-800 flex-shrink-0" />
-            <span className="text-[9px] font-black text-emerald-900 truncate">
+            <Music2 className="w-2.5 h-2.5 text-teal-800 flex-shrink-0" />
+            <span className="text-[9px] font-black text-teal-900 truncate">
               {track.title}
             </span>
           </div>
           <div
             onPointerDown={drag("left")}
-            className="absolute left-0 inset-y-0 w-3 bg-emerald-600 cursor-ew-resize touch-none flex items-center justify-center"
+            className="absolute left-0 inset-y-0 w-3 bg-teal-600 cursor-ew-resize touch-none flex items-center justify-center"
           >
             <span className="h-4 w-[2px] bg-white/80 rounded" />
           </div>
           <div
             onPointerDown={drag("right")}
-            className="absolute right-0 inset-y-0 w-3 bg-emerald-600 cursor-ew-resize touch-none flex items-center justify-center"
+            className="absolute right-0 inset-y-0 w-3 bg-teal-600 cursor-ew-resize touch-none flex items-center justify-center"
           >
             <span className="h-4 w-[2px] bg-white/80 rounded" />
           </div>
@@ -226,7 +226,7 @@ export function AudioTrackLane({
           {track.start.toFixed(1)}s
         </span>
         <div className="flex items-center gap-2">
-          <button onClick={onPick} className="text-[9px] font-black uppercase text-emerald-700">
+          <button onClick={onPick} className="text-[9px] font-black uppercase text-teal-700">
             Change
           </button>
           <button onClick={onRemove} className="text-destructive" aria-label="Remove audio">

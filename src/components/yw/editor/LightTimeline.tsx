@@ -393,7 +393,14 @@ function LightTimelineBase({
                       #{i + 1} · {clipLen(clip).toFixed(1)}s
                     </span>
                   </div>
-                  {i > 0 && <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-background" />}
+                  {i > 0 && (
+                    <>
+                      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-background" />
+                      <span className="pointer-events-none absolute left-0 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 grid h-4 w-4 place-items-center rounded-[3px] bg-background/90 text-[9px] font-black text-foreground shadow">
+                        &#10905;
+                      </span>
+                    </>
+                  )}
 
                   {/* trimmed-out shading */}
                   <div className="absolute inset-y-0 left-0 bg-background/70 pointer-events-none" style={{ width: `${startPct}%` }} />
@@ -421,9 +428,16 @@ function LightTimelineBase({
               );
 
             })}
+            <button
+              onClick={() => onAdd?.()}
+              aria-label="Add clip"
+              className="h-16 w-12 flex-shrink-0 grid place-items-center bg-muted/60 text-muted-foreground border-l-2 border-background active:scale-95 transition"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* dedicated audio track with waveform trim */}
+          {/* TRACK 3 — audio track with waveform trim */}
           <AudioTrackLane
             track={audioTrack ?? null}
             totalDuration={totalDuration}
