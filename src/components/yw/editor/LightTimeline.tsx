@@ -29,6 +29,9 @@ export interface LightTimelineProps {
   audioTrack?: AudioTrackState | null;
   onAudioChange?: (next: AudioTrackState) => void;
   onAudioRemove?: () => void;
+  /** per-clip caption/text overlay labels rendered on the yellow text track */
+  textLabels?: (string | undefined)[];
+  onEditText?: (index: number) => void;
 }
 
 const CELL = 112;
@@ -132,6 +135,8 @@ function LightTimelineBase({
   audioTrack,
   onAudioChange,
   onAudioRemove,
+  textLabels,
+  onEditText,
 }: LightTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userScrollRef = useRef(false);
@@ -277,9 +282,9 @@ function LightTimelineBase({
 
       <div className="relative">
         {/* fixed center playhead */}
-        <div className="pointer-events-none absolute left-1/2 top-0 bottom-0 z-20 -translate-x-1/2">
-          <div className="h-full w-[2px] rounded-full bg-gradient-to-b from-orange-400 via-orange-500 to-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.55)]" />
-          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-orange-500 shadow" />
+        <div className="pointer-events-none absolute left-1/2 top-0 bottom-0 z-30 -translate-x-1/2">
+          <div className="h-full w-[2px] rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-white shadow" />
         </div>
 
         <div
@@ -295,7 +300,28 @@ function LightTimelineBase({
             contain: "paint",
           }}
         >
-          {/* video track — continuous, zero gaps, white dividers */}
+          {/* TRACK 1 — text / captions */}
+          <div className="flex items-center h-6 mb-1" style={{ willChange: "transform" }}>
+            {clips.map((clip, i) => {
+              const label = textLabels?.[i];
+              return (
+                <button
+                  key={`t_${clip.id || i}`}
+                  onClick={() => onEditText?.(i)}
+                  style={{ width: CELL }}
+                  className={`relative h-6 flex-shrink-0 rounded-[4px] border-r-2 border-background px-2 text-left text-[9px] font-black truncate transition ${
+                    label
+                      ? "bg-yellow-400 text-black"
+                      : "bg-yellow-400/15 text-yellow-500/80 border border-dashed border-yellow-400/40"
+                  }`}
+                >
+                  {label || "Add text"}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* TRACK 2 — video track: continuous, zero gaps, white dividers */}
           <div className="flex items-center h-16" style={{ willChange: "transform" }}>
 
             {clips.map((clip, i) => {
@@ -367,7 +393,14 @@ function LightTimelineBase({
                       #{i + 1} · {clipLen(clip).toFixed(1)}s
                     </span>
                   </div>
-                  {i > 0 && <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-background" />}
+                  {i > 0 && (
+                    <>
+                      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-background" />
+                      <span className="pointer-events-none absolute left-0 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 grid h-4 w-4 place-items-center rounded-[3px] bg-background/90 text-[9px] font-black text-foreground shadow">
+                        &#10905;
+                      </span>
+                    </>
+                  )}
 
                   {/* trimmed-out shading */}
                   <div className="absolute inset-y-0 left-0 bg-background/70 pointer-events-none" style={{ width: `${startPct}%` }} />
@@ -395,9 +428,16 @@ function LightTimelineBase({
               );
 
             })}
+            <button
+              onClick={() => onAdd?.()}
+              aria-label="Add clip"
+              className="h-16 w-12 flex-shrink-0 grid place-items-center bg-muted/60 text-muted-foreground border-l-2 border-background active:scale-95 transition"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* dedicated audio track with waveform trim */}
+          {/* TRACK 3 — audio track with waveform trim */}
           <AudioTrackLane
             track={audioTrack ?? null}
             totalDuration={totalDuration}

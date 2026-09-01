@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Pause, Scissors, Gauge, Volume2,
   Sparkles, Captions, Trash2, Copy, RotateCw,
   Music, Type, Smile, Sliders, Download, Undo2, Redo2, Crop, SplitSquareHorizontal,
-  PictureInPicture2, Upload,
+  PictureInPicture2, Upload, Maximize2, Minimize2, Ratio,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/yw/CameraCapture";
@@ -62,15 +62,12 @@ type ToolId =
   | "TRIM" | "MUSIC" | "FILTER" | "EFFECT" | "TEXT" | "STICKER" | "PIP" | "SPEED" | "CROP";
 
 const TOOL_MENU: { id: ToolId; label: string; Icon: React.ComponentType<{ size?: number }> }[] = [
-  { id: "TRIM", label: "Trim", Icon: Scissors },
-  { id: "MUSIC", label: "Music", Icon: Music },
-  { id: "FILTER", label: "Filter", Icon: Sliders },
-  { id: "EFFECT", label: "Effect", Icon: Sparkles },
+  { id: "TRIM", label: "Split", Icon: SplitSquareHorizontal },
   { id: "TEXT", label: "Text", Icon: Type },
-  { id: "STICKER", label: "Sticker", Icon: Smile },
-  { id: "PIP", label: "PIP", Icon: PictureInPicture2 },
+  { id: "MUSIC", label: "Audio", Icon: Music },
+  { id: "FILTER", label: "Filter", Icon: Sliders },
   { id: "SPEED", label: "Speed", Icon: Gauge },
-  { id: "CROP", label: "Crop", Icon: Crop },
+  { id: "CROP", label: "Ratio", Icon: Ratio },
 ];
 
 const fmtSec = (s: number) => {
@@ -99,6 +96,7 @@ export function CreateStudioPage() {
   const [exportStage, setExportStage] = useState<"choose" | "saving" | "done">("choose");
   const [exportProgress, setExportProgress] = useState(0);
   const [posting, setPosting] = useState(false);
+  const [previewFull, setPreviewFull] = useState(false);
 
   const startExport = () => {
     setExportStage("saving");
@@ -878,9 +876,24 @@ export function CreateStudioPage() {
 
 
 
-          {/* FULL-WIDTH VIDEO CANVAS */}
+          {/* CENTERED 9:16 PREVIEW */}
           <div className="flex-1 min-h-0 w-full flex items-center justify-center relative bg-black overflow-hidden">
-            <div ref={stageRef} className="relative h-full w-full flex items-center justify-center touch-none">
+            <button
+              onClick={() => setPreviewFull((v) => !v)}
+              aria-label={previewFull ? "Exit fullscreen" : "Fullscreen preview"}
+              className="absolute right-3 top-3 z-30 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white backdrop-blur-md active:scale-90 transition"
+            >
+              {previewFull ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <div
+              ref={stageRef}
+              className={`relative flex items-center justify-center touch-none overflow-hidden bg-black will-change-transform ${
+                previewFull
+                  ? "h-full w-full"
+                  : "h-full max-h-full aspect-[9/16] max-w-full rounded-2xl shadow-[0_10px_40px_-20px_rgba(0,0,0,0.9)]"
+              }`}
+              style={{ transform: "translateZ(0)" }}
+            >
               <video
                 ref={videoRef}
                 autoPlay
@@ -949,38 +962,54 @@ export function CreateStudioPage() {
             </div>
           </div>
 
-          {/* PLAY CONTROLS DIRECTLY BELOW CANVAS */}
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-card/95 backdrop-blur-xl border-t border-border">
-            <div className="flex items-center gap-3">
+          {/* PLAYBACK ROW */}
+          <div className="flex-shrink-0 grid grid-cols-3 items-center px-4 py-2 bg-card/95 backdrop-blur-xl border-t border-border">
+            <div className="flex items-center gap-1.5">
+              {[
+                { key: "del", Icon: Trash2, label: "Delete clip", onClick: handleDelete, danger: true },
+                { key: "split", Icon: Scissors, label: "Split clip at playhead", onClick: handleSplit },
+              ].map((b) => (
+                <button
+                  key={b.key}
+                  onClick={b.onClick}
+                  aria-label={b.label}
+                  className={`grid h-9 w-9 place-items-center rounded-full bg-muted/60 transition-transform duration-150 ease-out active:scale-90 ${
+                    b.danger ? "text-destructive" : "text-foreground"
+                  }`}
+                >
+                  <b.Icon size={16} />
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col items-center gap-0.5">
               <button
                 onClick={togglePlay}
-                className="w-10 h-10 rounded-full bg-gradient-to-b from-orange-400 to-orange-600 text-white flex items-center justify-center shadow-[0_6px_16px_-6px_rgba(249,115,22,0.9)] transition-transform duration-150 ease-out active:scale-90"
+                className="w-11 h-11 rounded-full bg-gradient-to-b from-orange-400 to-orange-600 text-white flex items-center justify-center shadow-[0_6px_16px_-6px_rgba(249,115,22,0.9)] transition-transform duration-150 ease-out active:scale-90"
                 aria-label={isPlaying ? "Pause" : "Play"}
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} />}
               </button>
-              <span className="text-[11px] font-bold tabular-nums text-muted-foreground">
-                Clip {activeClipIndex + 1}/{clips.length} · {currentClip?.speed}x
+              <span className="text-[10px] font-black tabular-nums text-muted-foreground">
+                {fmtSec(currentTime)} / {fmtSec(totalDuration)}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+
+            <div className="flex items-center justify-end gap-1.5 text-muted-foreground">
               {[
                 { key: "undo", Icon: Undo2, label: "Undo", onClick: handleUndo, disabled: !canUndo },
                 { key: "redo", Icon: Redo2, label: "Redo", onClick: handleRedo, disabled: !canRedo },
-                { key: "split", Icon: SplitSquareHorizontal, label: "Split clip at playhead", onClick: handleSplit },
-                { key: "dup", Icon: Copy, label: "Duplicate clip", onClick: handleDuplicate },
-                { key: "del", Icon: Trash2, label: "Delete clip", onClick: handleDelete, danger: true },
               ].map((b) => (
                 <button
                   key={b.key}
                   onClick={b.onClick}
                   disabled={b.disabled}
                   aria-label={b.label}
-                  className={`grid h-8 w-8 place-items-center rounded-full bg-muted/60 transition-transform duration-150 ease-out active:scale-90 ${
-                    b.disabled ? "opacity-35" : b.danger ? "text-destructive" : "text-foreground"
+                  className={`grid h-9 w-9 place-items-center rounded-full bg-muted/60 text-foreground transition-transform duration-150 ease-out active:scale-90 ${
+                    b.disabled ? "opacity-35" : ""
                   }`}
                 >
-                  <b.Icon size={15} />
+                  <b.Icon size={16} />
                 </button>
               ))}
             </div>
@@ -1179,6 +1208,12 @@ export function CreateStudioPage() {
               playFraction={playFraction}
               isPlaying={isPlaying}
               audioLabel={audioTrack?.title}
+              textLabels={clips.map((c) => c.textOverlay || undefined)}
+              onEditText={(i) => {
+                setActiveClipIndex(i);
+                setCustomTextInput(clips[i]?.textOverlay ?? "");
+                setActiveToolPanel("TEXT");
+              }}
               audioTrack={audioTrack}
               onAudioChange={(next) => setAudioTrack(next)}
               onAudioRemove={() => setAudioTrack(null)}
