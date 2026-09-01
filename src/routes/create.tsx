@@ -1208,6 +1208,12 @@ export function CreateStudioPage() {
               playFraction={playFraction}
               isPlaying={isPlaying}
               audioLabel={audioTrack?.title}
+              textLabels={clips.map((c) => c.textOverlay || undefined)}
+              onEditText={(i) => {
+                setActiveClipIndex(i);
+                setCustomTextInput(clips[i]?.textOverlay ?? "");
+                setActiveToolPanel("TEXT");
+              }}
               audioTrack={audioTrack}
               onAudioChange={(next) => setAudioTrack(next)}
               onAudioRemove={() => setAudioTrack(null)}
